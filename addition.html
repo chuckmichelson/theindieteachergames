@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Addition</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="start-screen">
+        <h1>Addition</h1>
+        <br>
+        <p>Count the blocks and enter the sum...</p>
+        <button onclick="startGame()">Start</button>
+    </div>
+
+    <div id="game-screen" class="hidden">
+        <h1>Addition</h1>
+        <h1><span id="num1"></span> + <span id="num2"></span></h1>
+        <div id="number-line"></div>
+        <input type="number" id="answer" autofocus oninput="validateAnswer()">
+        <div id="summary" class="hidden"></div>
+    </div>
+
+    <script>
+        let n = 10; // Max single number, max sum = 20
+        let num1, num2, correctSum;
+
+        function startGame() {
+            document.getElementById("start-screen").classList.add("hidden");
+            document.getElementById("game-screen").classList.remove("hidden");
+            nextProblem();
+        }
+
+        function nextProblem() {
+            // Generate two random numbers between 1 and n
+            num1 = Math.floor(Math.random() * n) + 1;
+            num2 = Math.floor(Math.random() * n) + 1;
+            correctSum = num1 + num2;
+
+            // Update the problem text
+            document.getElementById("num1").textContent = num1;
+            document.getElementById("num2").textContent = num2;
+
+            // Clear input
+            let inputBox = document.getElementById("answer");
+            inputBox.value = "";
+            inputBox.style.backgroundColor = "white";
+
+            // Clear previous message
+            let summary = document.getElementById("summary");
+            summary.classList.add("hidden");
+            summary.innerHTML = "";
+
+            // Generate the visual number line
+            drawNumberLine();
+        }
+
+        function drawNumberLine() {
+            let numberLine = document.getElementById("number-line");
+            numberLine.innerHTML = ""; // Clear previous content
+
+            for (let i = 1; i <= correctSum; i++) {
+                let box = document.createElement("div");
+                box.classList.add("num-box");
+
+                // Color logic: First num1 boxes are blue, rest are yellow
+                if (i <= num1) {
+                    box.classList.add("blue-box");
+                } else {
+                    box.classList.add("yellow-box");
+                }
+
+                numberLine.appendChild(box);
+            }
+        }
+
+
+        function validateAnswer() {
+            let inputBox = document.getElementById("answer");
+            let value = parseInt(inputBox.value);
+
+            if (value === correctSum) {
+                inputBox.style.backgroundColor = "lightgreen";
+                document.getElementById("summary").classList.remove("hidden");
+                document.getElementById("summary").innerHTML = `<h2>Correct!</h2>`;
+                setTimeout(nextProblem, 2000);
+            } else if (inputBox.value === "") {
+                inputBox.style.backgroundColor = "white";
+            } else {
+                inputBox.style.backgroundColor = "orange";
+            }
+        }
+    </script>
+</body>
+</html>

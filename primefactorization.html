@@ -57,6 +57,7 @@
             });
         }
 
+
         function validateInput(index, value) {
             let inputBox = document.querySelector(`input[data-index='${index}']`);
             
@@ -66,6 +67,12 @@
                 inputBox.classList.add("correct");
                 inputBox.readOnly = true; // Lock correct input
                 userInputs[index] = parseInt(value);
+
+                // Move cursor to next available input box
+                let nextInput = document.querySelector(`input[data-index='${index + 1}']`);
+                if (nextInput) {
+                    nextInput.focus();
+                }
             } else if (value === "") {
                 inputBox.style.backgroundColor = "white";
                 inputBox.style.borderColor = "#333";
@@ -85,6 +92,7 @@
                 setTimeout(nextProblem, 2000);
             }
         }
+
 
 
 

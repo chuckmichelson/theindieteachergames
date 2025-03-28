@@ -97,3 +97,39 @@ button {
     border-color: green;
 }
 
+#number-line {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 20px 0;
+    gap: 4px; /* Adds space between boxes */
+}
+
+.num-box {
+    width: 40px;
+    height: 40px;
+    display: inline-block;
+    border: 2px solid black;
+    border-radius: 5px;
+}
+
+.blue-box {
+    background-color: blue;
+}
+
+.yellow-box {
+    background-color: yellow;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield; /* Remove up/down arrows in Firefox */
+    -webkit-appearance: none; /* Remove up/down arrows in Safari/Chrome */
+    appearance: textfield; /* Ensure consistency across browsers */
+}
+
+input[type="number"]::-webkit-inner-spin-button, 
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
