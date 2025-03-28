@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prime Factorization</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="start-screen">
+        <h1>Prime Factorization</h1>
+        <br>
+        <p>Factor each number into its primes, and list the primes from least to greatest...</p>
+        <button onclick="startGame()">Start</button>
+    </div>
+
+    <div id="game-screen" class="hidden">
+        <h1>Prime Factorization</h1>
+        <div class="flashcard" id="question"></div>
+        <div id="input-container"></div>
+        <div id="summary" class="hidden"></div>
+    </div>
+
+    <script>
+        let currentNumber;
+        let correctFactors = [];
+        let userInputs = [];
+
+        function startGame() {
+            document.getElementById("start-screen").classList.add("hidden");
+            document.getElementById("game-screen").classList.remove("hidden");
+            nextProblem();
+        }
+
+        function nextProblem() {
+            document.getElementById("summary").classList.add("hidden");
+            document.getElementById("summary").innerHTML = ""; // Clear previous message
+            currentNumber = getRandomCompositeNumber();
+            correctFactors = primeFactorization(currentNumber);
+            userInputs = new Array(correctFactors.length).fill(null);
+            displayProblem();
+        }
+
+
+        function displayProblem() {
+            document.getElementById("question").textContent = `${currentNumber}`;
+            let inputContainer = document.getElementById("input-container");
+            inputContainer.innerHTML = "";
+            
+            correctFactors.forEach((_, index) => {
+                let input = document.createElement("input");
+                input.type = "number";
+                input.classList.add("factor-input");
+                input.dataset.index = index;
+                input.oninput = () => validateInput(index, input.value);
+                inputContainer.appendChild(input);
+            });
+        }
+
+        function validateInput(index, value) {
+            let inputBox = document.querySelector(`input[data-index='${index}']`);
+            
+            if (parseInt(value) === correctFactors[index]) {
+                inputBox.style.backgroundColor = "lightgreen";
+                inputBox.style.borderColor = "green";
+                inputBox.classList.add("correct");
+                inputBox.readOnly = true; // Lock correct input
+                userInputs[index] = parseInt(value);
+            } else if (value === "") {
+                inputBox.style.backgroundColor = "white";
+                inputBox.style.borderColor = "#333";
+                inputBox.classList.remove("correct");
+                userInputs[index] = null;
+            } else {
+                inputBox.style.backgroundColor = "orange";
+                inputBox.style.borderColor = "red";
+            }
+
+            // Check if all inputs are correct
+            if (userInputs.every((val, idx) => val === correctFactors[idx])) {
+                document.getElementById("summary").classList.remove("hidden");
+                document.getElementById("summary").innerHTML = `<h2>Correct!</h2><p>${currentNumber} = ${correctFactors.join(" × ")}</p>`;
+                
+                // Delay before moving to the next problem
+                setTimeout(nextProblem, 2000);
+            }
+        }
+
+
+
+        function checkAnswer() {
+            if (userInputs.every((val, idx) => val === correctFactors[idx])) {
+                document.getElementById("summary").classList.remove("hidden");
+                document.getElementById("summary").innerHTML = `<h2>Correct!</h2><p>${currentNumber} = ${correctFactors.join(" × ")}</p>`;
+                setTimeout(nextProblem, 2000);
+            }
+        }
+
+        function getRandomCompositeNumber() {
+            let num;
+            do {
+                num = Math.floor(Math.random() * 100) + 10;
+            } while (isPrime(num));
+            return num;
+        }
+
+        function primeFactorization(n) {
+            let factors = [];
+            for (let i = 2; i <= n; i++) {
+                while (n % i === 0) {
+                    factors.push(i);
+                    n /= i;
+                }
+            }
+            return factors;
+        }
+
+        function isPrime(n) {
+            if (n < 2) return false;
+            for (let i = 2; i <= Math.sqrt(n); i++) {
+                if (n % i === 0) return false;
+            }
+            return true;
+        }
+    </script>
+</body>
+</html>
