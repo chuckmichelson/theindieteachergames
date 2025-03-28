@@ -1,0 +1,70 @@
+body {
+    background-color: #121212;
+    color: #ffffff;
+    font-family: Arial, sans-serif;
+    text-align: center;
+}
+.table-container {
+    display: grid;
+    margin: 20px auto;
+    justify-content: center;
+    border-collapse: collapse;
+}
+.table-cell {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #ffffff;
+    font-size: 18px;
+    box-sizing: border-box;
+}
+.header-cell {
+    background-color: #333;
+    font-weight: bold;
+}
+.correct {
+    background-color: green;
+    color: #000;
+}
+.incorrect {
+    background-color: orange;
+    color: transparent;
+}
+.hidden {
+    display: none;
+}
+.flashcard {
+    font-size: 32px; /* Increased font size for the problem */
+    margin: 20px 0; /* Adds space above and below */
+}
+
+input#answer {
+    font-size: 24px;
+    padding: 10px;
+    margin: 10px 0;
+    width: 60px; /* Adjusted width for three-digit input */
+    text-align: center; /* Centering text for aesthetics */
+}
+
+select {
+    font-size: 18px;
+    padding: 5px;
+    margin: 10px;
+}
+
+#download-btn {
+    display: none; /* Ensures it's hidden by default */
+    font-size: 20px;
+    padding: 10px 20px;
+    margin: 20px auto; /* Centers the button */
+    cursor: pointer;
+    display: block;
+}
+
+button {
+    font-size: 20px; /* Slightly larger buttons for consistency */
+    padding: 10px 20px;
+    margin: 10px 0; /* Adds vertical spacing */
+}
