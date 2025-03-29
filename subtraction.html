@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subtraction Blocks</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="start-screen">
+        <h1>Subtraction</h1>
+        <br>
+        <p>Count the remaining blocks and enter the result:</p>
+        <button onclick="startGame()">Start</button>
+    </div>
+
+    <div id="game-screen" class="hidden">
+        <h1>Subtraction</h1>
+        <br>
+        <h1><span id="num1"></span> - <span id="num2"></span></h1>
+        <div id="number-line-container">
+            <div id="rows-wrapper">
+                <div id="row-top"></div>
+                <div id="row-bottom"></div>
+            </div>
+        </div>
+        <input type="number" id="answer" autofocus oninput="validateAnswer()">
+        <div id="summary" class="hidden"></div>
+    </div>
+
+    <script>
+        let n = 10; // Max single number (ensuring 0 ≤ m - n ≤ 10)
+        let num1, num2, correctDifference;
+
+        function startGame() {
+            document.getElementById("start-screen").classList.add("hidden");
+            document.getElementById("game-screen").classList.remove("hidden");
+            nextProblem();
+        }
+
+        function nextProblem() {
+            // Generate numbers ensuring m ≥ n
+            num1 = Math.floor(Math.random() * n) + 1;
+            num2 = Math.floor(Math.random() * (num1 - 1)) + 1; // Ensures 1 ≤ num2 ≤ num1
+            correctDifference = num1 - num2;
+
+            // Update the problem text
+            document.getElementById("num1").textContent = num1;
+            document.getElementById("num2").textContent = num2;
+
+            // Clear input
+            let inputBox = document.getElementById("answer");
+            inputBox.value = "";
+            inputBox.style.backgroundColor = "white";
+
+            // Clear previous message
+            let summary = document.getElementById("summary");
+            summary.classList.add("hidden");
+            summary.innerHTML = "";
+
+            // Generate the visual number representation
+            drawNumberLine();
+        }
+
+        function drawNumberLine() {
+            let rowTop = document.getElementById("row-top");
+            let rowBottom = document.getElementById("row-bottom");
+
+            rowTop.innerHTML = "";
+            rowBottom.innerHTML = "";
+
+            // Draw top row (m blue boxes)
+            for (let i = 1; i <= num1; i++) {
+                let box = document.createElement("div");
+                box.classList.add("num-box", "blue-box");
+                rowTop.appendChild(box);
+            }
+
+            // Draw bottom row (n red boxes)
+            for (let i = 1; i <= num2; i++) {
+                let box = document.createElement("div");
+                box.classList.add("num-box", "red-box");
+                rowBottom.appendChild(box);
+            }
+        }
+
+        function validateAnswer() {
+            let inputBox = document.getElementById("answer");
+            let value = parseInt(inputBox.value);
+
+            if (value === correctDifference) {
+                inputBox.style.backgroundColor = "lightgreen";
+                document.getElementById("summary").classList.remove("hidden");
+                document.getElementById("summary").innerHTML = `<h2>Correct!</h2>`;
+                setTimeout(nextProblem, 2000);
+            } else if (inputBox.value === "") {
+                inputBox.style.backgroundColor = "white";
+            } else {
+                inputBox.style.backgroundColor = "orange";
+            }
+        }
+    </script>
+</body>
+</html>

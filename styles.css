@@ -133,3 +133,42 @@ input[type="number"]::-webkit-outer-spin-button {
     margin: 0;
 }
 
+#number-line-container {
+    display: flex;
+    justify-content: center; /* Center the container on the page */
+    margin: 20px 0;
+}
+
+#rows-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; /* Left-align the rows relative to each other */
+    width: fit-content; /* Make the wrapper adjust to content size */
+    align-self: flex-start; /* Ensure wrapper itself does not stretch */
+}
+
+#row-top, #row-bottom {
+    display: flex;
+    justify-content: flex-start; /* Ensure left alignment */
+    gap: 4px;
+}
+
+
+
+
+.num-box {
+    width: 40px;
+    height: 40px;
+    display: inline-block;
+    border: 2px solid black;
+    border-radius: 5px;
+}
+
+.blue-box {
+    background-color: blue;
+}
+
+.red-box {
+    background-color: red;
+}
+
