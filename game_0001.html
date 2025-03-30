@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="apple-touch-icon" href="favicon.png">
+    <link rel="shortcut icon" href="favicon.ico">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Multiplication</title>
@@ -68,7 +71,7 @@
             margin: 10px;
         }
 
-        #download-btn {
+        #play-again-btn {
             display: none;
             font-size: 20px;
             padding: 10px 20px;
@@ -95,7 +98,7 @@
         <button onclick="checkAnswer()">Submit</button>
         <div class="table-container" id="multiplication-table"></div>
         <div id="summary" class="hidden"></div>
-        <button id="download-btn" onclick="triggerSaveProgress()">Download Session</button>
+        <button id="play-again-btn" onclick="playAgain()">Play Again</button>
     </div>
 
     <script>
@@ -124,7 +127,7 @@
             totalCells = n * n;
             document.getElementById("start-screen").classList.add("hidden");
             document.getElementById("game-screen").classList.remove("hidden");
-            document.getElementById("download-btn").style.display = "none"; // Hide button at start
+            document.getElementById("play-again-btn").style.display = "none"; // Hide button at start
             generateProblems();
             displayTable();
             nextProblem();
@@ -241,19 +244,13 @@
                                  <p>Average Time per Problem: ${avgTime} seconds</p>`;
 
             document.getElementById("answer").value = ""; // Clear input field
-            document.getElementById("download-btn").style.display = "block"; // Only show now
+            document.getElementById("play-again-btn").style.display = "block"; // Only show now
         }
 
-        function triggerSaveProgress() {
-            let csvContent = "data:text/csv;charset=utf-8," + log.join("\n");
-            let encodedUri = encodeURI(csvContent);
-            let link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "multiplication_progress.csv");
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+        function playAgain() {
+            location.reload();
         }
+
     </script>
 </body>
 </html>
