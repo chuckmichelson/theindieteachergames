@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animal Addition</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        h1, h2 {
+            margin: 10px 0;
+        }
+
+        input[type="number"] {
+            font-size: 24px;
+            padding: 10px;
+            width: 80px;
+            text-align: center;
+            appearance: textfield;
+        }
+
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        button {
+            font-size: 24px;
+            padding: 12px 24px;
+            margin: 10px 0;
+            cursor: pointer;
+        }
+
+        #animal-line span {
+            font-size: 48px;
+            margin: 5px;
+        }
+
+        input#answer {
+            font-size: 32px;
+            padding: 10px;
+            margin: 10px 0;
+            width: 80px;
+            text-align: center;
+            transition: background-color 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <div id="start-screen">
+        <h1>Animal Addition</h1>
+        <p>Choose the number of questions:</p>
+        <input type="number" id="question-count" min="1" max="20" value="5">
+        <button onclick="startGame()">Start</button>
+    </div>
+
+    <div id="game-screen" class="hidden">
+        <h1>Animal Addition</h1>
+        <h2><span id="num1"></span> + <span id="num2"></span></h2>
+        <div id="animal-line"></div>
+        <input type="number" id="answer" autofocus oninput="validateAnswer()">
+        <div id="summary" class="hidden"></div>
+    </div>
+
+    <div id="end-screen" class="hidden">
+        <h1>Game Over!</h1>
+        <p>Score: <span id="score"></span>/<span id="total-questions"></span></p>
+        <p>Time taken: <span id="time"></span> seconds</p>
+        <button onclick="location.reload()">Play Again</button>
+    </div>
+
+    <script>
+        const animals = ["🐴", "🐢", "🐶", "🐱", "🐘", "🦁", "🐰", "🐼", "🐮", "🦊"];
+        let n = 10;
+        let num1, num2, correctSum;
+        let totalQuestions, correctAnswers = 0, startTime;
+
+        function startGame() {
+            totalQuestions = parseInt(document.getElementById("question-count").value);
+            document.getElementById("total-questions").textContent = totalQuestions;
+            document.getElementById("start-screen").classList.add("hidden");
+            document.getElementById("game-screen").classList.remove("hidden");
+            correctAnswers = 0;
+            startTime = Date.now();
+            nextProblem();
+        }
+
+        function nextProblem() {
+            if (totalQuestions-- > 0) {
+                num1 = Math.floor(Math.random() * n) + 1;
+                num2 = Math.floor(Math.random() * n) + 1;
+                correctSum = num1 + num2;
+
+                document.getElementById("num1").textContent = num1;
+                document.getElementById("num2").textContent = num2;
+                document.getElementById("answer").value = "";
+                document.getElementById("summary").classList.add("hidden");
+                drawAnimalLine();
+            } else {
+                endGame();
+            }
+        }
+
+        function drawAnimalLine() {
+            let animalLine = document.getElementById("animal-line");
+            animalLine.innerHTML = "";
+            
+            let animal1 = animals[Math.floor(Math.random() * animals.length)];
+            let animal2 = animals[Math.floor(Math.random() * animals.length)];
+            
+            for (let i = 1; i <= correctSum; i++) {
+                let span = document.createElement("span");
+                span.textContent = (i <= num1) ? animal1 : animal2;
+                animalLine.appendChild(span);
+            }
+        }
+
+        function validateAnswer() {
+            let inputBox = document.getElementById("answer");
+            let value = parseInt(inputBox.value);
+
+            if (value === correctSum) {
+                inputBox.style.backgroundColor = "lightgreen";
+                correctAnswers++;
+                document.getElementById("summary").classList.remove("hidden");
+                document.getElementById("summary").innerHTML = `<h2>Correct!</h2>`;
+                setTimeout(nextProblem, 1000);
+            } else if (inputBox.value === "") {
+                inputBox.style.backgroundColor = "white";
+            } else {
+                inputBox.style.backgroundColor = "orange";
+            }
+        }
+
+        function endGame() {
+            let timeTaken = Math.floor((Date.now() - startTime) / 1000);
+            document.getElementById("game-screen").classList.add("hidden");
+            document.getElementById("end-screen").classList.remove("hidden");
+            document.getElementById("score").textContent = correctAnswers;
+            document.getElementById("time").textContent = timeTaken;
+        }
+    </script>
+</body>
+</html>
