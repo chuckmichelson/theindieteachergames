@@ -168,6 +168,12 @@
         #toggle-keypad-btn:hover {
             background-color: #444;
         }
+        .small-keypad button {
+            width: 50px !important;
+            height: 50px !important;
+            font-size: 20px !important;
+            margin: 3px !important;
+        }
 
 
     </style>
@@ -249,17 +255,25 @@
         const toggleInputMode = () => {
             const answerInput = document.getElementById("answer");
             const keypadContainer = document.getElementById("keypad-container");
+            const keypad = document.getElementById("keypad");
 
             if (isTouchDevice()) {
-                // Show virtual keypad, disable keyboard
                 answerInput.setAttribute("readonly", true);
                 keypadContainer.style.display = "block";
+
+                // Dynamic scaling: shrink keypad on narrow screens
+                if (window.innerWidth < 500) {
+                    keypad.classList.add("small-keypad");
+                } else {
+                    keypad.classList.remove("small-keypad");
+                }
+
             } else {
-                // Hide virtual keypad, allow keyboard input
                 answerInput.removeAttribute("readonly");
                 keypadContainer.style.display = "none";
             }
         };
+
 
         function startGame() {
             n = parseInt(gridSizeSelect.value);
@@ -436,6 +450,7 @@
             }
         }
 
+        window.addEventListener("resize", toggleInputMode);
 
     </script>
 </body>
