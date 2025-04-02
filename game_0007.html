@@ -431,6 +431,8 @@
 
         function endGame() {
             const keypadContainer = document.getElementById("keypad-container");
+            document.getElementById("answer").blur();
+            keypadContainer.classList.add("hidden");
             let percentCorrect = Math.round((correctAttempts / totalAttempts) * 100);
             let avgTime = (totalTime / totalAttempts).toFixed(2);
             let summary = document.getElementById("summary");
@@ -443,7 +445,6 @@
 
             // document.getElementById("answer").style.display = "none";
             // document.getElementById("question").style.display = "none";
-            keypadContainer.classList.add("hidden");
             document.getElementById("play-again-btn").style.display = "block";
         }
 
