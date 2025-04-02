@@ -212,7 +212,7 @@
         <div id="summary" class="hidden"></div>
         <button id="play-again-btn" onclick="playAgain()">Play Again</button>
     </div>
-    <div id="keypad-container">
+    <div id="keypad-container" class="hidden">
         <div id="keypad-toggle">
             <div id="keypad">
                 <button onclick="appendDigit('1')">1</button>
@@ -266,9 +266,8 @@
 
             if (isTouchDevice()) {
                 answerInput.setAttribute("readonly", true);
-                keypadContainer.style.display = "block";
+                keypadContainer.classList.remove("hidden");
 
-                // Dynamic scaling: shrink keypad on narrow screens
                 if (window.innerWidth < 500) {
                     keypad.classList.add("small-keypad");
                 } else {
@@ -277,8 +276,9 @@
 
             } else {
                 answerInput.removeAttribute("readonly");
-                keypadContainer.style.display = "none";
+                keypadContainer.classList.add("hidden");
             }
+
         };
 
 
@@ -304,9 +304,9 @@
             document.getElementById("start-screen").classList.add("hidden");
             document.getElementById("game-screen").classList.remove("hidden");
             document.getElementById("summary").classList.add("hidden");
-            document.getElementById("keypad-container").style.display = "block";
             document.getElementById("answer").style.display = "inline-block";
             document.getElementById("question").style.display = "block";
+            document.getElementById("keypad-container").classList.remove("hidden");
 
             document.getElementById("play-again-btn").style.display = "none";
             generateProblems();
@@ -430,6 +430,7 @@
         }
 
         function endGame() {
+            const keypadContainer = document.getElementById("keypad-container");
             let percentCorrect = Math.round((correctAttempts / totalAttempts) * 100);
             let avgTime = (totalTime / totalAttempts).toFixed(2);
             let summary = document.getElementById("summary");
@@ -442,7 +443,7 @@
 
             // document.getElementById("answer").style.display = "none";
             // document.getElementById("question").style.display = "none";
-            document.getElementById("keypad-container").style.display = "none";
+            keypadContainer.classList.add("hidden");
             document.getElementById("play-again-btn").style.display = "block";
         }
 
