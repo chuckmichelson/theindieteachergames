@@ -86,7 +86,6 @@
             }
         }
 
-        /* Optional subtle hover or visual effect for fun */
         .table-cell.correct:hover {
             box-shadow: 0 0 10px #99ddff;
             cursor: pointer;
@@ -95,7 +94,6 @@
         .hidden {
             display: none !important;
         }
-
 
         .flashcard {
             font-size: 40px;
@@ -168,13 +166,13 @@
         #toggle-keypad-btn:hover {
             background-color: #444;
         }
+
         .small-keypad button {
             width: 50px !important;
             height: 50px !important;
             font-size: 20px !important;
             margin: 3px !important;
         }
-
 
     </style>
 </head>
@@ -183,9 +181,7 @@
         <h1>Colorful Multiplication Table</h1>
         <br>
         <p>Select grid size:</p>
-        <select id="grid-size">
-            <!-- Populated dynamically -->
-        </select>
+        <select id="grid-size"></select>
         <p>Select a color theme:</p>
         <select id="color-theme">
             <option value="blue" selected>Blue</option>
@@ -205,7 +201,8 @@
         <div id="summary" class="hidden"></div>
         <button id="play-again-btn" onclick="playAgain()">Play Again</button>
     </div>
-    <div id="keypad-container">
+
+    <div id="keypad-container" class="hidden">
         <div id="keypad-toggle">
             <div id="keypad">
                 <button onclick="appendDigit('1')">1</button>
@@ -225,9 +222,8 @@
         <button id="toggle-keypad-btn" onclick="toggleKeypad()">🔽</button>
     </div>
 
-
     <script>
-        let n = 3; // Default table size
+        let n = 3;
         let problems = [];
         let currentProblem = {};
         let startTime;
@@ -238,7 +234,6 @@
         let completedCells = 0;
         let totalCells;
 
-        // Populate dropdown with values 1-20
         const gridSizeSelect = document.getElementById("grid-size");
         for (let i = 1; i <= 20; i++) {
             let option = document.createElement("option");
@@ -247,7 +242,6 @@
             gridSizeSelect.appendChild(option);
         }
 
-        // Detect if device is touch-based
         const isTouchDevice = () => {
             return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
         };
@@ -259,21 +253,18 @@
 
             if (isTouchDevice()) {
                 answerInput.setAttribute("readonly", true);
-                keypadContainer.style.display = "block";
+                keypadContainer.classList.remove("hidden");
 
-                // Dynamic scaling: shrink keypad on narrow screens
                 if (window.innerWidth < 500) {
                     keypad.classList.add("small-keypad");
                 } else {
                     keypad.classList.remove("small-keypad");
                 }
-
             } else {
                 answerInput.removeAttribute("readonly");
-                keypadContainer.style.display = "none";
+                keypadContainer.classList.add("hidden");
             }
         };
-
 
         function startGame() {
             n = parseInt(gridSizeSelect.value);
@@ -288,16 +279,15 @@
             document.getElementById("start-screen").classList.add("hidden");
             document.getElementById("game-screen").classList.remove("hidden");
             document.getElementById("summary").classList.add("hidden");
-            document.getElementById("keypad-container").style.display = "block";
+            document.getElementById("keypad-container").classList.remove("hidden");
             document.getElementById("answer").style.display = "inline-block";
             document.getElementById("question").style.display = "block";
-
             document.getElementById("play-again-btn").style.display = "none";
+
             generateProblems();
             displayTable();
             nextProblem();
         }
-
 
         function generateProblems() {
             problems = [];
@@ -364,7 +354,7 @@
             log.push(`${new Date().toISOString()},${currentProblem.x},${currentProblem.y},${answer},${correct},${latency}`);
 
             let tableCell = document.querySelector(`.table-cell[data-x='${currentProblem.x}'][data-y='${currentProblem.y}']`);
-            
+
             if (tableCell) {
                 tableCell.classList.remove("incorrect", ...[0,1,2,3,4].map(i => `correct-${i}`));
                 if (correct) {
@@ -373,22 +363,18 @@
                         completedCells++;
                     }
                     tableCell.textContent = answer;
-
-                    // Determine how far from the diagonal (i == j)
                     const dist = Math.abs(currentProblem.x - currentProblem.y);
-                    const shade = Math.min(dist, 4); // Max shade index is 4
-
+                    const shade = Math.min(dist, 4);
                     tableCell.classList.add("correct", `correct-${shade}`);
                     problems.shift();
                 } else {
-                    tableCell.textContent = "";  // Clear the cell
-                    problems.push(problems.shift());  // Retry later
+                    tableCell.textContent = "";
+                    problems.push(problems.shift());
                 }
             }
 
             nextProblem();
         }
-
 
         function handleKeyPress(event) {
             if (event.key === "Enter") {
@@ -405,6 +391,9 @@
         }
 
         function endGame() {
+            const keypadContainer = document.getElementById("keypad-container");
+            document.getElementById("answer").blur();
+            keypadContainer.classList.add("hidden");
             let percentCorrect = Math.round((correctAttempts / totalAttempts) * 100);
             let avgTime = (totalTime / totalAttempts).toFixed(2);
             let summary = document.getElementById("summary");
@@ -415,9 +404,6 @@
                                  <p>Total Time: ${totalTime.toFixed(2)} seconds</p>
                                  <p>Average Time per Problem: ${avgTime} seconds</p>`;
 
-            document.getElementById("answer").style.display = "none";
-            document.getElementById("question").style.display = "none";
-            document.getElementById("keypad-container").style.display = "none";
             document.getElementById("play-again-btn").style.display = "block";
         }
 
@@ -451,7 +437,6 @@
         }
 
         window.addEventListener("resize", toggleInputMode);
-
     </script>
 </body>
 </html>
