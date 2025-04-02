@@ -241,9 +241,31 @@
             gridSizeSelect.appendChild(option);
         }
 
+        // Detect if device is touch-based
+        const isTouchDevice = () => {
+            return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        };
+
+        const toggleInputMode = () => {
+            const answerInput = document.getElementById("answer");
+            const keypadContainer = document.getElementById("keypad-container");
+
+            if (isTouchDevice()) {
+                // Show virtual keypad, disable keyboard
+                answerInput.setAttribute("readonly", true);
+                keypadContainer.style.display = "block";
+            } else {
+                // Hide virtual keypad, allow keyboard input
+                answerInput.removeAttribute("readonly");
+                keypadContainer.style.display = "none";
+            }
+        };
+
         function startGame() {
             n = parseInt(gridSizeSelect.value);
             totalCells = n * n;
+
+            toggleInputMode();
 
             const selectedTheme = document.getElementById("color-theme").value;
             document.body.className = "";
