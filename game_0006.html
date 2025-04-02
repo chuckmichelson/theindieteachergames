@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prime Factorization</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        .hidden { display: none; }
+
+        .flashcard {
+            font-size: 40px;
+            margin: 20px 0;
+        }
+
+        button {
+            font-size: 24px;
+            padding: 12px 24px;
+            margin: 10px 0;
+        }
+
+        .factor-input {
+            width: 60px;
+            height: 70px;
+            font-size: 32px;
+            text-align: center;
+            margin: 5px;
+            border: 2px solid #333;
+            border-radius: 8px;
+        }
+
+        .factor-input.correct {
+            background-color: lightgreen;
+            border-color: green;
+        }
+
+        #start-screen input[type="number"] {
+            font-size: 24px;
+            padding: 10px;
+            width: 80px;
+            text-align: center;
+        }
+
+        #keypad-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            text-align: center;
+        }
+
+        .keypad-btn {
+            background-color: #444;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            transition: background-color 0.2s;
+        }
+
+        .keypad-btn:hover { background-color: #666; }
+
+        #keypad button {
+            width: 70px;
+            height: 70px;
+            font-size: 28px;
+            margin: 5px;
+        }
+
+        #toggle-keypad-btn {
+            margin-top: 5px;
+            background-color: #222;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        #toggle-keypad-btn:hover { background-color: #444; }
+
+        .small-keypad button {
+            width: 50px !important;
+            height: 50px !important;
+            font-size: 20px !important;
+            margin: 3px !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="start-screen">
+        <h1>Prime Factorization</h1>
+        <p>Factor each number into its primes, and list them from least to greatest.</p>
+        <p>How many problems would you like to try?</p>
+        <input type="number" id="question-count" min="1" max="20" value="5">
+        <br><br>
+        <button onclick="startGame()">Start</button>
+    </div>
+
+    <div id="game-screen" class="hidden">
+        <h1>Prime Factorization</h1>
+        <div class="flashcard" id="question"></div>
+        <div id="input-container"></div>
+        <div id="summary" class="hidden"></div>
+    </div>
+
+    <div id="keypad-container" class="hidden">
+        <div id="keypad">
+            <button onclick="appendDigit('1')">1</button>
+            <button onclick="appendDigit('2')">2</button>
+            <button onclick="appendDigit('3')">3</button><br>
+            <button onclick="appendDigit('4')">4</button>
+            <button onclick="appendDigit('5')">5</button>
+            <button onclick="appendDigit('6')">6</button><br>
+            <button onclick="appendDigit('7')">7</button>
+            <button onclick="appendDigit('8')">8</button>
+            <button onclick="appendDigit('9')">9</button><br>
+            <button onclick="backspace()">←</button>
+            <button onclick="appendDigit('0')">0</button>
+            <button onclick="clearAnswer()">C</button>
+        </div>
+        <button id="toggle-keypad-btn" onclick="toggleKeypad()">🔽</button>
+    </div>
+
+    <div id="end-screen" class="hidden">
+        <h1>Great work!</h1>
+        <p>You got <span id="score"></span>/<span id="total"></span> correct.</p>
+        <p>Time taken: <span id="time"></span> seconds</p>
+        <button onclick="location.reload()">Play Again</button>
+    </div>
+
+    <script>
+        let currentNumber;
+        let correctFactors = [];
+        let userInputs = [];
+        let totalQuestions = 0;
+        let questionsAnswered = 0;
+        let correctAnswers = 0;
+        let startTime;
+        let currentFocusedInput = null;
+
+        function isTouchDevice() {
+            return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        }
+
+        function toggleInputMode() {
+            const keypadContainer = document.getElementById("keypad-container");
+            const keypad = document.getElementById("keypad");
+            const inputs = document.querySelectorAll(".factor-input");
+
+            if (isTouchDevice()) {
+                keypadContainer.classList.remove("hidden");
+                if (window.innerWidth < 500) {
+                    keypad.classList.add("small-keypad");
+                } else {
+                    keypad.classList.remove("small-keypad");
+                }
+                inputs.forEach(input => input.setAttribute("readonly", true));
+            } else {
+                keypadContainer.classList.remove("hidden"); // allow virtual keypad on desktop
+                keypad.classList.remove("small-keypad");
+                inputs.forEach(input => input.removeAttribute("readonly"));
+            }
+        }
+
+        function startGame() {
+            totalQuestions = parseInt(document.getElementById("question-count").value);
+            questionsAnswered = 0;
+            correctAnswers = 0;
+            startTime = Date.now();
+            document.getElementById("start-screen").classList.add("hidden");
+            document.getElementById("game-screen").classList.remove("hidden");
+            nextProblem();
+        }
+
+        function nextProblem() {
+            if (questionsAnswered >= totalQuestions) return endGame();
+            document.getElementById("summary").classList.add("hidden");
+            document.getElementById("summary").innerHTML = "";
+            currentNumber = getRandomCompositeNumber();
+            correctFactors = primeFactorization(currentNumber);
+            userInputs = new Array(correctFactors.length).fill(null);
+            displayProblem();
+        }
+
+        function displayProblem() {
+            document.getElementById("question").textContent = `${currentNumber}`;
+            const container = document.getElementById("input-container");
+            container.innerHTML = "";
+
+            correctFactors.forEach((_, index) => {
+                const input = document.createElement("input");
+                input.type = "text";
+                input.classList.add("factor-input");
+                input.dataset.index = index;
+                input.onclick = () => { currentFocusedInput = input; };
+                input.addEventListener("input", () => validateInput(index, input.value));
+                container.appendChild(input);
+            });
+
+            currentFocusedInput = container.querySelector("input");
+            if (currentFocusedInput) currentFocusedInput.focus();
+            toggleInputMode();
+        }
+
+        function appendDigit(digit) {
+            if (!currentFocusedInput) return;
+            currentFocusedInput.value += digit;
+            const i = parseInt(currentFocusedInput.dataset.index);
+            validateInput(i, currentFocusedInput.value);
+        }
+
+        function clearAnswer() {
+            if (!currentFocusedInput) return;
+            currentFocusedInput.value = "";
+            const i = parseInt(currentFocusedInput.dataset.index);
+            validateInput(i, "");
+        }
+
+        function backspace() {
+            if (!currentFocusedInput) return;
+            currentFocusedInput.value = currentFocusedInput.value.slice(0, -1);
+            const i = parseInt(currentFocusedInput.dataset.index);
+            validateInput(i, currentFocusedInput.value);
+        }
+
+        function validateInput(index, value) {
+            const inputBox = document.querySelector(`input[data-index='${index}']`);
+            const val = parseInt(value);
+            if (val === correctFactors[index]) {
+                inputBox.classList.add("correct");
+                inputBox.readOnly = true;
+                userInputs[index] = val;
+                const nextInput = document.querySelector(`input[data-index='${index + 1}']`);
+                if (nextInput) {
+                    currentFocusedInput = nextInput;
+                    nextInput.focus();
+                }
+            } else {
+                userInputs[index] = null;
+                inputBox.classList.remove("correct");
+            }
+
+            if (userInputs.every((v, i) => v === correctFactors[i])) {
+                questionsAnswered++;
+                correctAnswers++;
+                document.getElementById("summary").classList.remove("hidden");
+                document.getElementById("summary").innerHTML = `<h2>Correct!</h2><p>${currentNumber} = ${correctFactors.join(" × ")}</p>`;
+                setTimeout(nextProblem, 2000);
+            }
+        }
+
+        function toggleKeypad() {
+            const keypad = document.getElementById("keypad");
+            const toggleBtn = document.getElementById("toggle-keypad-btn");
+            if (keypad.style.display === "none") {
+                keypad.style.display = "block";
+                toggleBtn.textContent = "🔽";
+            } else {
+                keypad.style.display = "none";
+                toggleBtn.textContent = "🔼";
+            }
+        }
+
+        function endGame() {
+            const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+            document.getElementById("game-screen").classList.add("hidden");
+            document.getElementById("keypad-container").classList.add("hidden");
+            document.getElementById("end-screen").classList.remove("hidden");
+            document.getElementById("score").textContent = correctAnswers;
+            document.getElementById("total").textContent = totalQuestions;
+            document.getElementById("time").textContent = timeTaken;
+        }
+
+        function getRandomCompositeNumber() {
+            let num;
+            do {
+                num = Math.floor(Math.random() * 100) + 10;
+            } while (isPrime(num));
+            return num;
+        }
+
+        function primeFactorization(n) {
+            let factors = [];
+            for (let i = 2; i <= n; i++) {
+                while (n % i === 0) {
+                    factors.push(i);
+                    n /= i;
+                }
+            }
+            return factors;
+        }
+
+        function isPrime(n) {
+            if (n < 2) return false;
+            for (let i = 2; i <= Math.sqrt(n); i++) {
+                if (n % i === 0) return false;
+            }
+            return true;
+        }
+
+        window.addEventListener("resize", toggleInputMode);
+    </script>
+</body>
+</html>
