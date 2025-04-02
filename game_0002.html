@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="apple-touch-icon" href="favicon.png">
+    <link rel="shortcut icon" href="favicon.ico">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Colorful Multiplication Table</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        .table-container {
+            display: grid;
+            margin: 20px auto;
+            justify-content: center;
+            border-collapse: collapse;
+        }
+
+        .table-cell {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #ffffff;
+            font-size: 18px;
+            box-sizing: border-box;
+            color: #121212;
+        }
+
+        .header-cell {
+            background-color: #333;
+            font-weight: bold;
+        }
+
+        /* === THEME BLUE === */
+        body.theme-blue .correct-0 { background-color: #66ccff; }
+        body.theme-blue .correct-1 { background-color: #99ddff; }
+        body.theme-blue .correct-2 { background-color: #cceeff; }
+        body.theme-blue .correct-3 { background-color: #e6f7ff; }
+        body.theme-blue .correct-4 { background-color: #ddfffb; }
+
+        /* === THEME RED === */
+        body.theme-red .correct-0 { background-color: #ff6666; }
+        body.theme-red .correct-1 { background-color: #ff9999; }
+        body.theme-red .correct-2 { background-color: #ffcccc; }
+        body.theme-red .correct-3 { background-color: #ffe6e6; }
+        body.theme-red .correct-4 { background-color: #fff0f0; }
+
+        /* === THEME GREEN === */
+        body.theme-green .correct-0 { background-color: #66ff99; }
+        body.theme-green .correct-1 { background-color: #99ffbb; }
+        body.theme-green .correct-2 { background-color: #ccffdd; }
+        body.theme-green .correct-3 { background-color: #e6fff0; }
+        body.theme-green .correct-4 { background-color: #f0fff8; }
+
+        /* === THEME PURPLE === */
+        body.theme-purple .correct-0 { background-color: #cc99ff; }
+        body.theme-purple .correct-1 { background-color: #d9b3ff; }
+        body.theme-purple .correct-2 { background-color: #e6ccff; }
+        body.theme-purple .correct-3 { background-color: #f2e6ff; }
+        body.theme-purple .correct-4 { background-color: #f9f0ff; }
+
+        /* === THEME GOLD === */
+        body.theme-gold .correct-0 { background-color: #ffd700; }
+        body.theme-gold .correct-1 { background-color: #ffe066; }
+        body.theme-gold .correct-2 { background-color: #ffeb99; }
+        body.theme-gold .correct-3 { background-color: #fff5cc; }
+        body.theme-gold .correct-4 { background-color: #fffbeb; }
+
+        @keyframes fadeIn {
+            from {
+                background-color: #222;
+                transform: scale(1.05);
+                opacity: 0.3;
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        /* Optional subtle hover or visual effect for fun */
+        .table-cell.correct:hover {
+            box-shadow: 0 0 10px #99ddff;
+            cursor: pointer;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+
+        .flashcard {
+            font-size: 40px;
+            margin: 20px 0;
+        }
+
+        input#answer {
+            font-size: 32px;
+            padding: 10px;
+            margin: 10px 0;
+            width: 80px;
+            text-align: center;
+        }
+
+        select, button {
+            font-size: 24px;
+            padding: 10px;
+            margin: 10px;
+        }
+
+        #play-again-btn {
+            display: none;
+            font-size: 20px;
+            padding: 10px 20px;
+            margin: 20px auto;
+            cursor: pointer;
+            display: block;
+        }
+
+        #keypad-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            text-align: center;
+        }
+
+        .keypad-btn {
+            background-color: #444;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            transition: background-color 0.2s;
+        }
+
+        .keypad-btn:hover {
+            background-color: #666;
+        }
+
+        #keypad button {
+            width: 70px;
+            height: 70px;
+            font-size: 28px;
+            margin: 5px;
+        }
+
+        #toggle-keypad-btn {
+            margin-top: 5px;
+            background-color: #222;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 20px;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        #toggle-keypad-btn:hover {
+            background-color: #444;
+        }
+
+
+    </style>
+</head>
+<body>
+    <div id="start-screen">
+        <h1>Colorful Multiplication Table</h1>
+        <br>
+        <p>Select grid size:</p>
+        <select id="grid-size">
+            <!-- Populated dynamically -->
+        </select>
+        <p>Select a color theme:</p>
+        <select id="color-theme">
+            <option value="blue" selected>Blue</option>
+            <option value="red">Red</option>
+            <option value="green">Green</option>
+            <option value="purple">Purple</option>
+            <option value="gold">Gold</option>
+        </select>
+        <button onclick="startGame()">Start</button>
+    </div>
+
+    <div id="game-screen" class="hidden">
+        <h1>Colorful Multiplication Table</h1>
+        <div class="flashcard" id="question"></div>
+        <input type="text" id="answer" autofocus onkeypress="handleKeyPress(event)">
+        <div class="table-container" id="multiplication-table"></div>
+        <div id="summary" class="hidden"></div>
+        <button id="play-again-btn" onclick="playAgain()">Play Again</button>
+    </div>
+    <div id="keypad-container">
+        <div id="keypad-toggle">
+            <div id="keypad">
+                <button onclick="appendDigit('1')">1</button>
+                <button onclick="appendDigit('2')">2</button>
+                <button onclick="appendDigit('3')">3</button><br>
+                <button onclick="appendDigit('4')">4</button>
+                <button onclick="appendDigit('5')">5</button>
+                <button onclick="appendDigit('6')">6</button><br>
+                <button onclick="appendDigit('7')">7</button>
+                <button onclick="appendDigit('8')">8</button>
+                <button onclick="appendDigit('9')">9</button><br>
+                <button onclick="clearAnswer()">C</button>
+                <button onclick="appendDigit('0')">0</button>
+                <button onclick="checkAnswer()">↵</button>
+            </div>
+        </div>
+        <button id="toggle-keypad-btn" onclick="toggleKeypad()">🔽</button>
+    </div>
+
+
+    <script>
+        let n = 3; // Default table size
+        let problems = [];
+        let currentProblem = {};
+        let startTime;
+        let log = [];
+        let totalTime = 0;
+        let totalAttempts = 0;
+        let correctAttempts = 0;
+        let completedCells = 0;
+        let totalCells;
+
+        // Populate dropdown with values 1-20
+        const gridSizeSelect = document.getElementById("grid-size");
+        for (let i = 1; i <= 20; i++) {
+            let option = document.createElement("option");
+            option.value = i;
+            option.textContent = `${i} x ${i}`;
+            gridSizeSelect.appendChild(option);
+        }
+
+        function startGame() {
+            n = parseInt(gridSizeSelect.value);
+            totalCells = n * n;
+
+            const selectedTheme = document.getElementById("color-theme").value;
+            document.body.className = "";
+            document.body.classList.add(`theme-${selectedTheme}`);
+
+            document.getElementById("start-screen").classList.add("hidden");
+            document.getElementById("game-screen").classList.remove("hidden");
+            document.getElementById("summary").classList.add("hidden");
+            document.getElementById("keypad-container").style.display = "block";
+            document.getElementById("answer").style.display = "inline-block";
+            document.getElementById("question").style.display = "block";
+
+            document.getElementById("play-again-btn").style.display = "none";
+            generateProblems();
+            displayTable();
+            nextProblem();
+        }
+
+
+        function generateProblems() {
+            problems = [];
+            for (let i = 1; i <= n; i++) {
+                for (let j = 1; j <= n; j++) {
+                    problems.push({ x: i, y: j, correct: false });
+                }
+            }
+            shuffleProblems();
+        }
+
+        function shuffleProblems() {
+            problems.sort(() => Math.random() - 0.5);
+        }
+
+        function displayTable() {
+            let table = document.getElementById("multiplication-table");
+            table.innerHTML = "";
+            table.style.gridTemplateColumns = `repeat(${n + 1}, 50px)`;
+            table.style.width = `${(n + 1) * 50}px`;
+
+            for (let i = 0; i <= n; i++) {
+                for (let j = 0; j <= n; j++) {
+                    let cell = document.createElement("div");
+                    cell.classList.add("table-cell");
+                    if (i === 0 && j === 0) {
+                        cell.textContent = "";
+                        cell.classList.add("header-cell");
+                    } else if (i === 0) {
+                        cell.textContent = j;
+                        cell.classList.add("header-cell");
+                    } else if (j === 0) {
+                        cell.textContent = i;
+                        cell.classList.add("header-cell");
+                    } else {
+                        cell.dataset.x = i;
+                        cell.dataset.y = j;
+                    }
+                    table.appendChild(cell);
+                }
+            }
+        }
+
+        function nextProblem() {
+            if (problems.length === 0) {
+                updateTableCompletionStatus();
+                return;
+            }
+            currentProblem = problems[0];
+            document.getElementById("question").textContent = `${currentProblem.x} × ${currentProblem.y}`;
+            document.getElementById("answer").value = "";
+            document.getElementById("answer").focus();
+            startTime = Date.now();
+        }
+
+        function checkAnswer() {
+            let answer = parseInt(document.getElementById("answer").value);
+            let endTime = Date.now();
+            let latency = (endTime - startTime) / 1000;
+            let correct = (answer === currentProblem.x * currentProblem.y);
+            totalAttempts++;
+            if (correct) correctAttempts++;
+            totalTime += latency;
+            log.push(`${new Date().toISOString()},${currentProblem.x},${currentProblem.y},${answer},${correct},${latency}`);
+
+            let tableCell = document.querySelector(`.table-cell[data-x='${currentProblem.x}'][data-y='${currentProblem.y}']`);
+            
+            if (tableCell) {
+                tableCell.classList.remove("incorrect", ...[0,1,2,3,4].map(i => `correct-${i}`));
+                if (correct) {
+                    if (!currentProblem.correct) {
+                        currentProblem.correct = true;
+                        completedCells++;
+                    }
+                    tableCell.textContent = answer;
+
+                    // Determine how far from the diagonal (i == j)
+                    const dist = Math.abs(currentProblem.x - currentProblem.y);
+                    const shade = Math.min(dist, 4); // Max shade index is 4
+
+                    tableCell.classList.add("correct", `correct-${shade}`);
+                    problems.shift();
+                } else {
+                    tableCell.textContent = "";  // Clear the cell
+                    problems.push(problems.shift());  // Retry later
+                }
+            }
+
+            nextProblem();
+        }
+
+
+        function handleKeyPress(event) {
+            if (event.key === "Enter") {
+                checkAnswer();
+            }
+        }
+
+        function updateTableCompletionStatus() {
+            if (completedCells === totalCells) {
+                endGame();
+            } else {
+                setTimeout(updateTableCompletionStatus, 500);
+            }
+        }
+
+        function endGame() {
+            let percentCorrect = Math.round((correctAttempts / totalAttempts) * 100);
+            let avgTime = (totalTime / totalAttempts).toFixed(2);
+            let summary = document.getElementById("summary");
+
+            summary.classList.remove("hidden");
+            summary.innerHTML = `<h2>Session Complete!</h2>
+                                 <p>Accuracy: ${percentCorrect}%</p>
+                                 <p>Total Time: ${totalTime.toFixed(2)} seconds</p>
+                                 <p>Average Time per Problem: ${avgTime} seconds</p>`;
+
+            document.getElementById("answer").style.display = "none";
+            document.getElementById("question").style.display = "none";
+            document.getElementById("keypad-container").style.display = "none";
+            document.getElementById("play-again-btn").style.display = "block";
+        }
+
+        function playAgain() {
+            location.reload();
+        }
+
+        function appendDigit(digit) {
+            const input = document.getElementById("answer");
+            input.value += digit;
+            input.focus();
+        }
+
+        function clearAnswer() {
+            const input = document.getElementById("answer");
+            input.value = "";
+            input.focus();
+        }
+
+        function toggleKeypad() {
+            const keypad = document.getElementById("keypad");
+            const toggleBtn = document.getElementById("toggle-keypad-btn");
+
+            if (keypad.style.display === "none") {
+                keypad.style.display = "block";
+                toggleBtn.textContent = "🔽";
+            } else {
+                keypad.style.display = "none";
+                toggleBtn.textContent = "🔼";
+            }
+        }
+
+
+    </script>
+</body>
+</html>
