@@ -312,9 +312,14 @@
                 let cell = document.querySelector(`.table-cell[data-x='${currentProblem.x}'][data-y='${currentProblem.y}']`);
                 if (cell) cell.classList.add("revealed");
                 completedCells++;
+            } else {
+                // Insert the current problem at a random index in the array
+                const randomIndex = Math.floor(Math.random() * (problems.length + 1));
+                problems.splice(randomIndex, 0, currentProblem);
             }
             nextProblem();
         }
+
 
         window.addEventListener("resize", toggleInputMode);
     </script>
