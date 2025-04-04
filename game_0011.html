@@ -49,7 +49,7 @@
         #multiplication-table {
             display: grid;
             position: relative;
-            margin: 0 auto;  /* <-- This centers it horizontally */
+            margin: 0 auto;
         }
         .table-cell {
             width: 50px;
@@ -113,15 +113,6 @@
             width: fit-content;
             margin: 0 auto;
         }
-
-        #picture-background {
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
-            pointer-events: none;
-        }
-
     </style>
 </head>
 <body>
@@ -136,12 +127,10 @@
         <div class="flashcard" id="question"></div>
         <input type="text" id="answer" readonly autofocus onkeypress="handleKeyPress(event)">
         <div class="table-container" id="multiplication-table-wrapper">
-        <div id="multiplication-table-wrapper">
             <div class="table-flex-wrapper">
-                <img id="picture-background" src="maggie2.gif" alt="hidden picture" />
+                <img id="picture-background" src="" alt="hidden picture" />
                 <div id="multiplication-table"></div>
             </div>
-        </div>
         </div>
         <div id="summary" class="hidden"></div>
         <button id="play-again-btn" onclick="location.reload()">Play Again</button>
@@ -171,7 +160,7 @@
         let totalCells;
 
         const gridSizeSelect = document.getElementById("grid-size");
-        for (let i = 5; i <= 20; i++) {
+        for (let i = 1; i <= 20; i++) {
             let option = document.createElement("option");
             option.value = i;
             option.textContent = `${i} x ${i}`;
@@ -198,6 +187,10 @@
         function startGame() {
             n = parseInt(gridSizeSelect.value);
             totalCells = n * n;
+
+            const image = document.getElementById("picture-background");
+            image.src = `game_0011_assets/${n}x${n}.gif`;
+
             document.getElementById("start-screen").classList.add("hidden");
             document.getElementById("game-screen").classList.remove("hidden");
             document.getElementById("summary").classList.add("hidden");
@@ -256,11 +249,9 @@
             const height = n * 50;
             image.style.width = `${width}px`;
             image.style.height = `${height}px`;
-            image.style.top = "50px";   // Shift down below header row
-            image.style.left = "50px";  // Shift right past header column
+            image.style.top = "50px";
+            image.style.left = "50px";
         }
-
-
 
         function nextProblem() {
             if (problems.length === 0) {
@@ -299,7 +290,7 @@
             const toggleBtn = document.getElementById("toggle-keypad-btn");
             if (keypad.style.display === "none") {
                 keypad.style.display = "block";
-                toggleBtn.textContent = "🔽";
+                toggleBtn.textContent = "🕽";
             } else {
                 keypad.style.display = "none";
                 toggleBtn.textContent = "🔼";
@@ -313,13 +304,11 @@
                 if (cell) cell.classList.add("revealed");
                 completedCells++;
             } else {
-                // Insert the current problem at a random index in the array
                 const randomIndex = Math.floor(Math.random() * (problems.length + 1));
                 problems.splice(randomIndex, 0, currentProblem);
             }
             nextProblem();
         }
-
 
         window.addEventListener("resize", toggleInputMode);
     </script>
