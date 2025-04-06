@@ -30,11 +30,12 @@
 
       fetch("https://script.google.com/macros/s/AKfycbxkJL8lLbq28fl3j8dd8s7Wv_zjNmjQI_oKmfgpwjvcgTrKxHyR6N6qdCwAn2ryTPf7/exec", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify(data), // keep this!
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "text/plain"  // <- key change here!
         }
       })
+
       .then(res => res.text())
       .then(res => {
         status.textContent = "Success!";
