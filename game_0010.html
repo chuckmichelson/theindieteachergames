@@ -420,12 +420,12 @@
       initials: initials,
       game: "game_0010",
       settings: `${n}x${n}`,
-      score: "",
+      score: " ",
       elapsed: elapsedStr,
       comments: comments
     };
 
-    fetch("https://script.google.com/macros/s/AKfycbxkJL8lLbq28fl3j8dd8s7Wv_zjNmjQI_oKmfgpwjvcgTrKxHyR6N6qdCwAn2ryTPf7/exec", {
+    fetch("https://script.google.com/macros/s/AKfycbwsvj0ijlKGeWOIu80EobVDJks24Dw0ziwl9aY_AVJImmhRJ0MQnAJwmuBpe1NYmPzr/exec", {
       method: "POST",
       body: JSON.stringify(payload),
       headers: {
