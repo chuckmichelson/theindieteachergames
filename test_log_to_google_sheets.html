@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Game Logger Test</title>
+</head>
+<body>
+  <h2>Test Game Logger</h2>
+  <form id="testForm">
+    <input type="text" id="initials" maxlength="3" placeholder="ABC" required>
+    <input type="text" id="game" placeholder="game_0001" required>
+    <input type="number" id="score" placeholder="Score" required>
+    <input type="text" id="elapsed" placeholder="e.g. 1m42s" required>
+    <button type="submit">Submit</button>
+  </form>
+  <p id="status"></p>
+
+  <script>
+    const form = document.getElementById('testForm');
+    const status = document.getElementById('status');
+    
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const data = {
+        initials: document.getElementById('initials').value,
+        game: document.getElementById('game').value,
+        score: document.getElementById('score').value,
+        elapsed: document.getElementById('elapsed').value
+      };
+
+      fetch("https://script.google.com/macros/s/AKfycbxkJL8lLbq28fl3j8dd8s7Wv_zjNmjQI_oKmfgpwjvcgTrKxHyR6N6qdCwAn2ryTPf7/exec", {
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: {
+          "Content-Type": "application/json"
+        }
+      })
+      .then(res => res.text())
+      .then(res => {
+        status.textContent = "Success!";
+        form.reset();
+      })
+      .catch(err => {
+        status.textContent = "Error: " + err;
+      });
+    });
+  </script>
+</body>
+</html>
