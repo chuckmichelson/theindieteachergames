@@ -270,7 +270,10 @@
         problems.push({ x: i, y: j });
       }
     }
-    problems.sort(() => Math.random() - 0.5);
+    for (let i = problems.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [problems[i], problems[j]] = [problems[j], problems[i]];
+    }
   }
 
   function displayTable() {
