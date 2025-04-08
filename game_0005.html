@@ -143,6 +143,17 @@
             background-color: lightgreen;
             border-color: green;
         }
+        #toggle-keypad-btn {
+          margin-top: 5px;
+          background-color: #222;
+          color: white;
+          border: none;
+          border-radius: 10px;
+          padding: 8px 12px;
+          font-size: 20px;
+          cursor: pointer;
+        }
+
     </style>
 </head>
 <body>
@@ -178,6 +189,7 @@
                 <button onclick="appendDigit(0)">0</button>
                 <button onclick="validateAnswer()">↵</button>
             </div>
+            <button id="toggle-keypad-btn" onclick="toggleKeypad()">🔽</button>
         </div>
         <div id="summary" class="hidden"></div>
     </div>
@@ -203,16 +215,34 @@
     </div>
 
     <script>
-        let totalQuestions, correctAnswers = 0, startTime;
+        let totalQuestions, correctAnswers = 0, startTime, originalQuestionCount;
+
+        function isTouchDevice() {
+          return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        }
 
         function startGame() {
             totalQuestions = parseInt(document.getElementById("question-count").value);
-            document.getElementById("total-questions").textContent = totalQuestions;
+            originalQuestionCount = totalQuestions;
+
+            document.getElementById("total-questions").textContent = originalQuestionCount;
             document.getElementById("start-screen").classList.add("hidden");
             document.getElementById("game-screen").classList.remove("hidden");
             correctAnswers = 0;
             startTime = Date.now();
             nextProblem();
+            // Force keypad to behave based on device
+            const keypadContainer = document.getElementById("keypad-container");
+            const inputBox = document.getElementById("answer");
+
+            if (isTouchDevice()) {
+              inputBox.setAttribute("readonly", true); // Disable keyboard
+              keypadContainer.classList.remove("hidden"); // Start expanded
+            } else {
+              inputBox.removeAttribute("readonly");
+              keypadContainer.classList.add("hidden"); // Start minimized
+            }
+            inputBox.focus();
         }
 
         function nextProblem() {
@@ -245,6 +275,7 @@
                 inputBox.value = "";
                 document.getElementById("summary").classList.add("hidden");
                 drawPizza(slices);
+                inputBox.focus();
             } else {
                 endGame();
             }
@@ -308,7 +339,23 @@
             document.getElementById("turn-in-screen").classList.remove("hidden"); // <-- ADD THIS LINE
             document.getElementById("score").textContent = correctAnswers;
             document.getElementById("time").textContent = timeTaken;
+            document.getElementById("initial-0").focus();
+            document.getElementById("total-questions").textContent = originalQuestionCount;
+
         }
+
+        function toggleKeypad() {
+          const keypad = document.getElementById("keypad");
+          const toggleBtn = document.getElementById("toggle-keypad-btn");
+          if (keypad.style.display === "none") {
+            keypad.style.display = "block";
+            toggleBtn.textContent = "🔽";
+          } else {
+            keypad.style.display = "none";
+            toggleBtn.textContent = "🔼";
+          }
+        }
+
 
 
         function getInitialsFromBoxes() {
@@ -341,7 +388,7 @@
           const payload = {
             initials: initials,
             game: "game_0005",
-            settings: `${totalQuestions + correctAnswers} questions`,
+            settings: `${originalQuestionCount} questions`,
             score: correctAnswers,
             elapsed: elapsedStr,
             comments: document.getElementById("student-comments")?.value || ""
