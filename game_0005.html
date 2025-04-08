@@ -173,7 +173,7 @@
         </div>
         <h2 id="multi-person-question">How many slices does each friend get?</h2>
         <h2 id="single-person-question" class="hidden">How many slices will they eat?</h2>
-        <input type="number" id="answer" autofocus oninput="validateAnswer()">
+        <input type="number" id="answer" inputmode="none" readonly oninput="validateAnswer()">
         <div id="keypad-container">
             <div id="keypad">
                 <button onclick="appendDigit(1)">1</button>
@@ -236,12 +236,15 @@
             const inputBox = document.getElementById("answer");
 
             if (isTouchDevice()) {
-              inputBox.setAttribute("readonly", true); // Disable keyboard
-              keypadContainer.classList.remove("hidden"); // Start expanded
+              inputBox.setAttribute("readonly", true);
+              inputBox.setAttribute("inputmode", "none");
+              keypadContainer.classList.remove("hidden");
             } else {
               inputBox.removeAttribute("readonly");
-              keypadContainer.classList.add("hidden"); // Start minimized
+              inputBox.removeAttribute("inputmode");
+              keypadContainer.classList.add("hidden");
             }
+
             inputBox.focus();
         }
 
