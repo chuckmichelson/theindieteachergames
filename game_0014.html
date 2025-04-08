@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prime Factorization</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        input#answer {
+            font-size: 32px;
+            padding: 10px;
+            margin: 10px 0;
+            width: 80px;
+            text-align: center;
+            transition: background-color 0.3s ease-in-out;
+        }
+
+
+        input[type="number"] {
+            font-size: 24px;
+            padding: 10px;
+            width: 80px;
+            text-align: center;
+            appearance: textfield;
+        }
+
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        
+        .hidden {
+            display: none;
+        }
+
+        .flashcard {
+            font-size: 40px;
+            margin: 20px 0;
+        }
+
+        button {
+            font-size: 24px;
+            padding: 12px 24px;
+            margin: 10px 0;
+            cursor: pointer;
+        }
+
+        .factor-input {
+            width: 60px;
+            height: 70px;
+            font-size: 32px;
+            text-align: center;
+            margin: 5px;
+            border: 2px solid #333;
+            border-radius: 8px;
+        }
+
+        .factor-input.correct {
+            background-color: lightgreen;
+            border-color: green;
+        }
+
+        #start-screen input[type="number"] {
+            font-size: 24px;
+            padding: 10px;
+            width: 80px;
+            text-align: center;
+        }
+
+        #keypad-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            text-align: center;
+        }
+
+        #keypad button {
+            width: 70px;
+            height: 70px;
+            font-size: 28px;
+            margin: 5px;
+            background-color: #444;
+            color: white;
+            border: none;
+            border-radius: 10px;
+        }
+
+        #toggle-keypad-btn {
+            margin-top: 5px;
+            background-color: #222;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        #toggle-keypad-btn:hover {
+            background-color: #444;
+        }
+
+        .small-keypad button {
+            width: 50px !important;
+            height: 50px !important;
+            font-size: 20px !important;
+            margin: 3px !important;
+        }
+
+        .choice-button {
+            background-color: #333;
+            color: white;
+            border: 2px solid #666;
+            border-radius: 10px;
+            font-size: 24px;
+            padding: 12px 20px;
+            margin: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s;
+        }
+
+        .choice-button:hover {
+            background-color: #555;
+        }
+
+        .choice-button.correct {
+            background-color: lightgreen;
+            color: black;
+            border-color: green;
+        }
+
+        .choice-button.incorrect {
+            background-color: orange;
+        }
+
+        #multiple-choice h3 {
+            margin-top: 20px;
+        }
+
+        /* --- New Styles for Turn-In Screen --- */
+
+        .initial-box {
+            width: 60px;
+            height: 70px;
+            font-size: 32px;
+            text-align: center;
+            margin: 5px;
+            border: 2px solid #333;
+            border-radius: 8px;
+            text-transform: uppercase;
+        }
+
+        .initial-box.correct {
+            background-color: lightgreen;
+            border-color: green;
+        }
+
+        #student-comments {
+            width: 90%;
+            max-width: 400px;
+            font-size: 18px;
+            padding: 10px;
+            border-radius: 8px;
+            border: 2px solid #333;
+            background-color: #222;
+            color: white;
+            margin: 10px auto;
+            display: block;
+        }
+
+        #submit-status {
+            margin-top: 10px;
+            font-size: 18px;
+            color: lightgreen;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="start-screen">
+        <h1>Prime Factorization</h1>
+        <p>Factor each number into its primes, and list them from least to greatest.</p>
+        <p>Then, write the number with exponent notation.</p>
+        <p>How many problems would you like to try?</p>
+        <input type="number" id="question-count" min="1" max="20" value="10">
+        <button onclick="startGame()">Start</button>
+    </div>
+
+    <div id="game-screen" class="hidden">
+        <h1>Prime Factorization</h1>
+        <div class="flashcard" id="question"></div>
+        <div id="input-container"></div>
+        <div id="summary" class="hidden"></div>
+        <div id="multiple-choice" class="hidden"></div>
+    </div>
+
+    <div id="keypad-container" class="hidden">
+        <div id="keypad">
+            <button onclick="appendDigit('1')">1</button>
+            <button onclick="appendDigit('2')">2</button>
+            <button onclick="appendDigit('3')">3</button><br>
+            <button onclick="appendDigit('4')">4</button>
+            <button onclick="appendDigit('5')">5</button>
+            <button onclick="appendDigit('6')">6</button><br>
+            <button onclick="appendDigit('7')">7</button>
+            <button onclick="appendDigit('8')">8</button>
+            <button onclick="appendDigit('9')">9</button><br>
+            <button onclick="backspace()">←</button>
+            <button onclick="appendDigit('0')">0</button>
+            <button onclick="clearAnswer()">C</button>
+        </div>
+        <button id="toggle-keypad-btn" onclick="toggleKeypad()">🔽</button>
+    </div>
+
+    <!-- Modified end-screen -->
+    <div id="end-screen" class="hidden">
+        <h1>Great work!</h1>
+        <p>You got <span id="score"></span>/<span id="total"></span> correct.</p>
+        <p>Time taken: <span id="time"></span> seconds</p>
+        <div id="turn-in-screen">
+            <h2>Turn It In</h2>
+            <div id="initials-boxes">
+                <input class="initial-box" id="initial-0" maxlength="1" type="text"/>
+                <input class="initial-box" id="initial-1" maxlength="1" type="text"/>
+                <input class="initial-box" id="initial-2" maxlength="1" type="text"/>
+            </div>
+            <p>Enter your initials above.</p>
+            <p>Comments (optional):</p>
+            <textarea id="student-comments"></textarea>
+            <p id="submit-status"></p>
+            <button onclick="submitResults()">Submit</button>
+        </div>
+    </div>
+
+    <script>
+        let currentNumber;
+        let correctFactors = [];
+        let userInputs = [];
+        let totalQuestions = 0;
+        let questionsAnswered = 0;
+        let correctAnswers = 0;
+        let startTime;
+        let currentFocusedInput = null;
+        let hasAnswered = false;
+
+        function isTouchDevice() {
+            return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        }
+
+        function toggleInputMode() {
+            const keypadContainer = document.getElementById("keypad-container");
+            const keypad = document.getElementById("keypad");
+            const inputs = document.querySelectorAll(".factor-input");
+
+            if (isTouchDevice()) {
+                keypadContainer.classList.remove("hidden");
+                if (window.innerWidth < 500) {
+                    keypad.classList.add("small-keypad");
+                } else {
+                    keypad.classList.remove("small-keypad");
+                }
+                inputs.forEach(input => input.setAttribute("readonly", true));
+            } else {
+                keypadContainer.classList.remove("hidden");
+                keypad.classList.remove("small-keypad");
+                inputs.forEach(input => input.removeAttribute("readonly"));
+            }
+        }
+
+        function startGame() {
+            totalQuestions = parseInt(document.getElementById("question-count").value);
+            questionsAnswered = 0;
+            correctAnswers = 0;
+            startTime = Date.now();
+            document.getElementById("start-screen").classList.add("hidden");
+            document.getElementById("game-screen").classList.remove("hidden");
+            nextProblem();
+        }
+
+        function nextProblem() {
+            if (questionsAnswered >= totalQuestions) return endGame();
+            document.getElementById("summary").classList.add("hidden");
+            document.getElementById("summary").innerHTML = "";
+            hasAnswered = false;
+            currentNumber = getRandomCompositeNumber();
+            correctFactors = primeFactorization(currentNumber);
+            userInputs = new Array(correctFactors.length).fill(null);
+            displayProblem();
+        }
+
+        function displayProblem() {
+            document.getElementById("question").textContent = `${currentNumber}`;
+            const container = document.getElementById("input-container");
+            container.innerHTML = "";
+
+            correctFactors.forEach((_, index) => {
+                const input = document.createElement("input");
+                input.type = "text";
+                input.classList.add("factor-input");
+                input.dataset.index = index;
+                input.onclick = () => { currentFocusedInput = input; };
+                input.addEventListener("input", () => {
+                    validateInput(index, input.value);
+                    checkIfComplete();
+                });
+                container.appendChild(input);
+            });
+
+            currentFocusedInput = container.querySelector("input");
+            if (currentFocusedInput) currentFocusedInput.focus();
+            toggleInputMode();
+        }
+
+        function appendDigit(digit) {
+            if (!currentFocusedInput) return;
+            if (currentFocusedInput.value.length > 3) return;
+            currentFocusedInput.value += digit;
+            const i = parseInt(currentFocusedInput.dataset.index);
+            validateInput(i, currentFocusedInput.value);
+            checkIfComplete();
+        }
+
+        function clearAnswer() {
+            if (!currentFocusedInput) return;
+            currentFocusedInput.value = "";
+            const i = parseInt(currentFocusedInput.dataset.index);
+            validateInput(i, "");
+            checkIfComplete();
+        }
+
+        function backspace() {
+            if (!currentFocusedInput) return;
+            currentFocusedInput.value = currentFocusedInput.value.slice(0, -1);
+            const i = parseInt(currentFocusedInput.dataset.index);
+            validateInput(i, currentFocusedInput.value);
+            checkIfComplete();
+        }
+
+        function validateInput(index, value) {
+            const inputBox = document.querySelector(`input[data-index='${index}']`);
+            const val = parseInt(value, 10);
+            if (!isNaN(val) && val === correctFactors[index] && !hasAnswered) {
+                inputBox.classList.add("correct");
+                inputBox.readOnly = true;
+                userInputs[index] = val;
+                const nextInput = document.querySelector(`input[data-index='${index + 1}']`);
+                if (nextInput) {
+                    currentFocusedInput = nextInput;
+                    nextInput.focus();
+                }
+            } else {
+                userInputs[index] = null;
+                inputBox.classList.remove("correct");
+            }
+        }
+
+        function toggleKeypad() {
+            const keypad = document.getElementById("keypad");
+            const toggleBtn = document.getElementById("toggle-keypad-btn");
+            if (keypad.style.display === "none") {
+                keypad.style.display = "block";
+                toggleBtn.textContent = "🔽";
+            } else {
+                keypad.style.display = "none";
+                toggleBtn.textContent = "🔼";
+            }
+        }
+
+        function endGame() {
+            const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+            document.getElementById("game-screen").classList.add("hidden");
+            document.getElementById("keypad-container").classList.add("hidden");
+            document.getElementById("end-screen").classList.remove("hidden");
+            document.getElementById("score").textContent = correctAnswers;
+            document.getElementById("total").textContent = totalQuestions;
+            document.getElementById("time").textContent = timeTaken;
+        }
+
+        const compositeNumbers = [
+            10, 12, 14, 15, 16, 18, 20, 21, 22, 24, 25, 26, 27, 28, 30,
+            32, 33, 34, 35, 36, 38, 39, 40, 42, 44, 45, 46, 48, 49, 50,
+            51, 52, 54, 55, 56, 57, 58, 60, 62, 63, 64, 65, 66, 68, 69,
+            70, 72, 74, 75, 76, 77, 78, 80, 81, 82, 84, 85, 86, 87, 88,
+            90, 91, 92, 93, 94, 95, 96, 98, 99, 100
+        ];
+
+        function getRandomCompositeNumber() {
+            const i = Math.floor(Math.random() * compositeNumbers.length);
+            return compositeNumbers[i];
+        }
+
+        function primeFactorization(n) {
+            const factors = [];
+            if (!Number.isInteger(n) || n < 2) return factors;
+
+            for (let i = 2; i <= n; i++) {
+                for (let j = 0; j < 10; j++) {
+                    if (n % i !== 0) break;
+                    factors.push(i);
+                    n = Math.floor(n / i);
+                }
+                if (n === 1) break;
+            }
+            return factors;
+        }
+
+        window.addEventListener("resize", toggleInputMode);
+
+        function showMultipleChoice(factors) {
+            const counts = {};
+            for (let f of factors) {
+                counts[f] = (counts[f] || 0) + 1;
+            }
+
+            const sorted = Object.keys(counts).map(Number).sort((a, b) => a - b);
+            const correctString = sorted.map(p => `${p}${superscript(counts[p])}`).join(" ");
+
+            const choices = new Set();
+            choices.add(correctString);
+
+            let attempts = 0;
+            while (choices.size < 4 && attempts < 20) {
+                attempts++;
+                let fakeCounts = {...counts};
+                let keys = Object.keys(fakeCounts);
+                let keyToChange = keys[Math.floor(Math.random() * keys.length)];
+                let delta = Math.random() < 0.5 ? -1 : 1;
+                fakeCounts[keyToChange] = Math.max(1, fakeCounts[keyToChange] + delta);
+                const fakeSorted = Object.keys(fakeCounts).map(Number).sort((a, b) => a - b);
+                const fakeString = fakeSorted.map(p => `${p}${superscript(fakeCounts[p])}`).join(" ");
+                choices.add(fakeString);
+            }
+
+            const choiceArray = Array.from(choices).sort(() => 0.5 - Math.random());
+            const container = document.getElementById("multiple-choice");
+            container.innerHTML = "";
+            container.classList.remove("hidden");
+
+            choiceArray.forEach(choice => {
+                const btn = document.createElement("button");
+                btn.classList.add("choice-button");
+                btn.innerHTML = choice;
+                btn.onclick = () => {
+                    const buttons = container.querySelectorAll("button");
+                    buttons.forEach(b => {
+                        if (b.innerHTML === correctString) {
+                            b.classList.add("correct");
+                        } else if (b === btn) {
+                            b.classList.add("incorrect");
+                        }
+                        b.disabled = true;
+                    });
+                    if (btn.innerHTML === correctString) {
+                        const message = document.createElement("h3");
+                        message.textContent = "Correct!";
+                        container.appendChild(message);
+                    }
+
+                    setTimeout(() => {
+                        container.classList.add("hidden");
+                        nextProblem();
+                    }, 2000);
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function superscript(n) {
+            const superscripts = {
+                '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
+                '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹'
+            };
+            return n.toString().split('').map(d => superscripts[d] || d).join('');
+        }
+
+        function checkIfComplete() {
+            if (hasAnswered) return;
+            if (userInputs.every((v, i) => v === correctFactors[i])) {
+                hasAnswered = true;
+                questionsAnswered++;
+                correctAnswers++;
+                document.getElementById("summary").classList.remove("hidden");
+                document.getElementById("summary").innerHTML = `<h2>Correct!</h2><p>${currentNumber} = ${correctFactors.join(" × ")}</p>`;
+                setTimeout(() => showMultipleChoice(correctFactors), 100);
+            }
+        }
+        // Add getInitialsFromBoxes, submitResults, and event listener for initials
+        function getInitialsFromBoxes() {
+            const chars = [];
+            let allFilled = true;
+            for (let i = 0; i < 3; i++) {
+                const box = document.getElementById(`initial-${i}`);
+                const char = box.value.toUpperCase();
+                if (char.length === 1 && /^[A-Z]$/.test(char)) {
+                    box.classList.add("correct");
+                    chars.push(char);
+                } else {
+                    box.classList.remove("correct");
+                    allFilled = false;
+                }
+            }
+            return allFilled ? chars.join('') : null;
+        }
+
+        function submitResults() {
+            const initials = getInitialsFromBoxes();
+            if (!initials) {
+                alert("Please enter 3 letters.");
+                return;
+            }
+
+            const timeString = document.getElementById("time").textContent;
+            const payload = {
+                initials: initials,
+                game: "game_0014",
+                settings: `${totalQuestions} questions`,
+                score: correctAnswers,
+                elapsed: `${timeString} seconds`,
+                comments: document.getElementById("student-comments")?.value || ""
+            };
+
+            const submitButton = document.querySelector("#turn-in-screen button");
+            submitButton.style.display = "none";
+            document.getElementById("submit-status").textContent = "Sending...";
+
+            fetch("https://script.google.com/macros/s/AKfycbwsvj0ijlKGeWOIu80EobVDJks24Dw0ziwl9aY_AVJImmhRJ0MQnAJwmuBpe1NYmPzr/exec", {
+                method: "POST",
+                body: JSON.stringify(payload),
+                headers: {
+                    "Content-Type": "text/plain"
+                }
+            })
+            .then(res => res.text())
+            .then(res => {
+                document.getElementById("submit-status").textContent = "Submitted successfully! 🎉";
+            })
+            .catch(err => {
+                document.getElementById("submit-status").textContent = "Error: " + err;
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            for (let i = 0; i < 3; i++) {
+                const box = document.getElementById(`initial-${i}`);
+                box?.addEventListener("input", () => {
+                    if (box.value.trim().length === 1) {
+                        box.classList.add("correct");
+                        if (i < 2) {
+                            document.getElementById(`initial-${i + 1}`).focus();
+                        } else {
+                            document.getElementById("student-comments").focus();
+                        }
+                    } else {
+                        box.classList.remove("correct");
+                    }
+                });
+            }
+        });
+
+        // Modify endGame to show submission fields
+        function endGame() {
+            const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+            document.getElementById("game-screen").classList.add("hidden");
+            document.getElementById("keypad-container").classList.add("hidden");
+            document.getElementById("end-screen").classList.remove("hidden");
+            document.getElementById("score").textContent = correctAnswers;
+            document.getElementById("total").textContent = totalQuestions;
+            document.getElementById("time").textContent = timeTaken;
+            document.getElementById("initial-0").focus();
+        }
+    </script>
+</body>
+</html>
