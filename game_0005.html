@@ -160,7 +160,7 @@
     <div id="start-screen">
         <h1>Pizza Division</h1>
         <p>Choose the number of questions:</p>
-        <input type="number" id="question-count" min="1" max="20" value="5">
+        <input type="number" id="question-count" min="1" max="20" value="10">
         <button onclick="startGame()">Start</button>
     </div>
 
@@ -249,40 +249,43 @@
         }
 
         function nextProblem() {
-            if (totalQuestions > 0) {
-                totalQuestions--;
-                let people = Math.floor(Math.random() * 5) + 1;       // 1 to 10
-                let multiplier = Math.floor(Math.random() * 5) + 1;   // 1 to 10
-                let slices = people * multiplier;
+            let people, multiplier, slices;
 
-                if (slices === 1) {
-                    nextProblem();
-                    return;
-                }
-                let correctAnswer = slices / people;
+            do {
+                people = Math.floor(Math.random() * 5) + 1;
+                multiplier = Math.floor(Math.random() * 5) + 1;
+                slices = people * multiplier;
+            } while (slices === 1);
 
-                document.getElementById("slices").textContent = slices;
-                if (people === 1) {
-                    document.getElementById("friends").textContent = "1 person is going to eat it all.";
-                    document.getElementById("single-person-question").classList.remove("hidden");
-                    document.getElementById("multi-person-question").classList.add("hidden");
-                } else {
-                    document.getElementById("friends").textContent = `${people} friends are sharing it equally.`;
-                    document.getElementById("multi-person-question").classList.remove("hidden");
-                    document.getElementById("single-person-question").classList.add("hidden");
-                }
-                document.getElementById("answer").dataset.correct = correctAnswer;
-
-                let inputBox = document.getElementById("answer");
-                inputBox.style.backgroundColor = "white";
-                inputBox.value = "";
-                document.getElementById("summary").classList.add("hidden");
-                drawPizza(slices);
-                inputBox.focus();
-            } else {
+            if (totalQuestions <= 0) {
                 endGame();
+                return;
             }
+
+            totalQuestions--;
+
+            let correctAnswer = slices / people;
+
+            document.getElementById("slices").textContent = slices;
+            if (people === 1) {
+                document.getElementById("friends").textContent = "1 person is going to eat it all.";
+                document.getElementById("single-person-question").classList.remove("hidden");
+                document.getElementById("multi-person-question").classList.add("hidden");
+            } else {
+                document.getElementById("friends").textContent = `${people} friends are sharing it equally.`;
+                document.getElementById("multi-person-question").classList.remove("hidden");
+                document.getElementById("single-person-question").classList.add("hidden");
+            }
+            document.getElementById("answer").dataset.correct = correctAnswer;
+
+            let inputBox = document.getElementById("answer");
+            inputBox.style.backgroundColor = "white";
+            inputBox.value = "";
+            document.getElementById("summary").classList.add("hidden");
+            drawPizza(slices);
+            inputBox.focus();
         }
+
 
         function drawPizza(slices) {
             let canvas = document.getElementById("pizzaCanvas");
