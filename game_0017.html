@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link href="favicon.png" rel="icon" type="image/png"/>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>Picture Multiplication Table</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    .hidden {
+      display: none !important;
+    }
+    .flashcard {
+      font-size: 40px;
+      margin: 20px 0;
+    }
+    input#answer {
+      font-size: 32px;
+      padding: 10px;
+      margin: 10px 0;
+      width: 80px;
+      text-align: center;
+    }
+    select, button {
+      font-size: 24px;
+      padding: 10px;
+      margin: 10px;
+    }
+    #play-again-btn {
+      display: none;
+      font-size: 20px;
+      padding: 10px 20px;
+      margin: 20px auto;
+      cursor: pointer;
+      display: block;
+    }
+    .table-container {
+      position: relative;
+      margin: 20px auto;
+      z-index: 2;
+    }
+    #multiplication-table {
+      display: grid;
+      position: relative;
+      margin: 0 auto;
+    }
+    .table-cell {
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #ffffff;
+      font-size: 18px;
+      box-sizing: border-box;
+      color: #121212;
+      background-color: black;
+      z-index: 2;
+    }
+    .table-cell.revealed {
+      background-color: transparent;
+    }
+    .header-cell {
+      background-color: #333;
+      font-weight: bold;
+    }
+    #picture-background {
+      position: absolute;
+      z-index: 1;
+      pointer-events: none;
+      object-fit: cover;
+    }
+    #keypad-container {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      text-align: center;
+    }
+    #keypad button {
+      width: 70px;
+      height: 70px;
+      font-size: 28px;
+      margin: 5px;
+      background-color: #444;
+      color: white;
+      border: none;
+      border-radius: 10px;
+    }
+    #toggle-keypad-btn {
+      margin-top: 5px;
+      background-color: #222;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 20px;
+      cursor: pointer;
+    }
+    .table-flex-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      width: fit-content;
+      margin: 0 auto;
+    }
+
+    #student-comments {
+      width: 90%;
+      max-width: 400px;
+      font-size: 18px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 2px solid #333;
+      background-color: #222;
+      color: white;
+      margin: 10px auto;
+      display: block;
+    }
+
+    .submit-btn {
+      font-size: 20px;
+      padding: 10px 20px;
+      margin-top: 10px;
+      background-color: #444;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .initial-box {
+      width: 60px;
+      height: 70px;
+      font-size: 32px;
+      text-align: center;
+      margin: 5px;
+      border: 2px solid #333;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+    .initial-box.correct {
+      background-color: lightgreen;
+      border-color: green;
+    }
+  </style>
+</head>
+<body>
+
+<div id="start-screen">
+  <h1>Picture Multiplication Table</h1>
+  <p>Select grid size:</p>
+  <select id="grid-size"></select>
+  <button onclick="startGame()">Start</button>
+</div>
+
+<div class="hidden" id="game-screen">
+  <h1>Picture Multiplication Table</h1>
+  <div class="flashcard" id="question"></div>
+  <input autofocus id="answer" onkeypress="handleKeyPress(event)" readonly type="text"/>
+  <div class="table-container" id="multiplication-table-wrapper">
+    <div class="table-flex-wrapper">
+      <img alt="hidden picture" id="picture-background" src=""/>
+      <div id="multiplication-table"></div>
+    </div>
+  </div>
+  <div class="hidden" id="summary"></div>
+  <button id="play-again-btn" onclick="location.reload()">Play Again</button>
+</div>
+
+<div class="hidden" id="keypad-container">
+  <div id="keypad">
+    <button onclick="appendDigit('1')">1</button>
+    <button onclick="appendDigit('2')">2</button>
+    <button onclick="appendDigit('3')">3</button><br/>
+    <button onclick="appendDigit('4')">4</button>
+    <button onclick="appendDigit('5')">5</button>
+    <button onclick="appendDigit('6')">6</button><br/>
+    <button onclick="appendDigit('7')">7</button>
+    <button onclick="appendDigit('8')">8</button>
+    <button onclick="appendDigit('9')">9</button><br/>
+    <button onclick="clearAnswer()">C</button>
+    <button onclick="appendDigit('0')">0</button>
+    <button onclick="checkAnswer()">↵</button>
+  </div>
+  <button id="toggle-keypad-btn" onclick="toggleKeypad()">🔽</button>
+</div>
+
+<!-- Turn-In Screen -->
+<div class="hidden" id="turn-in-screen">
+  <h2>Turn It In</h2>
+  <div id="initials-boxes">
+    <input class="initial-box" id="initial-0" maxlength="1" type="text"/>
+    <input class="initial-box" id="initial-1" maxlength="1" type="text"/>
+    <input class="initial-box" id="initial-2" maxlength="1" type="text"/>
+  </div>
+  <p>Enter your initials:</p>
+  <p id="summary-again"></p>
+  <p>Comments (optional):</p>
+  <textarea id="student-comments"></textarea>
+  <button onclick="submitResults()" class="submit-btn">Submit</button>
+  <p id="submit-status"></p>
+</div>
+
+<script>
+  let n = 3;
+  let startTime, endTime;
+  let problems = [];
+  let currentProblem = {};
+  let completedCells = 0;
+  let totalCells;
+
+  const gridSizeSelect = document.getElementById("grid-size");
+  for (let i = 5; i <= 12; i++) {
+    let option = document.createElement("option");
+    option.value = i;
+    option.textContent = `${i} x ${i}`;
+    gridSizeSelect.appendChild(option);
+  }
+
+  function isTouchDevice() {
+    return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  }
+
+  function toggleInputMode() {
+    const answerInput = document.getElementById("answer");
+    const keypadContainer = document.getElementById("keypad-container");
+    if (isTouchDevice()) {
+      answerInput.setAttribute("readonly", true);
+      keypadContainer.classList.remove("hidden");
+    } else {
+      answerInput.removeAttribute("readonly");
+      keypadContainer.classList.add("hidden");
+    }
+  }
+
+  function startGame() {
+    startTime = new Date();
+    n = parseInt(gridSizeSelect.value);
+    totalCells = n * n;
+
+    const image = document.getElementById("picture-background");
+    image.src = `game_0017_${n}x${n}.gif`;
+
+    document.getElementById("start-screen").classList.add("hidden");
+    document.getElementById("game-screen").classList.remove("hidden");
+    document.getElementById("summary").classList.add("hidden");
+    document.getElementById("answer").style.display = "inline-block";
+    document.getElementById("question").style.display = "block";
+    document.getElementById("play-again-btn").style.display = "none";
+    toggleInputMode();
+    generateProblems();
+    displayTable();
+    positionImageBehindTable();
+    nextProblem();
+  }
+
+  function generateProblems() {
+    problems = [];
+    for (let i = 1; i <= n; i++) {
+      for (let j = 1; j <= n; j++) {
+        problems.push({ x: i, y: j });
+      }
+    }
+    problems.sort(() => Math.random() - 0.5);
+  }
+
+  function displayTable() {
+    const table = document.getElementById("multiplication-table");
+    table.innerHTML = "";
+    table.style.gridTemplateColumns = `repeat(${n + 1}, 50px)`;
+    table.style.width = `${(n + 1) * 50}px`;
+
+    for (let i = 0; i <= n; i++) {
+      for (let j = 0; j <= n; j++) {
+        const cell = document.createElement("div");
+        cell.classList.add("table-cell");
+        if (i === 0 && j === 0) {
+          cell.textContent = "";
+          cell.classList.add("header-cell");
+        } else if (i === 0) {
+          cell.textContent = j;
+          cell.classList.add("header-cell");
+        } else if (j === 0) {
+          cell.textContent = i;
+          cell.classList.add("header-cell");
+        } else {
+          cell.dataset.x = i;
+          cell.dataset.y = j;
+        }
+        table.appendChild(cell);
+      }
+    }
+  }
+
+  function positionImageBehindTable() {
+    const image = document.getElementById("picture-background");
+    const width = n * 50;
+    const height = n * 50;
+    image.style.width = `${width}px`;
+    image.style.height = `${height}px`;
+    image.style.top = "50px";
+    image.style.left = "50px";
+  }
+
+  function nextProblem() {
+    if (problems.length === 0) {
+      endTime = new Date();
+      const elapsedSeconds = Math.floor((endTime - startTime) / 1000);
+      const minutes = Math.floor(elapsedSeconds / 60);
+      const seconds = elapsedSeconds % 60;
+      const elapsedStr = `${minutes}m${seconds}s`;
+
+      document.getElementById("answer").blur();
+      document.getElementById("summary").classList.remove("hidden");
+      document.getElementById("summary").innerHTML = `
+        <h2>All done!</h2>
+        <p>Grid size: ${n} x ${n}</p>
+        <p>Total time: ${elapsedStr}</p>
+        <button onclick="showTurnInScreen('${elapsedStr}')">Send to Chuck</button>
+      `;
+      document.getElementById("play-again-btn").style.display = "block";
+      return;
+    }
+
+    currentProblem = problems.shift();
+    document.getElementById("question").textContent = `${currentProblem.x} × ${currentProblem.y}`;
+    document.getElementById("answer").value = "";
+    document.getElementById("answer").focus();
+  }
+
+  function handleKeyPress(event) {
+    if (event.key === "Enter") {
+      checkAnswer();
+    }
+  }
+
+  function appendDigit(digit) {
+    const input = document.getElementById("answer");
+    input.value += digit;
+    input.focus();
+  }
+
+  function clearAnswer() {
+    const input = document.getElementById("answer");
+    input.value = "";
+    input.focus();
+  }
+
+  function toggleKeypad() {
+    const keypad = document.getElementById("keypad");
+    const toggleBtn = document.getElementById("toggle-keypad-btn");
+    if (keypad.style.display === "none") {
+      keypad.style.display = "block";
+      toggleBtn.textContent = "🔽";
+    } else {
+      keypad.style.display = "none";
+      toggleBtn.textContent = "🔼";
+    }
+  }
+
+  function checkAnswer() {
+    let answer = parseInt(document.getElementById("answer").value);
+    if (answer === currentProblem.x * currentProblem.y) {
+      let cell = document.querySelector(`.table-cell[data-x='${currentProblem.x}'][data-y='${currentProblem.y}']`);
+      if (cell) cell.classList.add("revealed");
+      completedCells++;
+    } else {
+      const randomIndex = Math.floor(Math.random() * (problems.length + 1));
+      problems.splice(randomIndex, 0, currentProblem);
+    }
+    nextProblem();
+  }
+
+  function showTurnInScreen(elapsedStr) {
+    document.getElementById("game-screen").classList.add("hidden");
+    document.getElementById("turn-in-screen").classList.remove("hidden");
+    document.getElementById("summary-again").textContent = `Grid size: ${n} x ${n} | Time: ${elapsedStr}`;
+    document.getElementById("submit-status").textContent = "";
+    document.getElementById("initial-0").focus();
+  }
+
+  function getInitialsFromBoxes() {
+    const chars = [];
+    let allFilled = true;
+    for (let i = 0; i < 3; i++) {
+      const box = document.getElementById(`initial-${i}`);
+      const char = box.value.toUpperCase();
+      if (char.length === 1 && /^[A-Z]$/.test(char)) {
+        box.classList.add("correct");
+        chars.push(char);
+      } else {
+        box.classList.remove("correct");
+        allFilled = false;
+      }
+    }
+    return allFilled ? chars.join('') : null;
+  }
+
+  function submitResults() {
+    const initials = getInitialsFromBoxes();
+    if (!initials) {
+      alert("Please enter 3 letters.");
+      return;
+    }
+
+    const submitBtn = document.querySelector("button[onclick='submitResults()']");
+    submitBtn.textContent = "Submitting...";
+    submitBtn.disabled = true;
+
+    const timeString = document.getElementById("summary-again").textContent;
+    const elapsedStr = timeString.includes("Time:") ? timeString.split("Time:")[1].trim() : "";
+    const comments = document.getElementById("student-comments").value.trim();
+
+    const payload = {
+      initials: initials,
+      game: "game_0017",
+      settings: `${n}x${n}`,
+      score: " ",
+      elapsed: elapsedStr,
+      comments: comments
+    };
+
+    fetch("https://script.google.com/macros/s/AKfycbwsvj0ijlKGeWOIu80EobVDJks24Dw0ziwl9aY_AVJImmhRJ0MQnAJwmuBpe1NYmPzr/exec", {
+      method: "POST",
+      body: JSON.stringify(payload),
+      headers: {
+        "Content-Type": "text/plain"
+      }
+    })
+    .then(res => res.text())
+    .then(res => {
+      document.getElementById("submit-status").textContent = "Submitted successfully! 🎉";
+      submitBtn.style.display = "none";  // hide it for good
+      document.getElementById("play-again-btn").style.display = "block";
+    })
+    .catch(err => {
+      document.getElementById("submit-status").textContent = "Error: " + err;
+      submitBtn.textContent = "Submit";
+      submitBtn.disabled = false;  // let them retry
+    });
+  }
+
+
+  document.addEventListener("DOMContentLoaded", () => {
+    for (let i = 0; i < 3; i++) {
+      const box = document.getElementById(`initial-${i}`);
+      box.addEventListener("input", () => {
+        if (box.value.trim().length === 1) {
+          box.classList.add("correct");
+          if (i < 2) {
+            document.getElementById(`initial-${i + 1}`).focus();
+          }
+        } else {
+          box.classList.remove("correct");
+        }
+      });
+    }
+  });
+</script>
+</body>
+</html>
