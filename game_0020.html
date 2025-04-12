@@ -1,0 +1,458 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="apple-touch-icon" href="favicon.png">
+    <link rel="shortcut icon" href="favicon.ico">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji Multiplication</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        h1, h2 {
+            margin: 10px 0;
+        }
+
+        input[type="number"] {
+            font-size: 24px;
+            padding: 10px;
+            width: 80px;
+            text-align: center;
+            appearance: textfield;
+        }
+
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        button {
+            font-size: 24px;
+            padding: 12px 24px;
+            margin: 10px 0;
+            cursor: pointer;
+        }
+
+        #emojiGrid {
+            display: grid;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px auto;
+        }
+
+        .emoji {
+            font-size: 2.5em;
+            text-align: center;
+        }
+
+        #answer {
+            font-size: 32px;
+            padding: 10px;
+            margin: 10px 0;
+            width: 80px;
+            text-align: center;
+            transition: background-color 0.3s ease-in-out;
+        }
+
+        #keypad-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            text-align: center;
+        }
+
+        #keypad button {
+            width: 70px;
+            height: 70px;
+            font-size: 28px;
+            margin: 5px;
+            background-color: #444;
+            color: white;
+            border: none;
+            border-radius: 10px;
+        }
+
+        #emojiGridContainer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        #end-screen.hidden {
+            display: none;
+        }
+
+        #student-comments {
+          width: 90%;
+          max-width: 400px;
+          font-size: 18px;
+          padding: 10px;
+          border-radius: 8px;
+          border: 2px solid #333;
+          background-color: #222;
+          color: white;
+          margin: 10px auto;
+          display: block;
+        }
+
+        .submit-btn {
+          font-size: 20px;
+          padding: 10px 20px;
+          margin-top: 10px;
+          background-color: #444;
+          color: white;
+          border: none;
+          border-radius: 10px;
+          cursor: pointer;
+        }
+
+        .initial-box {
+            width: 60px;
+            height: 70px;
+            font-size: 32px;
+            text-align: center;
+            margin: 5px;
+            border: 2px solid #333;
+            border-radius: 8px;
+            text-transform: uppercase;
+        }
+
+        .initial-box.correct {
+            background-color: lightgreen;
+            border-color: green;
+        }
+        #toggle-keypad-btn {
+          margin-top: 5px;
+          background-color: #222;
+          color: white;
+          border: none;
+          border-radius: 10px;
+          padding: 8px 12px;
+          font-size: 20px;
+          cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="start-screen">
+        <h1>Emoji Multiplication</h1>
+        <p>Choose the number of questions:</p>
+        <input type="number" id="question-count" min="1" max="20" value="10">
+        <button onclick="startGame()">Start</button>
+    </div>
+
+    <div id="game-screen" class="hidden">
+        <h1 id="prompt">How many emojis are here?</h1>
+        <div id="emojiGridContainer">
+            <div id="emojiGrid"></div>
+        </div>
+        <input type="number" id="answer" inputmode="none" readonly oninput="validateAnswer()">
+        <div id="keypad-container">
+            <div id="keypad">
+                <button onclick="appendDigit(1)">1</button>
+                <button onclick="appendDigit(2)">2</button>
+                <button onclick="appendDigit(3)">3</button><br/>
+                <button onclick="appendDigit(4)">4</button>
+                <button onclick="appendDigit(5)">5</button>
+                <button onclick="appendDigit(6)">6</button><br/>
+                <button onclick="appendDigit(7)">7</button>
+                <button onclick="appendDigit(8)">8</button>
+                <button onclick="appendDigit(9)">9</button><br/>
+                <button onclick="clearAnswer()">C</button>
+                <button onclick="appendDigit(0)">0</button>
+                <button onclick="validateAnswer()">↵</button>
+            </div>
+            <button id="toggle-keypad-btn" onclick="toggleKeypad()">🔽</button>
+        </div>
+        <div id="summary" class="hidden"></div>
+    </div>
+
+    <div id="end-screen" class="hidden">
+        <h1>Session Complete!</h1>
+        <p>Score: <span id="score"></span>/<span id="total-questions"></span></p>
+        <p>Time taken: <span id="time"></span> seconds</p>
+        <div id="turn-in-screen">
+            <h2>Turn It In</h2>
+            <div id="initials-boxes">
+                <input class="initial-box" id="initial-0" maxlength="1" type="text"/>
+                <input class="initial-box" id="initial-1" maxlength="1" type="text"/>
+                <input class="initial-box" id="initial-2" maxlength="1" type="text"/>
+            </div>
+            <p>Enter your initials above.</p>
+            <p>Comments (optional):</p>
+            <textarea id="student-comments"></textarea>
+            <p id="submit-status"></p>
+
+            <button onclick="submitResults()">Submit</button>
+        </div>
+    </div>
+
+    <script>
+    const emojiDictionary = {
+      "🏈": "footballs",
+      "🏀": "basketballs",
+      "⚽️": "soccer balls",
+      "🏓": "ping pong paddles",
+      "🎧": "headphones",
+      "🧢": "baseball caps",
+      "🍕": "slices of pizza",
+      "☕️": "cups of coffee",
+      "🎸": "guitars",
+      "💻": "laptops",
+      "🐶": "puppies",
+      "🐴": "horses",
+      "🐸": "frogs",
+      "🐰": "bunnies",
+      "🐼": "pandas",
+      "🦊": "foxes",
+      "🐵": "monkeys",
+      "🦄": "unicorns",
+      "🦓": "zebras",
+      "🐢": "turtles",
+      "🦖": "dinosaurs",
+      "🍉": "slices of watermelon",
+      "🍓": "strawberries",
+      "📱": "phones",
+      "🎮": "video game controllers",
+      "🕹️": "joysticks",
+      "🧸": "teddy bears",
+      "🪀": "yo-yos",
+      "🎲": "dice",
+      "🪁": "kites",
+      "✏️": "pencils",
+      "📓": "notebooks",
+      "🛼": "roller skates",
+      "🚀": "rockets",
+      "🐥": "chicks",
+      "🐝": "bees",
+      "🐧": "penguins",
+      "🪄": "magic wands",
+      "🎈": "balloons",
+      "🪥": "toothbrushes",
+      "🎤": "microphones",
+      "🎬": "movie clappers",
+      "🎨": "paint palettes",
+      "🧵": "spools of thread",
+      "🧶": "balls of yarn",
+      "🎃": "jack-o'-lanterns",
+      "🧁": "cupcakes",
+      "🍿": "boxes of popcorn",
+      "🌈": "rainbows",
+      "⭐️": "stars"
+    };
+
+
+    let currentAnswer = 0, totalQuestions, correctAnswers = 0, startTime, originalQuestionCount;
+
+    function isTouchDevice() {
+        return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    }
+
+    function startGame() {
+        totalQuestions = parseInt(document.getElementById("question-count").value);
+        originalQuestionCount = totalQuestions;
+        document.getElementById("total-questions").textContent = originalQuestionCount;
+        document.getElementById("start-screen").classList.add("hidden");
+        document.getElementById("game-screen").classList.remove("hidden");
+        correctAnswers = 0;
+        startTime = Date.now();
+        nextProblem();
+
+        const keypadContainer = document.getElementById("keypad-container");
+        const inputBox = document.getElementById("answer");
+
+        if (isTouchDevice()) {
+            inputBox.setAttribute("readonly", true);
+            inputBox.setAttribute("inputmode", "none");
+            keypadContainer.classList.remove("hidden");
+        } else {
+            inputBox.removeAttribute("readonly");
+            inputBox.removeAttribute("inputmode");
+            keypadContainer.classList.add("hidden");
+        }
+
+        inputBox.focus();
+    }
+
+    function nextProblem() {
+        if (totalQuestions <= 0) {
+            endGame();
+            return;
+        }
+
+        totalQuestions--;
+
+        const emojis = Object.keys(emojiDictionary);
+        const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+        const name = emojiDictionary[emoji];
+
+        const rows = Math.floor(Math.random() * 5) + 1;
+        const cols = Math.floor(Math.random() * 5) + 1;
+        currentAnswer = rows * cols;
+
+        const prompt = `How many ${name} are here?`;
+        document.getElementById("prompt").textContent = prompt;
+
+        const grid = document.getElementById("emojiGrid");
+        grid.innerHTML = "";
+        grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+        for (let i = 0; i < currentAnswer; i++) {
+            const cell = document.createElement("div");
+            cell.className = "emoji";
+            cell.textContent = emoji;
+            grid.appendChild(cell);
+        }
+
+        const inputBox = document.getElementById("answer");
+        inputBox.style.backgroundColor = "white";
+        inputBox.value = "";
+        inputBox.dataset.correct = currentAnswer;
+        document.getElementById("summary").classList.add("hidden");
+        inputBox.focus();
+    }
+
+    function validateAnswer() {
+        const inputBox = document.getElementById("answer");
+        const value = parseInt(inputBox.value);
+        const correctAnswer = parseInt(inputBox.dataset.correct);
+        const summary = document.getElementById("summary");
+
+        if (value === correctAnswer) {
+            inputBox.style.backgroundColor = "lightgreen";
+            correctAnswers++;
+            summary.classList.remove("hidden");
+            summary.innerHTML = "<h2>Correct!</h2>";
+            setTimeout(nextProblem, 1000);
+        } else {
+            inputBox.style.backgroundColor = inputBox.value === "" ? "white" : "orange";
+        }
+    }
+
+    function appendDigit(digit) {
+        const inputBox = document.getElementById("answer");
+        inputBox.value += digit;
+        inputBox.focus();
+    }
+
+    function clearAnswer() {
+        const inputBox = document.getElementById("answer");
+        inputBox.value = "";
+        inputBox.focus();
+    }
+
+    function toggleKeypad() {
+        const keypad = document.getElementById("keypad");
+        const toggleBtn = document.getElementById("toggle-keypad-btn");
+        if (keypad.style.display === "none") {
+            keypad.style.display = "block";
+            toggleBtn.textContent = "🔽";
+        } else {
+            keypad.style.display = "none";
+            toggleBtn.textContent = "🔼";
+        }
+    }
+
+    function endGame() {
+        const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+        document.getElementById("game-screen").classList.add("hidden");
+        document.getElementById("end-screen").classList.remove("hidden");
+        document.getElementById("turn-in-screen").classList.remove("hidden");
+        document.getElementById("score").textContent = correctAnswers;
+        document.getElementById("time").textContent = timeTaken;
+        document.getElementById("initial-0").focus();
+    }
+
+    function getInitialsFromBoxes() {
+        const chars = [];
+        let allFilled = true;
+        for (let i = 0; i < 3; i++) {
+            const box = document.getElementById(`initial-${i}`);
+            const char = box.value.toUpperCase();
+            if (char.length === 1 && /^[A-Z]$/.test(char)) {
+                box.classList.add("correct");
+                chars.push(char);
+            } else {
+                box.classList.remove("correct");
+                allFilled = false;
+            }
+        }
+        return allFilled ? chars.join('') : null;
+    }
+
+    function submitResults() {
+        const initials = getInitialsFromBoxes();
+        if (!initials) {
+            alert("Please enter 3 letters.");
+            return;
+        }
+
+        const timeString = document.getElementById("time").textContent;
+        const elapsedStr = timeString ? `${timeString} seconds` : "N/A";
+
+        const payload = {
+            initials: initials,
+            game: "game_0020",
+            settings: `${originalQuestionCount} questions`,
+            score: correctAnswers,
+            elapsed: elapsedStr,
+            comments: document.getElementById("student-comments")?.value || ""
+        };
+
+        const submitButton = document.querySelector("#turn-in-screen button");
+        submitButton.style.display = "none";
+        document.getElementById("submit-status").textContent = "Sending...";
+
+        fetch("https://script.google.com/macros/s/AKfycbwsvj0ijlKGeWOIu80EobVDJks24Dw0ziwl9aY_AVJImmhRJ0MQnAJwmuBpe1NYmPzr/exec", {
+            method: "POST",
+            body: JSON.stringify(payload),
+            headers: {
+                "Content-Type": "text/plain"
+            }
+        })
+        .then(res => res.text())
+        .then(res => {
+            document.getElementById("submit-status").textContent = "Submitted successfully! 🎉";
+        })
+        .catch(err => {
+            document.getElementById("submit-status").textContent = "Error: " + err;
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        for (let i = 0; i < 3; i++) {
+            const box = document.getElementById(`initial-${i}`);
+            box.addEventListener("input", () => {
+                if (box.value.trim().length === 1) {
+                    box.classList.add("correct");
+                    if (i < 2) {
+                        document.getElementById(`initial-${i + 1}`).focus();
+                    } else {
+                        document.getElementById("student-comments").focus();
+                    }
+                } else {
+                    box.classList.remove("correct");
+                }
+            });
+        }
+    });
+    </script>
+
+</body>
+</html>
