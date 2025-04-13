@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Perfect Squares Matching</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    .hidden {
+      display: none;
+    }
+    #start-screen, #game-screen, #turn-in-screen {
+      margin-top: 20px;
+    }
+    .grid-container {
+      position: relative;
+      display: inline-block;
+      margin-top: 20px;
+    }
+    #game-grid {
+      display: grid;
+      gap: 0px;
+      justify-content: center;
+      z-index: 2;
+      position: relative;
+    }
+    .card {
+      width: 80px;
+      height: 80px;
+      background-color: #444;
+      border: 1px solid #222;
+      font-size: 24px;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.4s, background-color 0.4s, opacity 0.5s ease;
+      transform-style: preserve-3d;
+    }
+    .card.matched {
+      background-color: transparent;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .card.revealed {
+      background-color: #222;
+    }
+    #background-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 1;
+      pointer-events: none;
+    }
+    .initial-box {
+      width: 60px;
+      height: 70px;
+      font-size: 32px;
+      text-align: center;
+      margin: 5px;
+      border: 2px solid #333;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+    .initial-box.correct {
+      background-color: lightgreen;
+      border-color: green;
+    }
+    .submit-btn {
+      font-size: 20px;
+      padding: 10px 20px;
+      background-color: #444;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    #student-comments {
+      width: 90%;
+      max-width: 400px;
+      font-size: 18px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 2px solid #333;
+      background-color: #222;
+      color: white;
+      margin: 10px auto;
+      display: block;
+    }
+
+    button {
+        font-size: 24px;
+        padding: 12px 24px;
+        margin: 10px 0;
+        cursor: pointer;
+    }
+
+    #level-select {
+      font-size: 24px;
+      width: 220px;
+    }
+
+
+  </style>
+</head>
+<body>
+  <div id="start-screen">
+    <h1>Perfect Squares Matching</h1>
+    <p>Choose your skill level:</p>
+    <select id="level-select">
+      <option value="1">🏈 Pee-Wee  </option>
+      <option value="2">🏈🏈 High School  </option>
+      <option value="3">🏈🏈🏈 College  </option>
+      <option value="4">🏈🏈🏈🏈 NFL  </option>
+      <option value="5">🏈🏈🏈🏈🏈 Hall of Fame  </option>
+    </select>
+    <button onclick="startGame()">Start</button>
+  </div>
+
+  <div id="game-screen" class="hidden">
+    <h2>Match each perfect square with its value!</h2>
+    <div class="grid-container">
+      <img id="background-image" src="" alt="Hidden picture">
+      <div id="game-grid"></div>
+    </div>
+  </div>
+
+  <div id="turn-in-screen" class="hidden">
+    <h2>Well done!</h2>
+    <p id="summary-again"></p>
+    <p>Enter your initials:</p>
+    <div id="initials-boxes">
+      <input class="initial-box" id="initial-0" maxlength="1" type="text"/>
+      <input class="initial-box" id="initial-1" maxlength="1" type="text"/>
+      <input class="initial-box" id="initial-2" maxlength="1" type="text"/>
+    </div>
+    <textarea id="student-comments" placeholder="Comments (optional)"></textarea>
+    <button class="submit-btn" onclick="submitResults()">Submit</button>
+    <p id="submit-status"></p>
+  </div>
+
+  <script>
+
+    const cardScale = 2.0;  // Try changing to 1.5, 2.0, etc.
+
+    const gridEl = document.getElementById("game-grid");
+    const bgImage = document.getElementById("background-image");
+    const levelSelect = document.getElementById("level-select");
+    let cards = [], firstCard = null, lockBoard = false, matchedPairs = 0, totalPairs;
+    let startTime;
+
+    const levelSettings = {
+      1: { maxN: 3, rows: 2, cols: 3 },
+      2: { maxN: 5, rows: 2, cols: 5 },
+      3: { maxN: 10, rows: 4, cols: 5 },
+      4: { maxN: 12, rows: 4, cols: 6 },
+      5: { maxN: 20, rows: 4, cols: 10 }
+    };
+
+    const levelLabels = {
+      1: "🏈 Pee-Wee",
+      2: "🏈🏈 High School",
+      3: "🏈🏈🏈 College",
+      4: "🏈🏈🏈🏈 NFL",
+      5: "🏈🏈🏈🏈🏈 Superbowl"
+    };
+
+
+    function startGame() {
+      const level = parseInt(levelSelect.value);
+      const { maxN, rows, cols } = levelSettings[level];
+      const nums = [];
+      for (let i = 1; i <= maxN; i++) {
+        nums.push({ val: `${i}²`, match: (i * i).toString() });
+      }
+      const cardContents = [];
+      nums.forEach(pair => {
+        cardContents.push({ text: pair.val, id: pair.val });
+        cardContents.push({ text: pair.match, id: pair.val });
+      });
+      cardContents.sort(() => Math.random() - 0.5);
+
+      cards = [];
+      gridEl.innerHTML = "";
+      const baseSize = 80;
+      const scaledSize = baseSize * cardScale;
+      gridEl.style.gridTemplateColumns = `repeat(${cols}, ${scaledSize}px)`;
+      gridEl.style.gridTemplateRows = `repeat(${rows}, ${scaledSize}px)`;
+
+
+      cardContents.slice(0, rows * cols).forEach((content, index) => {
+        const card = document.createElement("div");
+        card.classList.add("card");
+        card.dataset.match = content.id;
+        card.dataset.index = index;
+        card.textContent = "";
+        card.style.width = `${scaledSize}px`;
+        card.style.height = `${scaledSize}px`;
+        card.style.fontSize = `${24 * cardScale}px`;
+        card.onclick = () => revealCard(card, content.text);
+        cards.push({ el: card, text: content.text });
+        gridEl.appendChild(card);
+      });
+
+      matchedPairs = 0;
+      totalPairs = (rows * cols) / 2;
+
+      const imgIndex = Math.floor(Math.random() * 5) + 1;  // Change 1 to 5 when ready
+      const baseName = `game_0022_level${level}_${imgIndex}`;
+      const extensions = ['gif', 'jpg', 'png'];
+
+      (function tryNext(i = 0) {
+        if (i >= extensions.length) return;
+        const testSrc = `${baseName}.${extensions[i]}`;
+        console.log(`Trying: ${testSrc}`);
+        const img = new Image();
+        img.onload = () => {
+          console.log(`Loaded: ${testSrc}`);
+          bgImage.src = testSrc;
+        };
+        img.onerror = () => tryNext(i + 1);
+        img.src = testSrc;
+      })();
+
+      document.getElementById("game-screen").classList.remove("hidden");
+      startTime = new Date();
+      document.getElementById("start-screen").classList.add("hidden");
+
+    }
+
+    function revealCard(cardEl, content) {
+      if (lockBoard || cardEl.classList.contains("matched") || cardEl.textContent !== "") return;
+      cardEl.textContent = content;
+      cardEl.classList.add("revealed");
+
+      if (!firstCard) {
+        firstCard = cardEl;
+      } else {
+        lockBoard = true;
+        if (firstCard.dataset.match === cardEl.dataset.match && firstCard !== cardEl) {
+          setTimeout(() => {
+            firstCard.classList.add("matched");
+            cardEl.classList.add("matched");
+            matchedPairs++;
+            if (matchedPairs === totalPairs) endGame();
+            resetTurn();
+          }, 400);
+        } else {
+          setTimeout(() => {
+            firstCard.textContent = "";
+            cardEl.textContent = "";
+            firstCard.classList.remove("revealed");
+            cardEl.classList.remove("revealed");
+            resetTurn();
+          }, 1000);
+        }
+      }
+    }
+
+    function resetTurn() {
+      [firstCard, lockBoard] = [null, false];
+    }
+
+    function endGame() {
+      const time = Math.floor((new Date() - startTime) / 1000);
+      const minutes = Math.floor(time / 60);
+      const seconds = time % 60;
+      const elapsedStr = `${minutes}m${seconds}s`;
+      document.getElementById("summary-again").textContent = `Time: ${elapsedStr}`;
+      document.getElementById("turn-in-screen").classList.remove("hidden");
+      document.getElementById("initial-0").focus();
+    }
+
+    function getInitialsFromBoxes() {
+      const chars = [];
+      let allFilled = true;
+      for (let i = 0; i < 3; i++) {
+        const box = document.getElementById(`initial-${i}`);
+        const char = box.value.toUpperCase();
+        if (char.length === 1 && /^[A-Z]$/.test(char)) {
+          box.classList.add("correct");
+          chars.push(char);
+        } else {
+          box.classList.remove("correct");
+          allFilled = false;
+        }
+      }
+      return allFilled ? chars.join('') : null;
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      for (let i = 0; i < 3; i++) {
+        const box = document.getElementById(`initial-${i}`);
+        box.addEventListener("input", () => {
+          if (box.value.trim().length === 1) {
+            box.classList.add("correct");
+            if (i < 2) {
+              document.getElementById(`initial-${i + 1}`).focus();
+            } else {
+              document.getElementById("student-comments").focus();
+            }
+          } else {
+            box.classList.remove("correct");
+          }
+        });
+      }
+    });
+
+    function submitResults() {
+      const initials = getInitialsFromBoxes();
+      if (!initials) return alert("Please enter 3 letters.");
+      const comments = document.getElementById("student-comments").value.trim();
+      const elapsedStr = document.getElementById("summary-again").textContent.replace("Time: ", "");
+      const level = levelSelect.value;
+
+      const payload = {
+        initials,
+        game: "game_0022",
+        settings: levelLabels[level] || `level ${level}`,
+        score: " ",
+        elapsed: elapsedStr,
+        comments
+      };
+
+      const submitButton = document.querySelector("#turn-in-screen button");
+      submitButton.style.display = "none";
+      document.getElementById("submit-status").textContent = "Sending...";
+
+      fetch("https://script.google.com/macros/s/AKfycbwsvj0ijlKGeWOIu80EobVDJks24Dw0ziwl9aY_AVJImmhRJ0MQnAJwmuBpe1NYmPzr/exec", {
+        method: "POST",
+        body: JSON.stringify(payload),
+        headers: { "Content-Type": "text/plain" }
+      })
+        .then(res => res.text())
+        .then(res => document.getElementById("submit-status").textContent = "Submitted successfully! 🎉")
+        .catch(err => document.getElementById("submit-status").textContent = "Error: " + err);
+    }
+  </script>
+</body>
+</html>
