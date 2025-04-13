@@ -342,14 +342,14 @@ const emojiDictionary = {
   // Clothes
   "🧢": { label: "caps", category: "clothes" },
   "👕": { label: "t-shirts", category: "clothes" },
-  "👟": { label: "pairs of sneakers", category: "clothes" },
-  "🥾": { label: "pairs of boots", category: "clothes" },
+  "👟": { label: "sneakers", category: "clothes" },
+  "🥾": { label: "boots", category: "clothes" },
   "🧤": { label: "pairs of gloves", category: "clothes" },
   "🧦": { label: "pairs of socks", category: "clothes" },
 
   // Vehicles
   "🚗": { label: "cars", category: "vehicles" },
-  "🚲": { label: "bikes", category: "vehicles" },
+  "🚲": { label: "bicycle", category: "vehicles" },
   "🛴": { label: "scooters", category: "vehicles" },
   "🚀": { label: "rockets", category: "vehicles" },
   "🚁": { label: "helicopters", category: "vehicles" },
@@ -592,41 +592,36 @@ function nextProblem() {
     const container = document.getElementById("emojiGridContainer");
     container.innerHTML = "";
 
-    // Step 1: Pick a random category
     const categories = [...new Set(Object.values(emojiDictionary).map(e => e.category))];
     const categoryPrompts = {
-      misc: "random items",
-      animals: "animals",
-      fruits: "fruits",
-      food: "food items",
-      plants: "plants",
-      naturalObjects: "natural objects",
-      sports: "sports items",
-      instruments: "musical instruments",
-      games: "toys",
-      fantasy: "fantasy characters",
-      school: "school supplies",
-      clothes: "articles of clothing",
-      vehicles: "vehicles",
-      hygiene: "hygiene items",
-      table: "table items",
-      jobs: "workers"
+        misc: "random items",
+        animals: "animals",
+        fruits: "fruits",
+        food: "food items",
+        plants: "plants",
+        naturalObjects: "natural objects",
+        sports: "sports items",
+        instruments: "musical instruments",
+        games: "toys",
+        fantasy: "fantasy characters",
+        school: "school supplies",
+        clothes: "articles of clothing",
+        vehicles: "vehicles",
+        hygiene: "hygiene items",
+        table: "table items",
+        jobs: "workers"
     };
-
 
     const chosenCategory = categories[Math.floor(Math.random() * categories.length)];
     const categoryLabel = categoryPrompts[chosenCategory] || chosenCategory;
 
-    // Step 2: Filter and shuffle emojis from that category
     const filteredEmojis = Object.entries(emojiDictionary)
         .filter(([_, val]) => val.category === chosenCategory);
     const shuffled = filteredEmojis.sort(() => 0.5 - Math.random());
 
-    // Step 3: Select spiceLevel number of distinct emojis
     const spiceLevel = parseInt(document.getElementById("game-screen").dataset.spice);
     const selected = shuffled.slice(0, spiceLevel);
 
-    // Step 4: Update the prompt
     document.getElementById("prompt").textContent = `How many ${categoryLabel} are here?`;
 
     let total = 0;
@@ -637,6 +632,10 @@ function nextProblem() {
     problemRow.style.justifyContent = "center";
     problemRow.style.gap = "30px";
     problemRow.style.flexWrap = "wrap";
+
+    const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const keypadContainer = document.getElementById("keypad-container");
+    keypadContainer.classList.toggle("hidden", !isTouch); // Show only for touch devices
 
     selected.forEach(([emoji, data], i) => {
         const rows = Math.floor(Math.random() * 5) + 1;
@@ -673,13 +672,21 @@ function nextProblem() {
         label.textContent = `${rows} × ${cols} = `;
 
         const input = document.createElement("input");
-        input.type = "number";
+        input.type = isTouch ? "text" : "number";
         input.style.fontSize = "24px";
         input.style.width = "60px";
         input.dataset.correct = subtotal;
         input.dataset.index = i;
         input.value = "";
         input.style.transition = "background-color 0.3s ease-in-out";
+
+        if (isTouch) {
+            input.setAttribute("readonly", true);
+            input.setAttribute("inputmode", "none");
+        } else {
+            input.removeAttribute("readonly");
+            input.removeAttribute("inputmode");
+        }
 
         input.addEventListener("input", () => {
             const guess = parseInt(input.value);
@@ -724,13 +731,21 @@ function nextProblem() {
     finalRow.style.textAlign = "center";
 
     const finalInput = document.createElement("input");
-    finalInput.type = "number";
+    finalInput.type = isTouch ? "text" : "number";
     finalInput.id = "answer";
     finalInput.style.fontSize = "32px";
     finalInput.style.margin = "0 8px";
     finalInput.style.width = "100px";
     finalInput.style.transition = "background-color 0.3s ease-in-out";
     finalInput.dataset.correct = total;
+
+    if (isTouch) {
+        finalInput.setAttribute("readonly", true);
+        finalInput.setAttribute("inputmode", "none");
+    } else {
+        finalInput.removeAttribute("readonly");
+        finalInput.removeAttribute("inputmode");
+    }
 
     currentIndividualInputs = individualAnswers;
     finalInput.addEventListener("input", () => validateFinalAnswer());
