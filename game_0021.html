@@ -766,7 +766,7 @@ function nextProblem() {
     // Ensure we focus the first subtotal input after layout completes
     requestAnimationFrame(() => {
         setTimeout(() => {
-            const first = individualAnswers[0];
+            const first = document.querySelector(`input[data-index="0"]`);
             if (first) first.focus();
         }, 200); // 50ms gives iOS enough time to render input fields
     });
