@@ -220,173 +220,213 @@
     </div>
 
     <script>
+
     // ✅ New structured emoji dictionary
-const emojiDictionary = {
+    const emojiDictionary = {
 
-  // Miscellaneous
-  "🎨": { label: "paint palettes", category: "misc" },
-  "🎤": { label: "microphones", category: "misc" },
-  "🎬": { label: "movie clappers", category: "misc" },
-  "🖌️": { label: "paintbrushes", category: "misc" },
+        // Miscellaneous
+        "🎨": { label: "paint palettes", category: "misc" },
+        "🎤": { label: "microphones", category: "misc" },
+        "🎬": { label: "movie clappers", category: "misc" },
+        "🖌️": { label: "paintbrushes", category: "misc" },
+        "🕯": { label: "candles", category: "misc" },
+        "💡": { label: "light bulbs", category: "misc" },
+        "🔦": { label: "flashlights", category: "misc" },
+        "🏮": { label: "paper lanterns", category: "misc" },
+        "🔑": { label: "keys", category: "misc" },
+        "🧲": { label: "magnets", category: "misc" },
+        "🪃": { label: "boomerangs", category: "misc" },
 
-  // Animals (side view preferred)
-  "🐕": { label: "dogs", category: "animals" },
-  "🐈": { label: "cats", category: "animals" },
-  "🐇": { label: "rabbits", category: "animals" },
-  "🐖": { label: "pigs", category: "animals" },
-  "🐄": { label: "cows", category: "animals" },
-  "🐸": { label: "frogs", category: "animals" },
-  "🐼": { label: "pandas", category: "animals" },
-  "🦍": { label: "gorillas", category: "animals" },
-  "🐔": { label: "chickens", category: "animals" },
-  "🐧": { label: "penguins", category: "animals" },
-  "🐢": { label: "turtles", category: "animals" },
-  "🐫": { label: "camels", category: "animals" },
-  "🦊": { label: "foxes", category: "animals" },
-  "🦓": { label: "zebras", category: "animals" },
-  "🦒": { label: "giraffes", category: "animals" },
+        // Science
+        "🔬": { label: "microscopes", category: "science" },
+        "🔭": { label: "telescopes", category: "science" },
+        "🧪": { label: "test tubes", category: "science" },
+        "🧫": { label: "petri dishes", category: "science" },
+        "🧬": { label: "dna strands", category: "science" },
+        "🌡️": { label: "thermometers", category: "science" },
+        "📡": { label: "satellite antennas", category: "science" },
 
-  // Fruits
-  "🍎": { label: "apples", category: "fruits" },
-  "🍌": { label: "bananas", category: "fruits" },
-  "🍉": { label: "watermelons", category: "fruits" },
-  "🍇": { label: "bunches of grapes", category: "fruits" },
-  "🍓": { label: "strawberries", category: "fruits" },
-  "🍍": { label: "pineapples", category: "fruits" },
-  "🍑": { label: "peaches", category: "fruits" },
-  "🥭": { label: "mangoes", category: "fruits" },
-  "🥝": { label: "kiwis", category: "fruits" },
-
-  // Vegetables
-  "🥕": { label: "carrots", category: "vegetables" },
-  "🌽": { label: "corn cobs", category: "vegetables" },
-  "🥦": { label: "broccoli heads", category: "vegetables" },
-  "🥒": { label: "cucumbers", category: "vegetables" },
-  "🧄": { label: "heads of garlic", category: "vegetables" },
-  "🧅": { label: "onions", category: "vegetables" },
-  "🥬": { label: "leafy greens", category: "vegetables" },
-
-  // Snacks
-  "🍿": { label: "boxes of popcorn", category: "snacks" },
-  "🍩": { label: "donuts", category: "snacks" },
-  "🧁": { label: "cupcakes", category: "snacks" },
-  "🥨": { label: "pretzels", category: "snacks" },
-  "🍪": { label: "cookies", category: "snacks" },
-  "🍫": { label: "chocolate bars", category: "snacks" },
-
-  // Plants
-  "🌻": { label: "sunflowers", category: "plants" },
-  "🌳": { label: "trees", category: "plants" },
-  "🌱": { label: "sprouts", category: "plants" },
-  "🌿": { label: "herbs", category: "plants" },
-  "🌾": { label: "sheaves of rice", category: "plants" },
-  "🍀": { label: "clovers", category: "plants" },
-  "🌵": { label: "cacti", category: "plants" },
-
-  // Natural Objects
-  "🌈": { label: "rainbows", category: "naturalObjects" },
-  "⭐️": { label: "stars", category: "naturalObjects" },
-  "☀️": { label: "suns", category: "naturalObjects" },
-  "🌧️": { label: "clouds with rain", category: "naturalObjects" },
-  "🍂": { label: "leaves", category: "naturalObjects" },
-  "🪨": { label: "rocks", category: "naturalObjects" },
-  "🌙": { label: "moons", category: "naturalObjects" },
-  "🔥": { label: "fires", category: "naturalObjects" },
-  "💧": { label: "droplets", category: "naturalObjects" },
-
-  // Sports
-  "🏀": { label: "basketballs", category: "sports" },
-  "🏈": { label: "footballs", category: "sports" },
-  "⚽️": { label: "soccer balls", category: "sports" },
-  "🏓": { label: "ping pong paddles", category: "sports" },
-  "🎾": { label: "tennis balls", category: "sports" },
-  "⛳️": { label: "golf flags", category: "sports" },
-  "🎳": { label: "bowling balls", category: "sports" },
-  "🥏": { label: "frisbees", category: "sports" },
-  "🏸": { label: "shuttlecocks", category: "sports" },
-  "🛼": { label: "roller skates", category: "sports" },
+        // Household Items
+        "🪑": { label: "chairs", category: "household" },
+        "🛋️": { label: "couches", category: "household" },
+        "🛏️": { label: "beds", category: "household" },
+        "🚪": { label: "doors", category: "household" },
+        "🧹": { label: "brooms", category: "household" },
+        "🧺": { label: "laundry baskets", category: "household" },
+        "🪒": { label: "razors", category: "household" },
 
 
-  // Musical Instruments
-  "🥁": { label: "drums", category: "instruments" },
-  "🎹": { label: "keyboards", category: "instruments" },
-  "🎺": { label: "trumpets", category: "instruments" },
-  "🎷": { label: "saxophones", category: "instruments" },
-  "🪕": { label: "banjos", category: "instruments" },
-  "🎻": { label: "violins", category: "instruments" },
-  "🎸": { label: "guitars", category: "instruments" },
+        // Animals (side view preferred)
+        "🐕": { label: "dogs", category: "animals" },
+        "🐈": { label: "cats", category: "animals" },
+        "🐇": { label: "rabbits", category: "animals" },
+        "🐖": { label: "pigs", category: "animals" },
+        "🐄": { label: "cows", category: "animals" },
+        "🐸": { label: "frogs", category: "animals" },
+        "🐼": { label: "pandas", category: "animals" },
+        "🦍": { label: "gorillas", category: "animals" },
+        "🐔": { label: "chickens", category: "animals" },
+        "🐧": { label: "penguins", category: "animals" },
+        "🐢": { label: "turtles", category: "animals" },
+        "🐫": { label: "camels", category: "animals" },
+        "🦊": { label: "foxes", category: "animals" },
+        "🦓": { label: "zebras", category: "animals" },
+        "🦒": { label: "giraffes", category: "animals" },
 
-  // Games
-  "🧸": { label: "teddy bears", category: "games" },
-  "🎲": { label: "dice", category: "games" },
-  "🪀": { label: "yo-yos", category: "games" },
-  "🪁": { label: "kites", category: "games" },
-  "🎯": { label: "targets", category: "games" },
-  "🕹️": { label: "joysticks", category: "games" },
-  "🎮": { label: "game controllers", category: "games" },
-  "🧩": { label: "puzzle pieces", category: "games" },
+        // Tools
+        "🔧": { label: "wrenches", category: "tools" },
+        "🔨": { label: "hammers", category: "tools" },
+        "🪚": { label: "handsaws", category: "tools" },
+        "🪛": { label: "screwdrivers", category: "tools" },
+        "🔩": { label: "nuts and bolts", category: "tools" },
+        "🛠️": { label: "hammer and wrench sets", category: "tools" },
+        "🧰": { label: "toolboxes", category: "tools" },
+        "🪓": { label: "axes", category: "tools" },
+        "⚙": { label: "gears", category: "tools" },
+        "🪜": { label: "ladders", category: "tools" },
 
-  // Fantasy
-  "🧚": { label: "fairies", category: "fantasy" },
-  "🧞‍♂️": { label: "genies", category: "fantasy" },
-  "🧜‍♀️": { label: "mermaids", category: "fantasy" },
-  "🧙": { label: "wizards", category: "fantasy" },
-  "🧛": { label: "vampires", category: "fantasy" },
-  "🧟": { label: "zombies", category: "fantasy" },
-  "🦄": { label: "unicorns", category: "fantasy" },
-  "👻": { label: "ghosts", category: "fantasy" },
-  "🐉": { label: "dragons", category: "fantasy" },
 
-  // School
-  "✏️": { label: "pencils", category: "school" },
-  "📓": { label: "notebooks", category: "school" },
-  "🖍️": { label: "crayons", category: "school" },
-  "📚": { label: "books", category: "school" },
-  "🖊️": { label: "pens", category: "school" },
-  "📏": { label: "rulers", category: "school" },
-  "📎": { label: "paperclips", category: "school" },
+        // Fruits
+        "🍎": { label: "apples", category: "fruits" },
+        "🍌": { label: "bananas", category: "fruits" },
+        "🍉": { label: "watermelons", category: "fruits" },
+        "🍇": { label: "bunches of grapes", category: "fruits" },
+        "🍓": { label: "strawberries", category: "fruits" },
+        "🍍": { label: "pineapples", category: "fruits" },
+        "🍑": { label: "peaches", category: "fruits" },
+        "🥭": { label: "mangoes", category: "fruits" },
+        "🥝": { label: "kiwis", category: "fruits" },
 
-  // Clothes
-  "🧢": { label: "caps", category: "clothes" },
-  "👕": { label: "t-shirts", category: "clothes" },
-  "👟": { label: "sneakers", category: "clothes" },
-  "🥾": { label: "boots", category: "clothes" },
-  "🧤": { label: "pairs of gloves", category: "clothes" },
-  "🧦": { label: "pairs of socks", category: "clothes" },
+        // Vegetables
+        "🥕": { label: "carrots", category: "vegetables" },
+        "🌽": { label: "corn cobs", category: "vegetables" },
+        "🥦": { label: "broccoli heads", category: "vegetables" },
+        "🥒": { label: "cucumbers", category: "vegetables" },
+        "🧄": { label: "heads of garlic", category: "vegetables" },
+        "🧅": { label: "onions", category: "vegetables" },
+        "🥬": { label: "leafy greens", category: "vegetables" },
 
-  // Vehicles
-  "🚗": { label: "cars", category: "vehicles" },
-  "🚲": { label: "bicycle", category: "vehicles" },
-  "🛴": { label: "scooters", category: "vehicles" },
-  "🚀": { label: "rockets", category: "vehicles" },
-  "🚁": { label: "helicopters", category: "vehicles" },
-  "🚜": { label: "tractors", category: "vehicles" },
+        // Snacks
+        "🍿": { label: "boxes of popcorn", category: "snacks" },
+        "🍩": { label: "donuts", category: "snacks" },
+        "🧁": { label: "cupcakes", category: "snacks" },
+        "🥨": { label: "pretzels", category: "snacks" },
+        "🍪": { label: "cookies", category: "snacks" },
+        "🍫": { label: "chocolate bars", category: "snacks" },
 
-  // Hygiene
-  "🪥": { label: "toothbrushes", category: "hygiene" },
-  "🧼": { label: "soap bars", category: "hygiene" },
-  "🚿": { label: "showers", category: "hygiene" },
-  "🧴": { label: "lotion bottles", category: "hygiene" },
-  "🛁": { label: "bathtubs", category: "hygiene" },
+        // Plants
+        "🌻": { label: "sunflowers", category: "plants" },
+        "🌳": { label: "trees", category: "plants" },
+        "🌱": { label: "sprouts", category: "plants" },
+        "🌿": { label: "herbs", category: "plants" },
+        "🌾": { label: "sheaves of rice", category: "plants" },
+        "🍀": { label: "clovers", category: "plants" },
+        "🌵": { label: "cacti", category: "plants" },
 
-  // Table Settings
-  "🍽️": { label: "place settings", category: "table" },
-  "🥄": { label: "spoons", category: "table" },
-  "🥤": { label: "cups with straws", category: "table" },
-  "🍶": { label: "bottles", category: "table" },
-  "🧂": { label: "salt shakers", category: "table" },
-  "🍯": { label: "honey jars", category: "table" },
+        // Natural Objects
+        "🌈": { label: "rainbows", category: "naturalObjects" },
+        "⭐️": { label: "stars", category: "naturalObjects" },
+        "☀️": { label: "suns", category: "naturalObjects" },
+        "🌧️": { label: "clouds with rain", category: "naturalObjects" },
+        "🍂": { label: "leaves", category: "naturalObjects" },
+        "🪨": { label: "rocks", category: "naturalObjects" },
+        "🌙": { label: "moons", category: "naturalObjects" },
+        "🔥": { label: "fires", category: "naturalObjects" },
+        "💧": { label: "droplets", category: "naturalObjects" },
 
-  // Jobs
-  "👮": { label: "police officers", category: "jobs" },
-  "👩‍🚒": { label: "firefighters", category: "jobs" },
-  "🧑‍🍳": { label: "chefs", category: "jobs" },
-  "🧑‍🔬": { label: "scientists", category: "jobs" },
-  "🧑‍🏫": { label: "teachers", category: "jobs" },
-  "🧑‍🎨": { label: "artists", category: "jobs" },
-  "🧑‍🚀": { label: "astronauts", category: "jobs" },
-  "🧑‍⚕️": { label: "doctors", category: "jobs" }
-};
+        // Sports
+        "🏀": { label: "basketballs", category: "sports" },
+        "🏈": { label: "footballs", category: "sports" },
+        "⚽️": { label: "soccer balls", category: "sports" },
+        "🏓": { label: "ping pong paddles", category: "sports" },
+        "🎾": { label: "tennis balls", category: "sports" },
+        "⛳️": { label: "golf flags", category: "sports" },
+        "🎳": { label: "bowling balls", category: "sports" },
+        "🥏": { label: "frisbees", category: "sports" },
+        "🏸": { label: "shuttlecocks", category: "sports" },
+        "🛼": { label: "roller skates", category: "sports" },
+
+
+        // Musical Instruments
+        "🥁": { label: "drums", category: "instruments" },
+        "🎹": { label: "keyboards", category: "instruments" },
+        "🎺": { label: "trumpets", category: "instruments" },
+        "🎷": { label: "saxophones", category: "instruments" },
+        "🪕": { label: "banjos", category: "instruments" },
+        "🎻": { label: "violins", category: "instruments" },
+        "🎸": { label: "guitars", category: "instruments" },
+
+        // Games
+        "🧸": { label: "teddy bears", category: "games" },
+        "🎲": { label: "dice", category: "games" },
+        "🪀": { label: "yo-yos", category: "games" },
+        "🪁": { label: "kites", category: "games" },
+        "🎯": { label: "targets", category: "games" },
+        "🕹️": { label: "joysticks", category: "games" },
+        "🎮": { label: "game controllers", category: "games" },
+        "🧩": { label: "puzzle pieces", category: "games" },
+
+        // Fantasy
+        "🧚": { label: "fairies", category: "fantasy" },
+        "🧞‍♂️": { label: "genies", category: "fantasy" },
+        "🧜‍♀️": { label: "mermaids", category: "fantasy" },
+        "🧙": { label: "wizards", category: "fantasy" },
+        "🧛": { label: "vampires", category: "fantasy" },
+        "🧟": { label: "zombies", category: "fantasy" },
+        "🦄": { label: "unicorns", category: "fantasy" },
+        "👻": { label: "ghosts", category: "fantasy" },
+        "🐉": { label: "dragons", category: "fantasy" },
+
+        // School
+        "✏️": { label: "pencils", category: "school" },
+        "📓": { label: "notebooks", category: "school" },
+        "🖍️": { label: "crayons", category: "school" },
+        "📚": { label: "books", category: "school" },
+        "🖊️": { label: "pens", category: "school" },
+        "📏": { label: "rulers", category: "school" },
+        "📎": { label: "paperclips", category: "school" },
+
+        // Clothes
+        "🧢": { label: "caps", category: "clothes" },
+        "👕": { label: "t-shirts", category: "clothes" },
+        "👟": { label: "sneakers", category: "clothes" },
+        "🥾": { label: "boots", category: "clothes" },
+        "🧤": { label: "pairs of gloves", category: "clothes" },
+        "🧦": { label: "pairs of socks", category: "clothes" },
+
+        // Vehicles
+        "🚗": { label: "cars", category: "vehicles" },
+        "🚲": { label: "bicycle", category: "vehicles" },
+        "🛴": { label: "scooters", category: "vehicles" },
+        "🚀": { label: "rockets", category: "vehicles" },
+        "🚁": { label: "helicopters", category: "vehicles" },
+        "🚜": { label: "tractors", category: "vehicles" },
+
+        // Hygiene
+        "🪥": { label: "toothbrushes", category: "hygiene" },
+        "🧼": { label: "soap bars", category: "hygiene" },
+        "🚿": { label: "showers", category: "hygiene" },
+        "🧴": { label: "lotion bottles", category: "hygiene" },
+        "🛁": { label: "bathtubs", category: "hygiene" },
+
+        // Table Settings
+        "🍽️": { label: "place settings", category: "table" },
+        "🥄": { label: "spoons", category: "table" },
+        "🥤": { label: "cups with straws", category: "table" },
+        "🍶": { label: "bottles", category: "table" },
+        "🧂": { label: "salt shakers", category: "table" },
+        "🍯": { label: "honey jars", category: "table" },
+
+        // Jobs
+        "👮": { label: "police officers", category: "jobs" },
+        "👩‍🚒": { label: "firefighters", category: "jobs" },
+        "🧑‍🍳": { label: "chefs", category: "jobs" },
+        "🧑‍🔬": { label: "scientists", category: "jobs" },
+        "🧑‍🏫": { label: "teachers", category: "jobs" },
+        "🧑‍🎨": { label: "artists", category: "jobs" },
+        "🧑‍🚀": { label: "astronauts", category: "jobs" },
+        "🧑‍⚕️": { label: "doctors", category: "jobs" }
+    };
 
 
 
@@ -597,14 +637,18 @@ function nextProblem() {
     const categories = [...new Set(Object.values(emojiDictionary).map(e => e.category))];
     const categoryPrompts = {
         misc: "random items",
+        science: "scientific objects",
+        household: "household items",
+        tools: "tools",
         animals: "animals",
         fruits: "fruits",
-        food: "food items",
+        vegetables: "vegetables",
+        snacks: "snack foods",
         plants: "plants",
         naturalObjects: "natural objects",
         sports: "sports items",
         instruments: "musical instruments",
-        games: "toys",
+        games: "toys and games",
         fantasy: "fantasy characters",
         school: "school supplies",
         clothes: "articles of clothing",
@@ -613,6 +657,7 @@ function nextProblem() {
         table: "table items",
         jobs: "workers"
     };
+
 
     const chosenCategory = categories[Math.floor(Math.random() * categories.length)];
     const categoryLabel = categoryPrompts[chosenCategory] || chosenCategory;
