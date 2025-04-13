@@ -109,6 +109,17 @@
       font-size: 24px;
       width: 220px;
     }
+    #play-again-btn {
+      display: none;
+      font-size: 20px;
+      padding: 10px 20px;
+      background-color: #444;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
 
 
   </style>
@@ -147,11 +158,12 @@
     <textarea id="student-comments" placeholder="Comments (optional)"></textarea>
     <button class="submit-btn" onclick="submitResults()">Submit</button>
     <p id="submit-status"></p>
+    <button id="play-again-btn" onclick="location.reload()">Play Again</button>
   </div>
 
   <script>
 
-    const cardScale = 2.0;  // Try changing to 1.5, 2.0, etc.
+    const cardScale = 1.5;  // Try changing to 1.5, 2.0, etc.
 
     const gridEl = document.getElementById("game-grid");
     const bgImage = document.getElementById("background-image");
@@ -342,7 +354,10 @@
         headers: { "Content-Type": "text/plain" }
       })
         .then(res => res.text())
-        .then(res => document.getElementById("submit-status").textContent = "Submitted successfully! 🎉")
+        .then(res => {
+          document.getElementById("submit-status").textContent = "Submitted successfully! 🎉";
+          document.getElementById("play-again-btn").style.display = "inline-block";
+        })
         .catch(err => document.getElementById("submit-status").textContent = "Error: " + err);
     }
   </script>
