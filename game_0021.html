@@ -585,6 +585,8 @@ function nextProblem() {
 
     totalQuestions--;
 
+    document.activeElement?.blur();
+
     const summary = document.getElementById("summary");
     summary.classList.add("hidden");
     summary.innerHTML = "";
