@@ -407,15 +407,17 @@ const emojiDictionary = {
         const keypadContainer = document.getElementById("keypad-container");
         const inputBox = document.getElementById("answer");
 
-        if (isTouchDevice()) {
-            inputBox.setAttribute("readonly", true);
-            inputBox.setAttribute("inputmode", "none");
-            keypadContainer.classList.remove("hidden");
-        } else {
-            inputBox.removeAttribute("readonly");
-            inputBox.removeAttribute("inputmode");
-            keypadContainer.classList.add("hidden");
+        if (isTouchDevice) {
+            if (i === 0) {
+                // First input: allow focus
+                input.removeAttribute("readonly");
+                input.removeAttribute("inputmode");
+            } else {
+                input.setAttribute("readonly", true);
+                input.setAttribute("inputmode", "none");
+            }
         }
+
 
     }
 
