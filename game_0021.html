@@ -691,21 +691,25 @@ function nextProblem() {
         input.addEventListener("input", () => {
             const guess = parseInt(input.value);
             const correct = parseInt(input.dataset.correct);
+
             if (input.value === "") {
                 input.style.backgroundColor = "white";
             } else if (guess === correct) {
                 input.style.backgroundColor = "lightgreen";
-                const nextInput = document.querySelector(`input[data-index="${i + 1}"]`);
+
+                // Focus the next subtotal or the final box
+                const nextIndex = parseInt(input.dataset.index) + 1;
+                const nextInput = document.querySelector(`input[data-index="${nextIndex}"]`);
                 if (nextInput) {
                     nextInput.focus();
                 } else {
-                    const finalBox = document.getElementById("answer");
-                    if (finalBox) finalBox.focus();
+                    document.getElementById("answer")?.focus();
                 }
             } else {
                 input.style.backgroundColor = "orange";
             }
         });
+
 
         equationRow.appendChild(label);
         equationRow.appendChild(input);
@@ -749,6 +753,7 @@ function nextProblem() {
 
     currentIndividualInputs = individualAnswers;
     finalInput.addEventListener("input", () => validateFinalAnswer());
+
 
     finalRow.textContent = "In total, there are ";
     finalRow.appendChild(finalInput);
