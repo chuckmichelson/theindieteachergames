@@ -809,12 +809,17 @@ function nextProblem() {
     container.appendChild(finalRow);
 
     // Ensure we focus the first subtotal input after layout completes
-    requestAnimationFrame(() => {
-        setTimeout(() => {
-            first = document.querySelector(`input[data-index="0"]`);
-            if (first) first.focus();
-        }, 200); // 50ms gives iOS enough time to render input fields
-    });
+    // Add this instead:
+    setTimeout(() => {
+        const first = document.querySelector('input[data-index="0"]');
+        if (first && !isTouchDevice()) {
+            first.focus(); // Safe for desktop
+        } else if (first && isTouchDevice()) {
+            first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            first.focus(); // Might still not work on iOS unless triggered by a tap
+        }
+    }, 500); // Increased delay gives iOS more time to render
+
 
 }
 
