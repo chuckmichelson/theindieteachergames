@@ -1,0 +1,783 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="apple-touch-icon" href="favicon.png">
+    <link rel="shortcut icon" href="favicon.ico">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji Multiplication and Addition</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        h1, h2 {
+            margin: 10px 0;
+        }
+
+        input[type="number"] {
+            font-size: 24px;
+            padding: 10px;
+            width: 50px;
+            text-align: center;
+            appearance: textfield;
+        }
+
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        button {
+            font-size: 24px;
+            padding: 12px 24px;
+            margin: 10px 0;
+            cursor: pointer;
+        }
+
+        #emojiGrid {
+            display: grid;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px auto;
+        }
+
+        .emoji {
+            font-size: 2.5em;
+            text-align: center;
+        }
+
+        #answer {
+            font-size: 32px;
+            padding: 10px;
+            margin: 10px 0;
+            width: 80px;
+            text-align: center;
+            transition: background-color 0.3s ease-in-out;
+        }
+
+        #keypad-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            text-align: center;
+        }
+
+        #keypad button {
+            width: 70px;
+            height: 70px;
+            font-size: 28px;
+            margin: 5px;
+            background-color: #444;
+            color: white;
+            border: none;
+            border-radius: 10px;
+        }
+
+        #emojiGridContainer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        #end-screen.hidden {
+            display: none;
+        }
+
+        #student-comments {
+          width: 90%;
+          max-width: 400px;
+          font-size: 18px;
+          padding: 10px;
+          border-radius: 8px;
+          border: 2px solid #333;
+          background-color: #222;
+          color: white;
+          margin: 10px auto;
+          display: block;
+        }
+
+        .submit-btn {
+          font-size: 20px;
+          padding: 10px 20px;
+          margin-top: 10px;
+          background-color: #444;
+          color: white;
+          border: none;
+          border-radius: 10px;
+          cursor: pointer;
+        }
+
+        .initial-box {
+            width: 60px;
+            height: 70px;
+            font-size: 32px;
+            text-align: center;
+            margin: 5px;
+            border: 2px solid #333;
+            border-radius: 8px;
+            text-transform: uppercase;
+        }
+
+        .initial-box.correct {
+            background-color: lightgreen;
+            border-color: green;
+        }
+        #toggle-keypad-btn {
+          margin-top: 5px;
+          background-color: #222;
+          color: white;
+          border: none;
+          border-radius: 10px;
+          padding: 8px 12px;
+          font-size: 20px;
+          cursor: pointer;
+        }
+        select {
+            font-size: 24px;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="start-screen">
+        <h1>Emoji Multiplication and Addition</h1>
+        <p>There will be 10 questions. Choose your spice level:</p>
+        <select id="difficulty-select">
+          <option value="1" disabled style="text-decoration: line-through;">🌶️ Mild — Too easy for you!</option>
+          <option value="2" selected>🌶️🌶️ Medium</option>
+          <option value="3">🌶️🌶️🌶️ Hot</option>
+          <option value="4">🌶️🌶️🌶️🌶️ Sizzling</option>
+          <option value="5">🌶️🌶️🌶️🌶️🌶️ Now that's spicy!</option>
+        </select>
+        <button onclick="startGame()">Start</button>
+    </div>
+
+    <div id="game-screen" class="hidden">
+        <h1 id="prompt">How many emojis are here?</h1>
+        <div id="emojiGridContainer">
+            <div id="emojiGrid"></div>
+        </div>
+        <div id="keypad-container">
+            <div id="keypad">
+                <button onclick="appendDigit(1)">1</button>
+                <button onclick="appendDigit(2)">2</button>
+                <button onclick="appendDigit(3)">3</button><br/>
+                <button onclick="appendDigit(4)">4</button>
+                <button onclick="appendDigit(5)">5</button>
+                <button onclick="appendDigit(6)">6</button><br/>
+                <button onclick="appendDigit(7)">7</button>
+                <button onclick="appendDigit(8)">8</button>
+                <button onclick="appendDigit(9)">9</button><br/>
+                <button onclick="clearAnswer()">C</button>
+                <button onclick="appendDigit(0)">0</button>
+                <button onclick="validateAnswer()">↵</button>
+            </div>
+            <button id="toggle-keypad-btn" onclick="toggleKeypad()">🔽</button>
+        </div>
+        <div id="summary" class="hidden"></div>
+    </div>
+
+    <div id="end-screen" class="hidden">
+        <h1>Session Complete!</h1>
+        <p>Score: <span id="score"></span>/<span id="total-questions"></span></p>
+        <p>Time taken: <span id="time"></span> seconds</p>
+        <div id="turn-in-screen">
+            <h2>Turn It In</h2>
+            <div id="initials-boxes">
+                <input class="initial-box" id="initial-0" maxlength="1" type="text"/>
+                <input class="initial-box" id="initial-1" maxlength="1" type="text"/>
+                <input class="initial-box" id="initial-2" maxlength="1" type="text"/>
+            </div>
+            <p>Enter your initials above.</p>
+            <p>Comments (optional):</p>
+            <textarea id="student-comments"></textarea>
+            <p id="submit-status"></p>
+
+            <button onclick="submitResults()">Submit</button>
+        </div>
+    </div>
+
+    <script>
+    // ✅ New structured emoji dictionary
+const emojiDictionary = {
+
+  // Miscellaneous
+  "🎨": { label: "paint palettes", category: "misc" },
+  "🎤": { label: "microphones", category: "misc" },
+  "🎬": { label: "movie clappers", category: "misc" },
+  "🖌️": { label: "paintbrushes", category: "misc" },
+
+  // Animals (side view preferred)
+  "🐕": { label: "dogs", category: "animals" },
+  "🐈": { label: "cats", category: "animals" },
+  "🐇": { label: "rabbits", category: "animals" },
+  "🐖": { label: "pigs", category: "animals" },
+  "🐄": { label: "cows", category: "animals" },
+  "🐸": { label: "frogs", category: "animals" },
+  "🐼": { label: "pandas", category: "animals" },
+  "🦍": { label: "gorillas", category: "animals" },
+  "🐔": { label: "chickens", category: "animals" },
+  "🐧": { label: "penguins", category: "animals" },
+  "🐢": { label: "turtles", category: "animals" },
+  "🐫": { label: "camels", category: "animals" },
+  "🦊": { label: "foxes", category: "animals" },
+  "🦓": { label: "zebras", category: "animals" },
+  "🦒": { label: "giraffes", category: "animals" },
+
+  // Fruits
+  "🍎": { label: "apples", category: "fruits" },
+  "🍌": { label: "bananas", category: "fruits" },
+  "🍉": { label: "watermelons", category: "fruits" },
+  "🍇": { label: "bunches of grapes", category: "fruits" },
+  "🍓": { label: "strawberries", category: "fruits" },
+  "🍍": { label: "pineapples", category: "fruits" },
+  "🍑": { label: "peaches", category: "fruits" },
+  "🥭": { label: "mangoes", category: "fruits" },
+  "🥝": { label: "kiwis", category: "fruits" },
+
+  // Vegetables
+  "🥕": { label: "carrots", category: "vegetables" },
+  "🌽": { label: "corn cobs", category: "vegetables" },
+  "🥦": { label: "broccoli heads", category: "vegetables" },
+  "🥒": { label: "cucumbers", category: "vegetables" },
+  "🧄": { label: "heads of garlic", category: "vegetables" },
+  "🧅": { label: "onions", category: "vegetables" },
+  "🥬": { label: "leafy greens", category: "vegetables" },
+
+  // Snacks
+  "🍿": { label: "boxes of popcorn", category: "snacks" },
+  "🍩": { label: "donuts", category: "snacks" },
+  "🧁": { label: "cupcakes", category: "snacks" },
+  "🥨": { label: "pretzels", category: "snacks" },
+  "🍪": { label: "cookies", category: "snacks" },
+  "🍫": { label: "chocolate bars", category: "snacks" },
+
+  // Plants
+  "🌻": { label: "sunflowers", category: "plants" },
+  "🌳": { label: "trees", category: "plants" },
+  "🌱": { label: "sprouts", category: "plants" },
+  "🌿": { label: "herbs", category: "plants" },
+  "🌾": { label: "sheaves of rice", category: "plants" },
+  "🍀": { label: "clovers", category: "plants" },
+  "🌵": { label: "cacti", category: "plants" },
+
+  // Natural Objects
+  "🌈": { label: "rainbows", category: "naturalObjects" },
+  "⭐️": { label: "stars", category: "naturalObjects" },
+  "☀️": { label: "suns", category: "naturalObjects" },
+  "🌧️": { label: "clouds with rain", category: "naturalObjects" },
+  "🍂": { label: "leaves", category: "naturalObjects" },
+  "🪨": { label: "rocks", category: "naturalObjects" },
+  "🌙": { label: "moons", category: "naturalObjects" },
+  "🔥": { label: "fires", category: "naturalObjects" },
+  "💧": { label: "droplets", category: "naturalObjects" },
+
+  // Sports
+  "🏀": { label: "basketballs", category: "sports" },
+  "🏈": { label: "footballs", category: "sports" },
+  "⚽️": { label: "soccer balls", category: "sports" },
+  "🏓": { label: "ping pong paddles", category: "sports" },
+  "🎾": { label: "tennis balls", category: "sports" },
+  "⛳️": { label: "golf flags", category: "sports" },
+  "🎳": { label: "bowling balls", category: "sports" },
+  "🥏": { label: "frisbees", category: "sports" },
+  "🏸": { label: "shuttlecocks", category: "sports" },
+  "🛼": { label: "roller skates", category: "sports" },
+
+
+  // Musical Instruments
+  "🥁": { label: "drums", category: "instruments" },
+  "🎹": { label: "keyboards", category: "instruments" },
+  "🎺": { label: "trumpets", category: "instruments" },
+  "🎷": { label: "saxophones", category: "instruments" },
+  "🪕": { label: "banjos", category: "instruments" },
+  "🎻": { label: "violins", category: "instruments" },
+  "🎸": { label: "guitars", category: "instruments" },
+
+  // Games
+  "🧸": { label: "teddy bears", category: "games" },
+  "🎲": { label: "dice", category: "games" },
+  "🪀": { label: "yo-yos", category: "games" },
+  "🪁": { label: "kites", category: "games" },
+  "🎯": { label: "targets", category: "games" },
+  "🕹️": { label: "joysticks", category: "games" },
+  "🎮": { label: "game controllers", category: "games" },
+  "🧩": { label: "puzzle pieces", category: "games" },
+
+  // Fantasy
+  "🧚": { label: "fairies", category: "fantasy" },
+  "🧞‍♂️": { label: "genies", category: "fantasy" },
+  "🧜‍♀️": { label: "mermaids", category: "fantasy" },
+  "🧙": { label: "wizards", category: "fantasy" },
+  "🧛": { label: "vampires", category: "fantasy" },
+  "🧟": { label: "zombies", category: "fantasy" },
+  "🦄": { label: "unicorns", category: "fantasy" },
+  "👻": { label: "ghosts", category: "fantasy" },
+  "🐉": { label: "dragons", category: "fantasy" },
+
+  // School
+  "✏️": { label: "pencils", category: "school" },
+  "📓": { label: "notebooks", category: "school" },
+  "🖍️": { label: "crayons", category: "school" },
+  "📚": { label: "books", category: "school" },
+  "🖊️": { label: "pens", category: "school" },
+  "📏": { label: "rulers", category: "school" },
+  "📎": { label: "paperclips", category: "school" },
+
+  // Clothes
+  "🧢": { label: "caps", category: "clothes" },
+  "👕": { label: "t-shirts", category: "clothes" },
+  "👟": { label: "pairs of sneakers", category: "clothes" },
+  "🥾": { label: "pairs of boots", category: "clothes" },
+  "🧤": { label: "pairs of gloves", category: "clothes" },
+  "🧦": { label: "pairs of socks", category: "clothes" },
+
+  // Vehicles
+  "🚗": { label: "cars", category: "vehicles" },
+  "🚲": { label: "bikes", category: "vehicles" },
+  "🛴": { label: "scooters", category: "vehicles" },
+  "🚀": { label: "rockets", category: "vehicles" },
+  "🚁": { label: "helicopters", category: "vehicles" },
+  "🚜": { label: "tractors", category: "vehicles" },
+
+  // Hygiene
+  "🪥": { label: "toothbrushes", category: "hygiene" },
+  "🧼": { label: "soap bars", category: "hygiene" },
+  "🚿": { label: "showers", category: "hygiene" },
+  "🧴": { label: "lotion bottles", category: "hygiene" },
+  "🛁": { label: "bathtubs", category: "hygiene" },
+
+  // Table Settings
+  "🍽️": { label: "place settings", category: "table" },
+  "🥄": { label: "spoons", category: "table" },
+  "🥤": { label: "cups with straws", category: "table" },
+  "🍶": { label: "bottles", category: "table" },
+  "🧂": { label: "salt shakers", category: "table" },
+  "🍯": { label: "honey jars", category: "table" },
+
+  // Jobs
+  "👮": { label: "police officers", category: "jobs" },
+  "👩‍🚒": { label: "firefighters", category: "jobs" },
+  "🧑‍🍳": { label: "chefs", category: "jobs" },
+  "🧑‍🔬": { label: "scientists", category: "jobs" },
+  "🧑‍🏫": { label: "teachers", category: "jobs" },
+  "🧑‍🎨": { label: "artists", category: "jobs" },
+  "🧑‍🚀": { label: "astronauts", category: "jobs" },
+  "🧑‍⚕️": { label: "doctors", category: "jobs" }
+};
+
+
+
+
+    let currentIndividualInputs = [];  // store inputs for the current problem
+    let currentAnswer = 0, totalQuestions, correctAnswers = 0, startTime, originalQuestionCount;
+
+    function isTouchDevice() {
+        return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    }
+
+    function startGame() {
+        totalQuestions = 10;
+        const spiceLevel = parseInt(document.getElementById("difficulty-select").value);
+        document.getElementById("game-screen").dataset.spice = spiceLevel;
+        originalQuestionCount = totalQuestions;
+        document.getElementById("total-questions").textContent = originalQuestionCount;
+        document.getElementById("start-screen").classList.add("hidden");
+        document.getElementById("game-screen").classList.remove("hidden");
+        correctAnswers = 0;
+        startTime = Date.now();
+        nextProblem();
+
+        const keypadContainer = document.getElementById("keypad-container");
+        const inputBox = document.getElementById("answer");
+
+        if (isTouchDevice()) {
+            inputBox.setAttribute("readonly", true);
+            inputBox.setAttribute("inputmode", "none");
+            keypadContainer.classList.remove("hidden");
+        } else {
+            inputBox.removeAttribute("readonly");
+            inputBox.removeAttribute("inputmode");
+            keypadContainer.classList.add("hidden");
+        }
+
+    }
+
+    
+
+
+
+
+    function validatePartAnswers() {
+        const allInputs = document.querySelectorAll('#emojiGridContainer input[type="number"]:not(#answer)');
+        allInputs.forEach(input => {
+            const expected = parseInt(input.dataset.correct);
+            const guess = parseInt(input.value);
+            if (input.value === "") {
+                input.style.backgroundColor = "white";
+            } else if (guess === expected) {
+                input.style.backgroundColor = "lightgreen";
+            } else {
+                input.style.backgroundColor = "orange";
+            }
+        });
+    }
+
+
+    function validateFinalAnswer(individualAnswers) {
+        const finalInput = document.getElementById("answer");
+        const expected = parseInt(finalInput.dataset.correct);
+        const guess = parseInt(finalInput.value);
+        const summary = document.getElementById("summary");
+
+        if (guess === expected && allPartAnswersCorrect(individualAnswers)) {
+            finalInput.style.backgroundColor = "lightgreen";
+            correctAnswers++;
+            summary.classList.remove("hidden");
+            summary.innerHTML = "<h2>Correct!</h2>";
+            setTimeout(nextProblem, 1000);
+        } else {
+            finalInput.style.backgroundColor = finalInput.value === "" ? "white" : "orange";
+        }
+    }
+
+    function allPartAnswersCorrect(inputs) {
+        for (const input of inputs) {
+            if (parseInt(input.value) !== parseInt(input.dataset.correct)) return false;
+        }
+        return true;
+    }
+
+
+    function appendDigit(digit) {
+        const inputBox = document.getElementById("answer");
+        inputBox.value += digit;
+        inputBox.focus();
+    }
+
+    function clearAnswer() {
+        const inputBox = document.getElementById("answer");
+        inputBox.value = "";
+        inputBox.focus();
+    }
+
+    function toggleKeypad() {
+        const keypad = document.getElementById("keypad");
+        const toggleBtn = document.getElementById("toggle-keypad-btn");
+        if (keypad.style.display === "none") {
+            keypad.style.display = "block";
+            toggleBtn.textContent = "🔽";
+        } else {
+            keypad.style.display = "none";
+            toggleBtn.textContent = "🔼";
+        }
+    }
+
+    function endGame() {
+        const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+        document.getElementById("game-screen").classList.add("hidden");
+        document.getElementById("end-screen").classList.remove("hidden");
+        document.getElementById("turn-in-screen").classList.remove("hidden");
+        document.getElementById("score").textContent = correctAnswers;
+        document.getElementById("time").textContent = timeTaken;
+        document.getElementById("initial-0").focus();
+    }
+
+    function getInitialsFromBoxes() {
+        const chars = [];
+        let allFilled = true;
+        for (let i = 0; i < 3; i++) {
+            const box = document.getElementById(`initial-${i}`);
+            const char = box.value.toUpperCase();
+            if (char.length === 1 && /^[A-Z]$/.test(char)) {
+                box.classList.add("correct");
+                chars.push(char);
+            } else {
+                box.classList.remove("correct");
+                allFilled = false;
+            }
+        }
+        return allFilled ? chars.join('') : null;
+    }
+
+
+    function submitResults() {
+        const initials = getInitialsFromBoxes();
+        if (!initials) {
+            alert("Please enter 3 letters.");
+            return;
+        }
+
+        const timeString = document.getElementById("time").textContent;
+        const elapsedStr = timeString ? `${timeString} seconds` : "N/A";
+
+        const difficultySelect = document.getElementById("difficulty-select");
+        const difficultyLabel = difficultySelect.options[difficultySelect.selectedIndex].text;
+
+        const payload = {
+            initials: initials,
+            game: "game_0021",
+            settings: `${originalQuestionCount} questions — ${difficultyLabel}`,
+            score: correctAnswers,
+            elapsed: elapsedStr,
+            comments: document.getElementById("student-comments")?.value || ""
+        };
+
+        const submitButton = document.querySelector("#turn-in-screen button");
+        submitButton.style.display = "none";
+        document.getElementById("submit-status").textContent = "Sending...";
+
+        fetch("https://script.google.com/macros/s/AKfycbwsvj0ijlKGeWOIu80EobVDJks24Dw0ziwl9aY_AVJImmhRJ0MQnAJwmuBpe1NYmPzr/exec", {
+            method: "POST",
+            body: JSON.stringify(payload),
+            headers: {
+                "Content-Type": "text/plain"
+            }
+        })
+        .then(res => res.text())
+        .then(res => {
+            document.getElementById("submit-status").textContent = "Submitted successfully! 🎉";
+        })
+        .catch(err => {
+            document.getElementById("submit-status").textContent = "Error: " + err;
+        });
+    }
+
+
+    document.addEventListener("DOMContentLoaded", () => {
+        for (let i = 0; i < 3; i++) {
+            const box = document.getElementById(`initial-${i}`);
+            box.addEventListener("input", () => {
+                if (box.value.trim().length === 1) {
+                    box.classList.add("correct");
+                    if (i < 2) {
+                        document.getElementById(`initial-${i + 1}`).focus();
+                    } else {
+                        document.getElementById("student-comments").focus();
+                    }
+                } else {
+                    box.classList.remove("correct");
+                }
+            });
+        }
+    });
+    
+function nextProblem() {
+    if (totalQuestions <= 0) {
+        endGame();
+        return;
+    }
+
+    totalQuestions--;
+
+    const summary = document.getElementById("summary");
+    summary.classList.add("hidden");
+    summary.innerHTML = "";
+
+    const container = document.getElementById("emojiGridContainer");
+    container.innerHTML = "";
+
+    // Step 1: Pick a random category
+    const categories = [...new Set(Object.values(emojiDictionary).map(e => e.category))];
+    const categoryPrompts = {
+      misc: "random items",
+      animals: "animals",
+      fruits: "fruits",
+      food: "food items",
+      plants: "plants",
+      naturalObjects: "natural objects",
+      sports: "sports items",
+      instruments: "musical instruments",
+      games: "toys",
+      fantasy: "fantasy characters",
+      school: "school supplies",
+      clothes: "articles of clothing",
+      vehicles: "vehicles",
+      hygiene: "hygiene items",
+      table: "table items",
+      jobs: "workers"
+    };
+
+
+    const chosenCategory = categories[Math.floor(Math.random() * categories.length)];
+    const categoryLabel = categoryPrompts[chosenCategory] || chosenCategory;
+
+    // Step 2: Filter and shuffle emojis from that category
+    const filteredEmojis = Object.entries(emojiDictionary)
+        .filter(([_, val]) => val.category === chosenCategory);
+    const shuffled = filteredEmojis.sort(() => 0.5 - Math.random());
+
+    // Step 3: Select spiceLevel number of distinct emojis
+    const spiceLevel = parseInt(document.getElementById("game-screen").dataset.spice);
+    const selected = shuffled.slice(0, spiceLevel);
+
+    // Step 4: Update the prompt
+    document.getElementById("prompt").textContent = `How many ${categoryLabel} are here?`;
+
+    let total = 0;
+    let individualAnswers = [];
+
+    const problemRow = document.createElement("div");
+    problemRow.style.display = "flex";
+    problemRow.style.justifyContent = "center";
+    problemRow.style.gap = "30px";
+    problemRow.style.flexWrap = "wrap";
+
+    selected.forEach(([emoji, data], i) => {
+        const rows = Math.floor(Math.random() * 5) + 1;
+        const cols = Math.floor(Math.random() * 4) + 2;
+        const subtotal = rows * cols;
+        total += subtotal;
+
+        const block = document.createElement("div");
+        block.style.display = "flex";
+        block.style.flexDirection = "column";
+        block.style.alignItems = "center";
+        block.style.gap = "10px";
+        block.style.padding = "10px";
+        block.style.border = "2px solid #333";
+        block.style.borderRadius = "12px";
+        block.style.backgroundColor = "#1e1e1e";
+
+        const emojiGrid = document.createElement("div");
+        emojiGrid.style.display = "grid";
+        emojiGrid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+        emojiGrid.style.gap = "6px";
+
+        for (let j = 0; j < subtotal; j++) {
+            const cell = document.createElement("div");
+            cell.className = "emoji";
+            cell.textContent = emoji;
+            emojiGrid.appendChild(cell);
+        }
+
+        const equationRow = document.createElement("div");
+        equationRow.style.fontSize = "24px";
+
+        const label = document.createElement("span");
+        label.textContent = `${rows} × ${cols} = `;
+
+        const input = document.createElement("input");
+        input.type = "number";
+        input.style.fontSize = "24px";
+        input.style.width = "60px";
+        input.dataset.correct = subtotal;
+        input.dataset.index = i;
+        input.value = "";
+        input.style.transition = "background-color 0.3s ease-in-out";
+
+        input.addEventListener("input", () => {
+            const guess = parseInt(input.value);
+            const correct = parseInt(input.dataset.correct);
+            if (input.value === "") {
+                input.style.backgroundColor = "white";
+            } else if (guess === correct) {
+                input.style.backgroundColor = "lightgreen";
+                const nextInput = document.querySelector(`input[data-index="${i + 1}"]`);
+                if (nextInput) {
+                    nextInput.focus();
+                } else {
+                    const finalBox = document.getElementById("answer");
+                    if (finalBox) finalBox.focus();
+                }
+            } else {
+                input.style.backgroundColor = "orange";
+            }
+        });
+
+        equationRow.appendChild(label);
+        equationRow.appendChild(input);
+        individualAnswers.push(input);
+
+        const nounLabel = document.createElement("div");
+        nounLabel.textContent = data.label;
+        nounLabel.style.fontSize = "20px";
+        nounLabel.style.textAlign = "center";
+
+        block.appendChild(emojiGrid);
+        block.appendChild(equationRow);
+        block.appendChild(nounLabel);
+
+        problemRow.appendChild(block);
+    });
+
+    container.appendChild(problemRow);
+
+    const finalRow = document.createElement("div");
+    finalRow.style.fontSize = "24px";
+    finalRow.style.marginTop = "30px";
+    finalRow.style.textAlign = "center";
+
+    const finalInput = document.createElement("input");
+    finalInput.type = "number";
+    finalInput.id = "answer";
+    finalInput.style.fontSize = "32px";
+    finalInput.style.margin = "0 8px";
+    finalInput.style.width = "100px";
+    finalInput.style.transition = "background-color 0.3s ease-in-out";
+    finalInput.dataset.correct = total;
+
+    currentIndividualInputs = individualAnswers;
+    finalInput.addEventListener("input", () => validateFinalAnswer());
+
+    finalRow.textContent = "In total, there are ";
+    finalRow.appendChild(finalInput);
+    finalRow.appendChild(document.createTextNode(` ${categoryLabel}.`));
+
+    container.appendChild(finalRow);
+
+    setTimeout(() => {
+        if (individualAnswers.length > 0) {
+            individualAnswers[0].focus();
+        }
+    }, 0);
+}
+
+
+
+
+function validateFinalAnswer() {
+    const finalInput = document.getElementById("answer");
+    const expected = parseInt(finalInput.dataset.correct);
+    const guess = parseInt(finalInput.value);
+    const summary = document.getElementById("summary");
+
+    if (guess === expected && allPartAnswersCorrect(currentIndividualInputs)) {
+        finalInput.style.backgroundColor = "lightgreen";
+        correctAnswers++;
+        summary.classList.remove("hidden");
+        summary.innerHTML = "<h2>Correct!</h2>";
+        setTimeout(nextProblem, 1000);
+    } else {
+        finalInput.style.backgroundColor = finalInput.value === "" ? "white" : "orange";
+    }
+}
+
+
+function allPartAnswersCorrect(inputs) {
+    for (const input of inputs) {
+        if (parseInt(input.value) !== parseInt(input.dataset.correct)) return false;
+    }
+    return true;
+}
+
+
+</script>
+
+</body>
+</html>
