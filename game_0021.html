@@ -170,8 +170,15 @@
     <div id="game-screen" class="hidden">
         <h1 id="prompt">How many emojis are here?</h1>
         <div id="emojiGridContainer">
-            <div id="emojiGrid"></div>
+          <div id="problem-row">
+            <div class="problem-block" id="block-0">
+              <!-- emojis go here -->
+              <input class="subtotal-input" data-subtotal-index="0" id="subtotal-0" />
+            </div>
+            <!-- blocks 1–4 are already in the DOM but hidden -->
+          </div>
         </div>
+
         <div id="keypad-container">
             <div id="keypad">
                 <button onclick="appendDigit(1)">1</button>
@@ -407,16 +414,6 @@ const emojiDictionary = {
         const keypadContainer = document.getElementById("keypad-container");
         const inputBox = document.getElementById("answer");
 
-        if (isTouchDevice) {
-            if (i === 0) {
-                // First input: allow focus
-                input.removeAttribute("readonly");
-                input.removeAttribute("inputmode");
-            } else {
-                input.setAttribute("readonly", true);
-                input.setAttribute("inputmode", "none");
-            }
-        }
 
 
     }
