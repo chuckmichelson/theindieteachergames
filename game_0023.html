@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="favicon.png">
+  <link rel="shortcut icon" href="favicon.ico">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Graphing Parabolas</title>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    .hidden {
+      display: none;
+    }
+    #start-screen, #game-screen, #turn-in-screen {
+      margin-top: 20px;
+    }
+    .grid-container {
+      position: relative;
+      display: inline-block;
+      margin-top: 20px;
+    }
+    #game-grid {
+      display: grid;
+      gap: 0px;
+      justify-content: center;
+      z-index: 2;
+      position: relative;
+    }
+    .card {
+      width: 80px;
+      height: 80px;
+      background-color: #444;
+      border: 1px solid #222;
+      font-size: 24px;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.4s, background-color 0.4s, opacity 0.5s ease;
+      transform-style: preserve-3d;
+    }
+    .card.matched {
+      background-color: transparent;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .card.revealed {
+      background-color: #222;
+    }
+    #background-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 1;
+      pointer-events: none;
+    }
+    .initial-box {
+      width: 60px;
+      height: 70px;
+      font-size: 32px;
+      text-align: center;
+      margin: 5px;
+      border: 2px solid #333;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+    .initial-box.correct {
+      background-color: lightgreen;
+      border-color: green;
+    }
+    .submit-btn {
+      font-size: 20px;
+      padding: 10px 20px;
+      background-color: #444;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    #student-comments {
+      width: 90%;
+      max-width: 400px;
+      font-size: 18px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 2px solid #333;
+      background-color: #222;
+      color: white;
+      margin: 10px auto;
+      display: block;
+    }
+
+    button {
+        font-size: 24px;
+        padding: 12px 24px;
+        margin: 10px 0;
+        cursor: pointer;
+    }
+
+    #level-select {
+      font-size: 24px;
+      width: 220px;
+    }
+    #play-again-btn {
+      display: none;
+      font-size: 20px;
+      padding: 10px 20px;
+      background-color: #444;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    .choice-button {
+      background-color: #333;
+      color: white;
+      border: 2px solid #666;
+      border-radius: 10px;
+      font-size: 24px;
+      padding: 12px 20px;
+      margin: 10px;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.2s;
+    }
+
+    .choice-button:hover {
+      background-color: #555;
+    }
+
+    .choice-button.correct {
+      background-color: lightgreen;
+      color: black;
+      border-color: green;
+    }
+
+    .choice-button.incorrect {
+      background-color: orange;
+    }
+
+
+  </style>
+</head>
+<body>
+  <div id="start-screen">
+    <h1>Graphing Parabolas</h1>
+    <p>There will be 10 questions. Choose the equation of the highlighted parabola.</p>
+    <button onclick="startGame()">Start</button>
+  </div>
+
+  <div id="game-screen" class="hidden">
+    <h2>Choose the highlighted function.</h2>
+    <canvas id="graph-canvas" width="500" height="400"></canvas>
+    <div id="equation-buttons"></div>
+    <div id="feedback" style="font-size: 28px; color: lightgreen; margin-top: 10px;"></div>
+  </div>
+
+  <div id="turn-in-screen" class="hidden">
+    <h2>Brag about this to Chuck!</h2>
+    <p id="summary-again"></p>
+    <p>Enter your initials:</p>
+    <div id="initials-boxes">
+      <input class="initial-box" id="initial-0" maxlength="1" type="text"/>
+      <input class="initial-box" id="initial-1" maxlength="1" type="text"/>
+      <input class="initial-box" id="initial-2" maxlength="1" type="text"/>
+    </div>
+    <textarea id="student-comments" placeholder="Comments (optional)"></textarea>
+    <button class="submit-btn" onclick="submitResults()">Send to Chuck</button>
+    <p id="submit-status"></p>
+    <button id="play-again-btn" onclick="location.reload()">Play Again</button>
+  </div>
+
+  <script>
+
+    const cardScale = 1.4;  // Try changing to 1.5, 2.0, etc.
+
+    const gridEl = document.getElementById("game-grid");
+    const bgImage = document.getElementById("background-image");
+    const levelSelect = document.getElementById("level-select");
+    let cards = [], firstCard = null, lockBoard = false, matchedPairs = 0, totalPairs;
+    let startTime;
+
+    const levelSettings = {
+      1: { maxN: 3, rows: 2, cols: 3 },
+      2: { maxN: 5, rows: 2, cols: 5 },
+      3: { maxN: 10, rows: 4, cols: 5 },
+      4: { maxN: 12, rows: 4, cols: 6 },
+      5: { maxN: 20, rows: 4, cols: 10 }
+    };
+
+    const levelLabels = {
+      1: "🏈 Pee-Wee",
+      2: "🏈🏈 High School",
+      3: "🏈🏈🏈 College",
+      4: "🏈🏈🏈🏈 NFL",
+      5: "🏈🏈🏈🏈🏈 Hall of Fame"
+    };
+
+
+let totalQuestions = 10;
+let questionsAnswered = 0;
+let correctAnswers = 0;
+
+
+
+const canvas = document.getElementById("graph-canvas");
+const ctx = canvas.getContext("2d");
+const width = canvas.width;
+const height = canvas.height;
+
+function drawAxes(ctx) {
+  ctx.strokeStyle = "#000";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, height / 2);
+  ctx.lineTo(width, height / 2);
+  ctx.moveTo(width / 2, 0);
+  ctx.lineTo(width / 2, height);
+  ctx.stroke();
+}
+
+function drawParabola(ctx, a, h, k, color = "gray", glow = false) {
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+
+  if (glow) {
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 20;
+  }
+
+  ctx.beginPath();
+  for (let xPix = 0; xPix <= width; xPix++) {
+    const x = (xPix - width / 2) / 40;
+    const y = a * Math.pow(x - h, 2) + k;
+    const yPix = height / 2 - y * 40;
+    if (xPix === 0) ctx.moveTo(xPix, yPix);
+    else ctx.lineTo(xPix, yPix);
+  }
+
+  ctx.stroke();
+  ctx.restore();
+}
+
+
+
+function formatLatex({ a, h, k }) {
+  let aStr = a === 1 ? "" : a === -1 ? "-" : a;
+  let hStr = h === 0 ? "x" : `(x ${h < 0 ? "+" : "-"} ${Math.abs(h)})`;
+  let kStr = k === 0 ? "" : (k > 0 ? ` + ${k}` : ` - ${Math.abs(k)}`);
+  return `y = ${aStr}${hStr}^2${kStr}`;
+}
+
+function generateQuestion() {
+  ctx.clearRect(0, 0, width, height);
+  drawAxes(ctx);
+
+  const base = {
+    a: 1,
+    h: Math.floor(Math.random() * 5 - 2),
+    k: Math.floor(Math.random() * 5 - 2),
+  };
+
+  const transformed = { ...base };
+  const changeType = ["a", "h", "k"][Math.floor(Math.random() * 3)];
+
+  if (changeType === "a") {
+    transformed.a = base.a === 1 ? -1 : 2;
+  } else if (changeType === "h") {
+    transformed.h += Math.random() < 0.5 ? -1 : 1;
+  } else {
+    transformed.k += Math.random() < 0.5 ? -1 : 1;
+  }
+
+  const glowingIsTransformed = Math.random() < 0.5;
+
+  // Draw base and transformed with correct glow
+  if (glowingIsTransformed) {
+    drawParabola(ctx, base.a, base.h, base.k, "gray", false);     // original: plain gray
+    drawParabola(ctx, transformed.a, transformed.h, transformed.k, "yellow", true); // glowing yellow
+  } else {
+    drawParabola(ctx, transformed.a, transformed.h, transformed.k, "gray", false); // plain gray
+    drawParabola(ctx, base.a, base.h, base.k, "yellow", true);     // glowing yellow
+  }
+
+  const correct = glowingIsTransformed ? transformed : base;
+  const incorrect = glowingIsTransformed ? base : transformed;
+
+  const equations = [correct, incorrect];
+  if (Math.random() < 0.5) equations.reverse();
+
+  const buttonContainer = document.getElementById("equation-buttons");
+  buttonContainer.innerHTML = "";
+
+  equations.forEach((eq, idx) => {
+    const btn = document.createElement("button");
+    btn.classList.add("choice-button");
+    btn.innerHTML = `\\(${formatLatex(eq)}\\)`;
+    btn.onclick = () => handleAnswer(btn, eq === correct);
+    buttonContainer.appendChild(btn);
+  });
+
+  MathJax.typesetPromise();
+}
+
+
+function handleAnswer(button, isCorrect) {
+  const buttons = document.querySelectorAll(".choice-button");
+  buttons.forEach(btn => {
+    btn.disabled = true;
+    if (btn === button && isCorrect) {
+      btn.classList.add("correct");
+    } else if (btn === button) {
+      btn.classList.add("incorrect");
+    }
+  });
+
+  const feedbackEl = document.getElementById("feedback");
+  feedbackEl.textContent = isCorrect ? "Correct!" : "";
+
+  if (isCorrect) correctAnswers++;
+  questionsAnswered++;
+
+  if (questionsAnswered >= totalQuestions) {
+    setTimeout(endGame, 1500);
+  } else {
+    setTimeout(() => {
+      feedbackEl.textContent = "";
+      generateQuestion();
+    }, 1500);
+  }
+}
+
+
+
+
+
+function startGame() {
+  document.getElementById("start-screen").classList.add("hidden");
+  document.getElementById("game-screen").classList.remove("hidden");
+  document.getElementById("graph-canvas").classList.remove("hidden");
+  document.getElementById("equation-buttons").classList.remove("hidden");
+  generateQuestion();
+  startTime = new Date();
+}
+
+
+
+    function revealCard(cardEl, content) {
+      if (lockBoard || cardEl.classList.contains("matched") || cardEl.textContent !== "") return;
+      cardEl.textContent = content;
+      cardEl.classList.add("revealed");
+
+      if (!firstCard) {
+        firstCard = cardEl;
+      } else {
+        lockBoard = true;
+        if (firstCard.dataset.match === cardEl.dataset.match && firstCard !== cardEl) {
+          setTimeout(() => {
+            firstCard.classList.add("matched");
+            cardEl.classList.add("matched");
+            matchedPairs++;
+            if (matchedPairs === totalPairs) endGame();
+            resetTurn();
+          }, 400);
+        } else {
+          setTimeout(() => {
+            firstCard.textContent = "";
+            cardEl.textContent = "";
+            firstCard.classList.remove("revealed");
+            cardEl.classList.remove("revealed");
+            resetTurn();
+          }, 1000);
+        }
+      }
+    }
+
+    function resetTurn() {
+      [firstCard, lockBoard] = [null, false];
+    }
+
+function endGame() {
+  const time = Math.floor((new Date() - startTime) / 1000);
+  const minutes = Math.floor(time / 60);
+  const seconds = time % 60;
+  const elapsedStr = `${minutes}m${seconds}s`;
+  document.getElementById("summary-again").textContent =
+    `You got ${correctAnswers} out of ${totalQuestions} correct. Time: ${elapsedStr}`;
+  window.elapsedStr = elapsedStr;  // Save it cleanly
+
+  document.getElementById("summary-again").textContent =
+    `You got ${correctAnswers} out of ${totalQuestions} correct. Time: ${elapsedStr}`;
+
+  // Hide game elements
+  document.getElementById("game-screen").classList.add("hidden");
+  document.getElementById("graph-canvas").classList.add("hidden");
+  document.getElementById("equation-buttons").classList.add("hidden");
+
+  // Show final screen
+  document.getElementById("turn-in-screen").classList.remove("hidden");
+  document.getElementById("initial-0").focus();
+}
+
+
+    function getInitialsFromBoxes() {
+      const chars = [];
+      let allFilled = true;
+      for (let i = 0; i < 3; i++) {
+        const box = document.getElementById(`initial-${i}`);
+        const char = box.value.toUpperCase();
+        if (char.length === 1 && /^[A-Z]$/.test(char)) {
+          box.classList.add("correct");
+          chars.push(char);
+        } else {
+          box.classList.remove("correct");
+          allFilled = false;
+        }
+      }
+      return allFilled ? chars.join('') : null;
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      for (let i = 0; i < 3; i++) {
+        const box = document.getElementById(`initial-${i}`);
+        box.addEventListener("input", () => {
+          if (box.value.trim().length === 1) {
+            box.classList.add("correct");
+            if (i < 2) {
+              document.getElementById(`initial-${i + 1}`).focus();
+            } else {
+              document.getElementById("student-comments").focus();
+            }
+          } else {
+            box.classList.remove("correct");
+          }
+        });
+      }
+    });
+
+function submitResults() {
+  const initials = getInitialsFromBoxes();
+  if (!initials) return alert("Please enter 3 letters.");
+
+  const comments = document.getElementById("student-comments").value.trim();
+  const elapsedStr = window.elapsedStr || "unknown";
+
+  const payload = {
+    initials,
+    game: "game_0023",
+    settings: "10 questions",
+    score: `${correctAnswers}`,
+    elapsed: elapsedStr,
+    comments
+  };
+
+  const submitButton = document.querySelector("#turn-in-screen button");
+  submitButton.style.display = "none";
+  document.getElementById("submit-status").textContent = "Sending...";
+
+  fetch("https://script.google.com/macros/s/AKfycbwsvj0ijlKGeWOIu80EobVDJks24Dw0ziwl9aY_AVJImmhRJ0MQnAJwmuBpe1NYmPzr/exec", {
+    method: "POST",
+    body: JSON.stringify(payload),
+    headers: { "Content-Type": "text/plain" }
+  })
+    .then(res => res.text())
+    .then(res => {
+      document.getElementById("submit-status").textContent = "Submitted successfully! 🎉";
+      document.getElementById("play-again-btn").style.display = "inline-block";
+    })
+    .catch(err => {
+      document.getElementById("submit-status").textContent = "Error: " + err;
+    });
+}
+
+  </script>
+</body>
+</html>
