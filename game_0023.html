@@ -26,45 +26,6 @@
       display: inline-block;
       margin-top: 20px;
     }
-    #game-grid {
-      display: grid;
-      gap: 0px;
-      justify-content: center;
-      z-index: 2;
-      position: relative;
-    }
-    .card {
-      width: 80px;
-      height: 80px;
-      background-color: #444;
-      border: 1px solid #222;
-      font-size: 24px;
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: transform 0.4s, background-color 0.4s, opacity 0.5s ease;
-      transform-style: preserve-3d;
-    }
-    .card.matched {
-      background-color: transparent;
-      opacity: 0;
-      pointer-events: none;
-    }
-    .card.revealed {
-      background-color: #222;
-    }
-    #background-image {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      z-index: 1;
-      pointer-events: none;
-    }
     .initial-box {
       width: 60px;
       height: 70px;
@@ -109,10 +70,6 @@
         cursor: pointer;
     }
 
-    #level-select {
-      font-size: 24px;
-      width: 220px;
-    }
     #play-again-btn {
       display: none;
       font-size: 20px;
@@ -183,30 +140,6 @@
   </div>
 
   <script>
-
-    const cardScale = 1.4;  // Try changing to 1.5, 2.0, etc.
-
-    const gridEl = document.getElementById("game-grid");
-    const bgImage = document.getElementById("background-image");
-    const levelSelect = document.getElementById("level-select");
-    let cards = [], firstCard = null, lockBoard = false, matchedPairs = 0, totalPairs;
-    let startTime;
-
-    const levelSettings = {
-      1: { maxN: 3, rows: 2, cols: 3 },
-      2: { maxN: 5, rows: 2, cols: 5 },
-      3: { maxN: 10, rows: 4, cols: 5 },
-      4: { maxN: 12, rows: 4, cols: 6 },
-      5: { maxN: 20, rows: 4, cols: 10 }
-    };
-
-    const levelLabels = {
-      1: "🏈 Pee-Wee",
-      2: "🏈🏈 High School",
-      3: "🏈🏈🏈 College",
-      4: "🏈🏈🏈🏈 NFL",
-      5: "🏈🏈🏈🏈🏈 Hall of Fame"
-    };
 
 
 let totalQuestions = 10;
@@ -327,8 +260,9 @@ function handleAnswer(button, isCorrect) {
     }
   });
 
-  const feedbackEl = document.getElementById("feedback");
-  feedbackEl.textContent = isCorrect ? "Correct!" : "";
+  document.getElementById("feedback").textContent = isCorrect ? "Correct!" : "";
+
+  document.activeElement.blur(); // 👈 Fix lingering gray button on iPad
 
   if (isCorrect) correctAnswers++;
   questionsAnswered++;
@@ -337,11 +271,12 @@ function handleAnswer(button, isCorrect) {
     setTimeout(endGame, 1500);
   } else {
     setTimeout(() => {
-      feedbackEl.textContent = "";
+      document.getElementById("feedback").textContent = "";
       generateQuestion();
     }, 1500);
   }
 }
+
 
 
 
@@ -358,38 +293,7 @@ function startGame() {
 
 
 
-    function revealCard(cardEl, content) {
-      if (lockBoard || cardEl.classList.contains("matched") || cardEl.textContent !== "") return;
-      cardEl.textContent = content;
-      cardEl.classList.add("revealed");
 
-      if (!firstCard) {
-        firstCard = cardEl;
-      } else {
-        lockBoard = true;
-        if (firstCard.dataset.match === cardEl.dataset.match && firstCard !== cardEl) {
-          setTimeout(() => {
-            firstCard.classList.add("matched");
-            cardEl.classList.add("matched");
-            matchedPairs++;
-            if (matchedPairs === totalPairs) endGame();
-            resetTurn();
-          }, 400);
-        } else {
-          setTimeout(() => {
-            firstCard.textContent = "";
-            cardEl.textContent = "";
-            firstCard.classList.remove("revealed");
-            cardEl.classList.remove("revealed");
-            resetTurn();
-          }, 1000);
-        }
-      }
-    }
-
-    function resetTurn() {
-      [firstCard, lockBoard] = [null, false];
-    }
 
 function endGame() {
   const time = Math.floor((new Date() - startTime) / 1000);
