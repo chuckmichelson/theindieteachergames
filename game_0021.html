@@ -150,6 +150,17 @@
             font-size: 24px;
             padding: 10px;
         }
+        #play-again-btn {
+          display: none;
+          font-size: 20px;
+          padding: 10px 20px;
+          background-color: #444;
+          color: white;
+          border: none;
+          border-radius: 10px;
+          cursor: pointer;
+          margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -216,6 +227,7 @@
             <p id="submit-status"></p>
 
             <button onclick="submitResults()">Submit</button>
+            <button id="play-again-btn" onclick="location.reload()">Play Again</button>
         </div>
     </div>
 
@@ -591,11 +603,10 @@
         })
         .then(res => res.text())
         .then(res => {
-            document.getElementById("submit-status").textContent = "Submitted successfully! 🎉";
+          document.getElementById("submit-status").textContent = "Submitted successfully! 🎉";
+          document.getElementById("play-again-btn").style.display = "inline-block";
         })
-        .catch(err => {
-            document.getElementById("submit-status").textContent = "Error: " + err;
-        });
+        .catch(err => document.getElementById("submit-status").textContent = "Error: " + err);
     }
 
 
