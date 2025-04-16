@@ -114,13 +114,60 @@
             margin: 10px;
         }
 
-        #play-again-btn {
-            display: none;
-            font-size: 20px;
-            padding: 10px 20px;
-            margin: 20px auto;
+        .initial-box {
+          width: 60px;
+          height: 70px;
+          font-size: 32px;
+          text-align: center;
+          margin: 5px;
+          border: 2px solid #333;
+          border-radius: 8px;
+          text-transform: uppercase;
+        }
+        .initial-box.correct {
+          background-color: lightgreen;
+          border-color: green;
+        }
+        .submit-btn {
+          font-size: 20px;
+          padding: 10px 20px;
+          background-color: #444;
+          color: white;
+          border: none;
+          border-radius: 10px;
+          cursor: pointer;
+          margin-top: 10px;
+        }
+        #student-comments {
+          width: 90%;
+          max-width: 400px;
+          font-size: 18px;
+          padding: 10px;
+          border-radius: 8px;
+          border: 2px solid #333;
+          background-color: #222;
+          color: white;
+          margin: 10px auto;
+          display: block;
+        }
+
+        button {
+            font-size: 24px;
+            padding: 12px 24px;
+            margin: 10px 0;
             cursor: pointer;
-            display: block;
+        }
+
+        #play-again-btn {
+          display: none;
+          font-size: 20px;
+          padding: 10px 20px;
+          background-color: #444;
+          color: white;
+          border: none;
+          border-radius: 10px;
+          cursor: pointer;
+          margin-top: 20px;
         }
 
         #keypad-container {
@@ -179,7 +226,6 @@
 <body>
     <div id="start-screen">
         <h1>Colorful Multiplication Table</h1>
-        <br>
         <p>Select grid size:</p>
         <select id="grid-size"></select>
         <p>Select a color theme:</p>
@@ -199,8 +245,21 @@
         <input type="text" id="answer" readonly autofocus onkeypress="handleKeyPress(event)">
         <div class="table-container" id="multiplication-table"></div>
         <div id="summary" class="hidden"></div>
-        <button id="play-again-btn" onclick="playAgain()">Play Again</button>
     </div>
+    <div id="turn-in-screen" class="hidden">
+    <h2>Turn it In</h2>
+    <p id="summary-again"></p>
+    <p>Enter your initials:</p>
+    <div id="initials-boxes">
+      <input class="initial-box" id="initial-0" maxlength="1" type="text"/>
+      <input class="initial-box" id="initial-1" maxlength="1" type="text"/>
+      <input class="initial-box" id="initial-2" maxlength="1" type="text"/>
+    </div>
+    <textarea id="student-comments" placeholder="Comments (optional)"></textarea>
+    <button class="submit-btn" onclick="submitResults()">Send to Chuck</button>
+    <p id="submit-status"></p>
+    </div>
+
 
     <div id="keypad-container" class="hidden">
         <div id="keypad-toggle">
@@ -246,25 +305,24 @@
             return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
         };
 
-        const toggleInputMode = () => {
+        function toggleInputMode() {
             const answerInput = document.getElementById("answer");
             const keypadContainer = document.getElementById("keypad-container");
             const keypad = document.getElementById("keypad");
 
-            if (isTouchDevice()) {
+            if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                // Touch device
                 answerInput.setAttribute("readonly", true);
                 keypadContainer.classList.remove("hidden");
-
-                if (window.innerWidth < 500) {
-                    keypad.classList.add("small-keypad");
-                } else {
-                    keypad.classList.remove("small-keypad");
-                }
+                keypad.style.display = "block";
             } else {
+                // Desktop
                 answerInput.removeAttribute("readonly");
                 keypadContainer.classList.add("hidden");
+                keypad.style.display = "none";
             }
-        };
+        }
+
 
         function startGame() {
             n = parseInt(gridSizeSelect.value);
@@ -282,7 +340,6 @@
             document.getElementById("keypad-container").classList.remove("hidden");
             document.getElementById("answer").style.display = "inline-block";
             document.getElementById("question").style.display = "block";
-            document.getElementById("play-again-btn").style.display = "none";
 
             generateProblems();
             displayTable();
@@ -394,18 +451,29 @@
             const keypadContainer = document.getElementById("keypad-container");
             document.getElementById("answer").blur();
             keypadContainer.classList.add("hidden");
+
             let percentCorrect = Math.round((correctAttempts / totalAttempts) * 100);
             let avgTime = (totalTime / totalAttempts).toFixed(2);
-            let summary = document.getElementById("summary");
 
+            const totalSeconds = Math.floor(totalTime);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            const elapsedStr = `${minutes}m${seconds}s`;
+            window.elapsedStr = elapsedStr;
+
+            let summary = document.getElementById("summary");
             summary.classList.remove("hidden");
             summary.innerHTML = `<h2>Session Complete!</h2>
                                  <p>Accuracy: ${percentCorrect}%</p>
                                  <p>Total Time: ${totalTime.toFixed(2)} seconds</p>
                                  <p>Average Time per Problem: ${avgTime} seconds</p>`;
 
+            document.getElementById("turn-in-screen").classList.remove("hidden");
+            document.getElementById("summary-again").textContent = `Accuracy: ${percentCorrect}%, Avg Time: ${avgTime}s`;
+            document.getElementById("initial-0").focus();
             document.getElementById("play-again-btn").style.display = "block";
         }
+
 
         function playAgain() {
             location.reload();
@@ -437,6 +505,78 @@
         }
 
         window.addEventListener("resize", toggleInputMode);
+
+
+    function getInitialsFromBoxes() {
+      const chars = [];
+      let allFilled = true;
+      for (let i = 0; i < 3; i++) {
+        const box = document.getElementById(`initial-${i}`);
+        const char = box.value.toUpperCase();
+        if (char.length === 1 && /^[A-Z]$/.test(char)) {
+          box.classList.add("correct");
+          chars.push(char);
+        } else {
+          box.classList.remove("correct");
+          allFilled = false;
+        }
+      }
+      return allFilled ? chars.join('') : null;
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      for (let i = 0; i < 3; i++) {
+        const box = document.getElementById(`initial-${i}`);
+        box.addEventListener("input", () => {
+          if (box.value.trim().length === 1) {
+            box.classList.add("correct");
+            if (i < 2) {
+              document.getElementById(`initial-${i + 1}`).focus();
+            } else {
+              document.getElementById("student-comments").focus();
+            }
+          } else {
+            box.classList.remove("correct");
+          }
+        });
+      }
+    });
+
+function submitResults() {
+  const initials = getInitialsFromBoxes();
+  if (!initials) return alert("Please enter 3 letters.");
+
+  const comments = document.getElementById("student-comments").value.trim();
+  const elapsedStr = window.elapsedStr || "unknown";
+
+    const payload = {
+      initials,
+      game: "game_0002",
+      settings: `${n}x${n}`,
+      score: `100%`,
+      elapsed: elapsedStr,
+      comments
+    };
+
+
+  const submitButton = document.querySelector("#turn-in-screen button");
+  submitButton.style.display = "none";
+  document.getElementById("submit-status").textContent = "Sending...";
+
+  fetch("https://script.google.com/macros/s/AKfycbwsvj0ijlKGeWOIu80EobVDJks24Dw0ziwl9aY_AVJImmhRJ0MQnAJwmuBpe1NYmPzr/exec", {
+    method: "POST",
+    body: JSON.stringify(payload),
+    headers: { "Content-Type": "text/plain" }
+  })
+    .then(res => res.text())
+    .then(res => {
+      document.getElementById("submit-status").textContent = "Submitted successfully! 🎉";
+    })
+    .catch(err => {
+      document.getElementById("submit-status").textContent = "Error: " + err;
+    });
+}
+
     </script>
 </body>
 </html>
