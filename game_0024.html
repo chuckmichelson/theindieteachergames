@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="apple-touch-icon" href="favicon.png">
+    <link rel="shortcut icon" href="favicon.ico">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Miyagi Arithmetic</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        h1, h2 {
+            margin: 10px 0;
+        }
+
+        input[type="number"] {
+            font-size: 24px;
+            padding: 10px;
+            width: 80px;
+            text-align: center;
+            appearance: textfield;
+        }
+
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        button {
+            font-size: 24px;
+            padding: 12px 24px;
+            margin: 10px 0;
+            cursor: pointer;
+        }
+
+        input#answer {
+            font-size: 32px;
+            padding: 10px;
+            margin: 10px 0;
+            width: 80px;
+            text-align: center;
+            transition: background-color 0.3s ease-in-out;
+        }
+
+        .initial-box {
+            width: 60px;
+            height: 70px;
+            font-size: 32px;
+            text-align: center;
+            margin: 5px;
+            border: 2px solid #333;
+            border-radius: 8px;
+            text-transform: uppercase;
+        }
+
+        .initial-box.correct {
+            background-color: lightgreen;
+            border-color: green;
+        }
+
+        .submit-btn {
+            font-size: 20px;
+            padding: 10px 20px;
+            background-color: #444;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        #student-comments {
+            width: 90%;
+            max-width: 400px;
+            font-size: 18px;
+            padding: 10px;
+            border-radius: 8px;
+            border: 2px solid #333;
+            background-color: #222;
+            color: white;
+            margin: 10px auto;
+            display: block;
+        }
+        #keypad-container {
+          position: fixed;
+          bottom: 20px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 100;
+          text-align: center;
+        }
+
+        #keypad button {
+          width: 70px;
+          height: 70px;
+          font-size: 28px;
+          margin: 5px;
+          background-color: #444;
+          color: white;
+          border: none;
+          border-radius: 10px;
+        }
+
+        #toggle-keypad-btn {
+          margin-top: 5px;
+          background-color: #222;
+          color: white;
+          border: none;
+          border-radius: 10px;
+          padding: 8px 12px;
+          font-size: 20px;
+          cursor: pointer;
+        }
+        select {
+            font-size: 24px;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="start-screen">
+        <h1>Miyagi Arithmetic</h1>
+        <p>There will be 10 questions. Choose your arithmetic level:</p>
+        <select id="difficulty-select">
+          <option value="1" selected>🥷 White belt</option>
+          <option value="2">🥷🥷 Yellow Belt</option>
+          <option value="3">🥷🥷🥷 Green Belt</option>
+          <option value="4">🥷🥷🥷🥷 Black Belt</option>
+          <option value="5">🥷🥷🥷🥷🥷 Ninja</option>
+        </select>
+        <button onclick="startGame()">Start</button>
+    </div>
+
+    <div id="game-screen" class="hidden">
+        <h1>Miyagi Arithmetic</h1>
+        <br>
+        <h1 id="latex-container"></h1>
+        <input type="number" id="answer" autofocus oninput="validateAnswer()">
+        <div id="summary" class="hidden"></div>
+    </div>
+
+    <div id="turn-in-screen" class="hidden">
+        <h2>Turn It In</h2>
+        <p id="summary-again"></p>
+        <p>Enter your initials:</p>
+        <div id="initials-boxes">
+            <input class="initial-box" id="initial-0" maxlength="1" type="text" />
+            <input class="initial-box" id="initial-1" maxlength="1" type="text" />
+            <input class="initial-box" id="initial-2" maxlength="1" type="text" />
+        </div>
+        <textarea id="student-comments" placeholder="Comments (optional)"></textarea>
+        <button class="submit-btn" onclick="submitResults()">Send to Chuck</button>
+        <p id="submit-status"></p>
+        <button class="submit-btn" onclick="location.reload()">Play Again</button>
+    </div>
+    <div id="keypad-container" class="hidden">
+      <div id="keypad">
+        <button onclick="appendDigit('1')">1</button>
+        <button onclick="appendDigit('2')">2</button>
+        <button onclick="appendDigit('3')">3</button><br>
+        <button onclick="appendDigit('4')">4</button>
+        <button onclick="appendDigit('5')">5</button>
+        <button onclick="appendDigit('6')">6</button><br>
+        <button onclick="appendDigit('7')">7</button>
+        <button onclick="appendDigit('8')">8</button>
+        <button onclick="appendDigit('9')">9</button><br>
+        <button onclick="clearAnswer()">C</button>
+        <button onclick="appendDigit('0')">0</button>
+        <button onclick="validateAnswer();">↵</button>
+      </div>
+      <button id="toggle-keypad-btn" onclick="toggleKeypad()">🔽</button>
+    </div>
+
+
+    <script>
+        const animals = [
+          "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼",
+          "🐻‍❄️", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵",
+          "🙈", "🙉", "🙊", "🐔", "🐧", "🐦", "🐤", "🐣",
+          "🦆", "🦅", "🦉", "🦇", "🐺", "🐗", "🐴", "🦄",
+          "🐝", "🪱", "🐛", "🦋", "🐌", "🐞", "🐜", "🪰",
+          "🐢", "🐍", "🦎", "🦖", "🦕", "🐙", "🦑", "🦐", "🦞",
+          "🦀", "🐡", "🐠", "🐟", "🐬", "🐳", "🐋", "🦈"
+        ];
+
+        let n = 10;
+        let num1, num2, correctSum;
+        let totalQuestions, correctAnswers = 0, startTime;
+
+        function generateRandomProblem() {
+            const ops = ["+", "-", "*", "/"];
+            const op = ops[Math.floor(Math.random() * ops.length)];
+
+            // Difficulty tiers for number ranges
+            const maxValues = [5, 10, 12, 20, 100];
+            const max = maxValues[difficultyLevel - 1];
+
+            let a, b, answer;
+
+            switch (op) {
+                case "+":
+                    a = Math.floor(Math.random() * (max + 1));
+                    b = Math.floor(Math.random() * (max + 1));
+                    answer = a + b;
+                    return { latex: `${a} + ${b}`, answer };
+
+                case "-":
+                    a = Math.floor(Math.random() * (max + 1));
+                    b = Math.floor(Math.random() * (a + 1)); // ensure non-negative
+                    answer = a - b;
+                    return { latex: `${a} - ${b}`, answer };
+
+                case "*":
+                    a = Math.floor(Math.random() * (max + 1));
+                    b = Math.floor(Math.random() * (max + 1));
+                    answer = a * b;
+                    return { latex: `${a} \\times ${b}`, answer };
+
+                case "/":
+                    b = Math.floor(Math.random() * max) + 1; // avoid divide by 0
+                    answer = Math.floor(Math.random() * (max + 1));
+                    a = answer * b;
+                    return { latex: `\\frac{${a}}{${b}}`, answer };
+            }
+        }
+
+
+
+        function startGame() {
+            toggleInputMode();
+            totalQuestions = 10;
+            difficultyLevel = parseInt(document.getElementById("difficulty-select").value);
+            document.getElementById("start-screen").classList.add("hidden");
+            document.getElementById("game-screen").classList.remove("hidden");
+            correctAnswers = 0;
+            startTime = Date.now();
+            nextProblem();
+        }
+
+
+        function nextProblem() {
+            if (totalQuestions-- > 0) {
+                const prob = generateRandomProblem();
+                correctSum = prob.answer;
+
+                document.getElementById("answer").value = "";
+                document.getElementById("answer").style.backgroundColor = "white";
+                document.getElementById("summary").classList.add("hidden");
+                document.getElementById("latex-container").innerHTML = `\\(${prob.latex}\\)`;
+                MathJax.typeset();
+                document.getElementById("answer").focus();
+            } else {
+                endGame();
+            }
+        }
+
+
+
+
+        function validateAnswer() {
+            let inputBox = document.getElementById("answer");
+            let value = parseInt(inputBox.value);
+
+            if (value === correctSum) {
+                inputBox.style.backgroundColor = "lightgreen";
+                correctAnswers++;
+                document.getElementById("summary").classList.remove("hidden");
+                document.getElementById("summary").innerHTML = `<h2>Correct!</h2>`;
+                setTimeout(nextProblem, 1000);
+            } else if (inputBox.value === "") {
+                inputBox.style.backgroundColor = "white";
+            } else {
+                inputBox.style.backgroundColor = "orange";
+            }
+        }
+
+        function endGame() {
+            const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(timeTaken / 60);
+            const seconds = timeTaken % 60;
+            const elapsedStr = `${minutes}m${seconds}s`;
+            window.elapsedStr = elapsedStr;
+
+            document.getElementById("game-screen").classList.add("hidden");
+            document.getElementById("turn-in-screen").classList.remove("hidden");
+            document.getElementById("summary-again").textContent =
+                `Score: ${correctAnswers}/${parseInt(10)}, Time: ${elapsedStr}`;
+            document.getElementById("initial-0").focus();
+        }
+
+        function getInitialsFromBoxes() {
+            const chars = [];
+            let allFilled = true;
+            for (let i = 0; i < 3; i++) {
+                const box = document.getElementById(`initial-${i}`);
+                const char = box.value.toUpperCase();
+                if (char.length === 1 && /^[A-Z]$/.test(char)) {
+                    box.classList.add("correct");
+                    chars.push(char);
+                } else {
+                    box.classList.remove("correct");
+                    allFilled = false;
+                }
+            }
+            return allFilled ? chars.join('') : null;
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            for (let i = 0; i < 3; i++) {
+                const box = document.getElementById(`initial-${i}`);
+                box.addEventListener("input", () => {
+                    if (box.value.trim().length === 1) {
+                        box.classList.add("correct");
+                        if (i < 2) {
+                            document.getElementById(`initial-${i + 1}`).focus();
+                        } else {
+                            document.getElementById("student-comments").focus();
+                        }
+                    } else {
+                        box.classList.remove("correct");
+                    }
+                });
+            }
+        });
+
+        function submitResults() {
+            const initials = getInitialsFromBoxes();
+            if (!initials) return alert("Please enter 3 letters.");
+
+            const comments = document.getElementById("student-comments").value.trim();
+            const elapsedStr = window.elapsedStr || "unknown";
+            const difficultySelect = document.getElementById("difficulty-select");
+            const difficultyLabel = difficultySelect.options[difficultySelect.selectedIndex].text;
+
+            const payload = {
+                initials,
+                game: "game_0024",
+                settings: `10 questions — ${difficultyLabel}`,
+                score: `${correctAnswers}/10`,
+                elapsed: elapsedStr,
+                comments
+            };
+
+            const submitButton = document.querySelector("#turn-in-screen button");
+            submitButton.style.display = "none";
+            document.getElementById("submit-status").textContent = "Sending...";
+
+            fetch("https://script.google.com/macros/s/AKfycbwsvj0ijlKGeWOIu80EobVDJks24Dw0ziwl9aY_AVJImmhRJ0MQnAJwmuBpe1NYmPzr/exec", {
+                method: "POST",
+                body: JSON.stringify(payload),
+                headers: { "Content-Type": "text/plain" }
+            })
+                .then(res => res.text())
+                .then(res => {
+                    document.getElementById("submit-status").textContent = "Submitted successfully! 🎉";
+                })
+                .catch(err => {
+                    document.getElementById("submit-status").textContent = "Error: " + err;
+                });
+        }
+
+        function appendDigit(digit) {
+          const input = document.getElementById("answer");
+          input.value += digit;
+          input.focus();
+        }
+
+        function clearAnswer() {
+          const input = document.getElementById("answer");
+          input.value = "";
+          input.focus();
+        }
+
+        function toggleKeypad() {
+          const keypad = document.getElementById("keypad");
+          const toggleBtn = document.getElementById("toggle-keypad-btn");
+
+          if (keypad.style.display === "none") {
+            keypad.style.display = "block";
+            toggleBtn.textContent = "🔽";
+          } else {
+            keypad.style.display = "none";
+            toggleBtn.textContent = "🔼";
+          }
+        }
+
+        function isTouchDevice() {
+          return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        }
+
+        function toggleInputMode() {
+          const answerInput = document.getElementById("answer");
+          const keypadContainer = document.getElementById("keypad-container");
+          const keypad = document.getElementById("keypad");
+
+          if (isTouchDevice()) {
+            answerInput.setAttribute("readonly", true);
+            keypadContainer.classList.remove("hidden");
+            keypad.style.display = "block";
+          } else {
+            answerInput.removeAttribute("readonly");
+            keypadContainer.classList.add("hidden");
+            keypad.style.display = "none";
+          }
+        }
+        window.addEventListener("resize", toggleInputMode);
+
+
+    </script>
+</body>
+</html>
