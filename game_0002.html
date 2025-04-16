@@ -247,14 +247,14 @@
         <div id="summary" class="hidden"></div>
     </div>
     <div id="turn-in-screen" class="hidden">
+    <br>
     <h2>Turn it In</h2>
-    <p id="summary-again"></p>
-    <p>Enter your initials:</p>
     <div id="initials-boxes">
       <input class="initial-box" id="initial-0" maxlength="1" type="text"/>
       <input class="initial-box" id="initial-1" maxlength="1" type="text"/>
       <input class="initial-box" id="initial-2" maxlength="1" type="text"/>
     </div>
+    <p>Enter your initials above:</p>
     <textarea id="student-comments" placeholder="Comments (optional)"></textarea>
     <button class="submit-btn" onclick="submitResults()">Send to Chuck</button>
     <p id="submit-status"></p>
@@ -465,12 +465,9 @@
             summary.classList.remove("hidden");
             summary.innerHTML = `<h2>Session Complete!</h2>
                                  <p>Accuracy: ${percentCorrect}%</p>
-                                 <p>Total Time: ${totalTime.toFixed(2)} seconds</p>
-                                 <p>Average Time per Problem: ${avgTime} seconds</p>`;
+                                 <p>Total Time: ${totalTime.toFixed(2)} seconds`;
 
             document.getElementById("turn-in-screen").classList.remove("hidden");
-            document.getElementById("summary-again").textContent = `Accuracy: ${percentCorrect}%, Avg Time: ${avgTime}s`;
-            document.getElementById("initial-0").focus();
             document.getElementById("play-again-btn").style.display = "block";
         }
 
