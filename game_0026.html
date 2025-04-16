@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="favicon.png">
+  <link rel="shortcut icon" href="favicon.ico">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Powers of Two</title>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <link rel="stylesheet" href="keypad.css">
+  <link rel="stylesheet" href="end-screen.css">
+  <style>
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    .hidden {
+      display: none;
+    }
+    #start-screen, #game-screen, #turn-in-screen {
+      margin-top: 20px;
+    }
+    .grid-container {
+      position: relative;
+      display: inline-block;
+      margin-top: 20px;
+    }
+    .choice-button {
+      background-color: #333;
+      color: white;
+      border: 2px solid #666;
+      border-radius: 10px;
+      font-size: 24px;
+      padding: 12px 20px;
+      margin: 10px;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.2s;
+    }
+    .choice-button:hover {
+      background-color: #555;
+    }
+    .choice-button.correct {
+      background-color: lightgreen;
+      color: black;
+      border-color: green;
+    }
+    .choice-button.incorrect {
+      background-color: orange;
+    }
+    #question-prompt {
+      font-size: 64px;
+    }
+    button {
+        font-size: 24px;
+        padding: 12px 24px;
+        margin: 10px 0;
+        cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="start-screen">
+    <h1>Powers of Two</h1>
+    <p>There will be 10 questions. Choose the correct value of \(2^n\).</p>
+    <button onclick="startGame()">Start</button>
+  </div>
+
+  <div id="game-screen" class="hidden">
+    <h1>Powers of Two</h1>
+    <br>
+    <h1 id="question-prompt">\(2^n\)</h1>
+    <br>
+    <div id="equation-buttons"></div>
+    <div id="feedback" style="font-size: 28px; color: lightgreen; margin-top: 10px;"></div>
+  </div>
+
+  <div id="turn-in-screen" class="hidden">
+    <h2>Brag about this to Chuck!</h2>
+    <p id="summary-again"></p>
+    <p>Enter your initials:</p>
+    <div id="initials-boxes">
+      <input class="initial-box" id="initial-0" maxlength="1" type="text"/>
+      <input class="initial-box" id="initial-1" maxlength="1" type="text"/>
+      <input class="initial-box" id="initial-2" maxlength="1" type="text"/>
+    </div>
+    <textarea id="student-comments" placeholder="Comments (optional)"></textarea>
+    <button class="submit-btn" onclick="handleSubmission()">Send to Chuck</button>
+    <p id="submit-status"></p>
+    <button id="play-again-btn" onclick="location.reload()">Play Again</button>
+  </div>
+
+  <script src="keypad.js"></script>
+  <script src="end-screen.js"></script>
+  <script>
+let totalQuestions = 10;
+let questionsAnswered = 0;
+let correctAnswers = 0;
+
+function generateQuestion() {
+  document.activeElement.blur();
+  const n = Math.floor(Math.random() * 11);
+  const correctAnswer = 2 ** n;
+  document.getElementById("question-prompt").innerHTML = `\\(2^{${n}}\\)`;
+
+  const buttonContainer = document.getElementById("equation-buttons");
+  buttonContainer.innerHTML = "";
+
+  for (let i = 0; i <= 10; i++) {
+    const val = 2 ** i;
+    const btn = document.createElement("button");
+    btn.classList.add("choice-button");
+    btn.textContent = val;
+    btn.onclick = () => handleAnswer(btn, val === correctAnswer);
+    buttonContainer.appendChild(btn);
+  }
+
+  MathJax.typesetPromise();
+}
+
+function handleAnswer(button, isCorrect) {
+  const buttons = document.querySelectorAll(".choice-button");
+  buttons.forEach(btn => {
+    btn.disabled = true;
+    if (btn === button && isCorrect) {
+      btn.classList.add("correct");
+    } else if (btn === button) {
+      btn.classList.add("incorrect");
+    }
+  });
+
+  document.getElementById("feedback").textContent = isCorrect ? "Correct!" : "";
+
+  document.activeElement.blur();
+
+  if (isCorrect) correctAnswers++;
+  questionsAnswered++;
+
+  if (questionsAnswered >= totalQuestions) {
+    setTimeout(endGame, 1500);
+  } else {
+    setTimeout(() => {
+      document.getElementById("feedback").textContent = "";
+      generateQuestion();
+    }, 1500);
+  }
+}
+
+function startGame() {
+  document.getElementById("start-screen").classList.add("hidden");
+  document.getElementById("game-screen").classList.remove("hidden");
+  document.getElementById("equation-buttons").classList.remove("hidden");
+  generateQuestion();
+  startTime = new Date();
+}
+function handleSubmission() {
+  const payload = {
+    game: "game_0026",
+    settings: "10 questions",
+    score: `${correctAnswers}`,
+    elapsed: window.elapsedStr || "unknown",
+    initials: "",  // filled by submitResults()
+    comments: ""   // filled by submitResults()
+  };
+  submitResults(payload);
+}
+
+  </script>
+</body>
+</html>
