@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="favicon.png">
+  <link rel="shortcut icon" href="favicon.ico">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Powers of Ten</title>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <link rel="stylesheet" href="end-screen.css">
+  <style>
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    .hidden { display: none; }
+    table {
+      margin: 20px auto;
+      border-collapse: collapse;
+      max-width: 800px;
+      width: 100%;
+    }
+    td, th {
+      border: none;
+      padding: 6px 10px;
+      font-size: 16px;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .number-cell {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      width: 100%;
+    }
+    .number-left {
+      text-align: right;
+      flex: 0 0 120px;
+    }
+    .decimal-point {
+      flex: 0 0 10px;
+    }
+    .number-right {
+      text-align: left;
+      flex: 0 0 120px;
+    }
+    .missing {
+      background-color: lightskyblue;
+      color: transparent;
+    }
+    .choice-button {
+      background-color: #333;
+      color: white;
+      border: 2px solid #666;
+      border-radius: 10px;
+      font-size: 18px;
+      padding: 10px 18px;
+      margin: 8px;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.2s;
+    }
+    .choice-button:hover { background-color: #555; }
+    .choice-button.correct {
+      background-color: lightgreen;
+      color: black;
+      border-color: green;
+    }
+    .choice-button.incorrect { background-color: orange; }
+    #question-area { margin: 20px auto; }
+    button {
+      font-size: 24px;
+      padding: 12px 24px;
+      margin: 10px 0;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="start-screen">
+    <h1>Powers of Ten</h1>
+    <p>One cell of the table will be hidden. Choose the correct value to restore it. 10 questions.</p>
+    <button onclick="startGame()">Start</button>
+  </div>
+
+  <div id="game-screen" class="hidden">
+    <h1>Powers of Ten</h1>
+    <div id="question-area"></div>
+    <div id="choices"></div>
+    <div id="feedback" style="font-size: 24px; color: lightgreen; margin-top: 10px;"></div>
+  </div>
+
+  <div id="turn-in-screen" class="hidden">
+    <h2>Nice!</h2>
+    <p id="summary-again"></p>
+    <p>Enter your initials:</p>
+    <div id="initials-boxes">
+      <input class="initial-box" id="initial-0" maxlength="1" type="text"/>
+      <input class="initial-box" id="initial-1" maxlength="1" type="text"/>
+      <input class="initial-box" id="initial-2" maxlength="1" type="text"/>
+    </div>
+    <textarea id="student-comments" placeholder="Comments (optional)"></textarea>
+    <button class="submit-btn" onclick="handleSubmission()">Send to Chuck</button>
+    <p id="submit-status"></p>
+    <button id="play-again-btn" onclick="location.reload()">Play Again</button>
+  </div>
+
+  <script src="end-screen.js"></script>
+  <script>
+    const superscriptMap = {
+      "-12": "10⁻¹²", "-11": "10⁻¹¹", "-10": "10⁻¹⁰", "-9": "10⁻⁹", "-8": "10⁻⁸", "-7": "10⁻⁷",
+      "-6": "10⁻⁶", "-5": "10⁻⁵", "-4": "10⁻⁴", "-3": "10⁻³", "-2": "10⁻²", "-1": "10⁻¹",
+      "0": "10⁰", "1": "10¹", "2": "10²", "3": "10³", "4": "10⁴", "5": "10⁵",
+      "6": "10⁶", "7": "10⁷", "8": "10⁸", "9": "10⁹", "10": "10¹⁰", "11": "10¹¹", "12": "10¹²"
+    };
+
+    const nameMap = {
+      "-12": "one trillionth",
+      "-11": "one hundred billionth",
+      "-10": "ten billionth",
+      "-9": "one billionth",
+      "-8": "one hundred millionth",
+      "-7": "ten millionth",
+      "-6": "one millionth",
+      "-5": "one hundred thousandth",
+      "-4": "ten thousandth",
+      "-3": "one thousandth",
+      "-2": "one hundredth",
+      "-1": "one tenth",
+      "0": "one",
+      "1": "ten",
+      "2": "one hundred",
+      "3": "one thousand",
+      "4": "ten thousand",
+      "5": "one hundred thousand",
+      "6": "one million",
+      "7": "ten million",
+      "8": "one hundred million",
+      "9": "one billion",
+      "10": "ten billion",
+      "11": "one hundred billion",
+      "12": "one trillion"
+    };
+
+    const rows = [];
+    for (let i = -12; i <= 12; i++) {
+      const power = superscriptMap[i.toString()];
+      const value = (10 ** i).toLocaleString("en-US", {useGrouping: false, maximumFractionDigits: 20});
+      const [left, right = ""] = value.includes('.') ? value.split('.') : [value, ""];
+      const prefixMap = {
+        [-12]: ["pico", "p"], [-9]: ["nano", "n"], [-6]: ["micro", "µ"],
+        [-3]: ["milli", "m"], [-2]: ["centi", "c"], [-1]: ["deci", "d"],
+        [0]: ["(unit)", ""], [1]: ["deka", "da"], [2]: ["hecto", "h"],
+        [3]: ["kilo", "k"], [6]: ["mega", "M"], [9]: ["giga", "G"], [12]: ["tera", "T"]
+      };
+      rows.push({
+        prefix: prefixMap[i]?.[0] || "",
+        symbol: prefixMap[i]?.[1] || "",
+        numberParts: [left, right],
+        power,
+        name: nameMap[i.toString()] || ""
+      });
+    }
+
+    // Reverse row order
+    rows.reverse();
+
+
+let totalQuestions = 10;
+let questionsAnswered = 0;
+let correctAnswers = 0;
+let currentMissing = {};
+
+function startGame() {
+  window.startTime = Date.now();
+  document.getElementById("start-screen").classList.add("hidden");
+  document.getElementById("game-screen").classList.remove("hidden");
+  nextQuestion();
+}
+
+
+    function nextQuestion() {
+      document.getElementById("feedback").textContent = "";
+      document.getElementById("choices").innerHTML = "";
+      const colKeys = ["prefix", "symbol", "numberParts", "power", "name"];
+      let rowIndex, colIndex, correctValue;
+
+      // Ensure non-blank question
+      do {
+        colIndex = Math.floor(Math.random() * colKeys.length);
+        rowIndex = Math.floor(Math.random() * rows.length);
+        correctValue = colKeys[colIndex] === "numberParts"
+          ? rows[rowIndex].numberParts.join(".")
+          : rows[rowIndex][colKeys[colIndex]];
+      } while (!correctValue);
+
+      currentMissing = { rowIndex, colKey: colKeys[colIndex], correctValue };
+      const tableHTML = generateTable(rowIndex, colKeys[colIndex]);
+      document.getElementById("question-area").innerHTML = tableHTML;
+
+      const options = generateOptions(correctValue, colKeys[colIndex]);
+      for (const opt of shuffleArray(options)) {
+        const btn = document.createElement("button");
+        btn.className = "choice-button";
+        btn.textContent = opt;
+        btn.onclick = () => handleAnswer(btn, opt);
+        document.getElementById("choices").appendChild(btn);
+      }
+
+      MathJax.typesetPromise();
+    }
+
+    function generateTable(missingRow, missingCol) {
+      let html = "<table><tr><th>Prefix</th><th>Symbol</th><th>Number</th><th>\\(10^n\\)</th><th>Written Name</th></tr>";
+      rows.forEach((row, i) => {
+        html += "<tr>";
+        html += `<td class='${(i === missingRow && missingCol === "prefix") ? "missing" : ""}'>${row.prefix}</td>`;
+        html += `<td class='${(i === missingRow && missingCol === "symbol") ? "missing" : ""}'>${row.symbol}</td>`;
+        if (missingCol === "numberParts" && i === missingRow) {
+          html += `<td class='missing'><div class='number-cell'><span class='number-left'> </span><span class='decimal-point'> </span><span class='number-right'> </span></div></td>`;
+        } else {
+          html += `<td><div class='number-cell'><span class='number-left'>${row.numberParts[0]}</span><span class='decimal-point'>.</span><span class='number-right'>${row.numberParts[1]}</span></div></td>`;
+        }
+        html += `<td class='${(i === missingRow && missingCol === "power") ? "missing" : ""}'>${row.power}</td>`;
+        html += `<td class='${(i === missingRow && missingCol === "name") ? "missing" : ""}'>${row.name}</td>`;
+        html += "</tr>";
+      });
+      html += "</table>";
+      return html;
+    }
+
+function generateOptions(correct, key) {
+  const pool = rows.map(r => (key === "numberParts" ? r.numberParts.join(".") : r[key])).filter(v => v && v !== correct);
+  const sampled = shuffleArray(pool).slice(0, 3);
+  return shuffleArray([correct, ...sampled]);
+}
+
+function handleAnswer(btn, answer) {
+  const buttons = document.querySelectorAll(".choice-button");
+  buttons.forEach(b => {
+    b.disabled = true;
+    if (b === btn && answer === currentMissing.correctValue) {
+      b.classList.add("correct");
+    } else if (b === btn) {
+      b.classList.add("incorrect");
+    }
+  });
+
+  if (answer === currentMissing.correctValue) correctAnswers++;
+  questionsAnswered++;
+
+  document.getElementById("feedback").textContent = answer === currentMissing.correctValue ? "Correct!" : "";
+
+  if (questionsAnswered >= totalQuestions) {
+    setTimeout(endGame, 1500);
+  } else {
+    setTimeout(nextQuestion, 1500);
+  }
+}
+
+function endGame() {
+  document.getElementById("game-screen").classList.add("hidden");
+  document.getElementById("turn-in-screen").classList.remove("hidden");
+  document.getElementById("summary-again").textContent = `You got ${correctAnswers} out of ${totalQuestions} correct.`;
+  document.getElementById("initial-0").focus();
+  const elapsedMs = Date.now() - window.startTime;
+  const seconds = Math.floor((elapsedMs / 1000) % 60);
+  const minutes = Math.floor((elapsedMs / 1000) / 60);
+  window.elapsedStr = `${minutes}m${seconds}s`;
+}
+
+
+function handleSubmission() {
+  const payload = {
+    game: "game_10",
+    settings: "10 questions",
+    score: `${correctAnswers}`,
+    elapsed: window.elapsedStr || "unknown",
+    initials: "",
+    comments: ""
+  };
+  submitResults(payload);
+}
+
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+</script>
+</body>
+</html>
