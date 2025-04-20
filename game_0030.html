@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="apple-touch-icon" href="favicon.png">
+    <link rel="shortcut icon" href="favicon.ico">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Number Snake</title>
+    <script src="end-screen.js"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="stylesheet" href="end-screen.css">
+    <style>
+    body {
+      background: #111;
+      color: white;
+      font-family: sans-serif;
+      text-align: center;
+    }
+    canvas {
+      border: 2px solid white;
+      margin-top: 20px;
+      margin-left: auto;
+      margin-right: auto;
+      display: none;
+    }
+    .hidden {
+      display: none;
+    }
+
+    button {
+      font-size: 24px;
+      padding: 12px 24px;
+      margin: 10px 0;
+      cursor: pointer;
+    }
+    select {
+      font-size: 24px;
+      width: 220px;
+    }
+    #game {
+      display: none;
+    }
+    #game {
+      background-image: url('game_0030.png'); /* or full path to your water GIF */
+      background-size: cover;
+    }
+
+
+  </style>
+</head>
+<body>
+  <div id="start-screen">
+    <h1>Number Snake</h1>
+    <h1>🐍</h1>
+    <label>Choose your food:</label>
+    <select id="number-type">
+      <option value="odd">Odd Numbers  </option>
+      <option value="prime">Primes  </option>
+      <option value="square" selected>Perfect Squares  </option>
+      <option value="power2">Powers of Two  </option>
+      <option value="power10">Powers of Ten  </option>
+    </select>
+    <br><br>
+    <label>Choose hunger level:</label>
+    <select id="level-select">
+      <option value="1" selected>🐍 Peckish  </option>
+      <option value="2">🐍🐍 Snacky  </option>
+      <option value="3">🐍🐍🐍 Hungry  </option>
+      <option value="4">🐍🐍🐍🐍 Hangry  </option>
+      <option value="5">🐍🐍🐍🐍🐍 Ravenous  </option>
+      <option value="6">🐍🐍🐍🐍🐍🐍 Insatiable  </option>
+    </select>
+    <br><br>
+    <button onclick="beginGame()">Start Game</button>
+  </div>
+
+  <h1 id="game-title"></h1>
+  <p id="game-instructions"></p>
+
+  <canvas id="game" width="600" height="600"></canvas>
+
+  <div id="turn-in-screen" class="hidden">
+    <h2>Nice!</h2>
+    <p id="summary-again"></p>
+    <p>Enter your initials:</p>
+    <div id="initials-boxes">
+      <input class="initial-box" id="initial-0" maxlength="1" type="text"/>
+      <input class="initial-box" id="initial-1" maxlength="1" type="text"/>
+      <input class="initial-box" id="initial-2" maxlength="1" type="text"/>
+    </div>
+    <textarea id="student-comments" placeholder="Comments (optional)"></textarea>
+    <button class="submit-btn" onclick="handleSubmission()">Send to Chuck</button>
+    <p id="submit-status"></p>
+    <button id="play-again-btn" onclick="location.reload()">Play Again</button>
+  </div>
+
+<script>
+let level = 3;
+let baseTickRate = 350;
+let tickRate = baseTickRate;
+let maxTargets = 4;
+let maxDistractors = 4;
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+// Randomize background image from 1–3
+const backgroundOptions = ['game_0030_1.png', 'game_0030_2.png', 'game_0030_3.png'];
+const chosenBackground = backgroundOptions[Math.floor(Math.random() * backgroundOptions.length)];
+document.getElementById('game').style.backgroundImage = `url('${chosenBackground}')`;
+
+const gridSize = 30;
+const cols = 20;
+const rows = 20;
+
+let ticksSinceLastTarget = 0;
+const maxDelay = 3;  // Don't spawn a new square immediately
+
+
+canvas.width = cols * gridSize;
+canvas.height = rows * gridSize;
+
+let snake = [{
+  x: 5, y: 5, isHead: true, value: null
+}];
+
+let direction = { x: 1, y: 0 };
+let targets = [];
+let gameInterval;
+
+function isTarget(n) {
+  return Number.isInteger(Math.sqrt(n));
+}
+
+function getRandomValue() {
+  return Math.floor(Math.random() * 100) + 1;
+}
+
+function spawnTargets() {
+  targets = [];
+
+  while (targets.filter(t => isTarget(t.value)).length < maxTargets) {
+    const x = Math.floor(Math.random() * cols);
+    const y = Math.floor(Math.random() * rows);
+    const value = getRandomValue();
+    if (!snake.some(seg => seg.x === x && seg.y === y) &&
+        !targets.some(t => t.x === x && t.y === y) &&
+        isTarget(value)) {
+      targets.push({ x, y, value });
+    }
+  }
+
+  while (targets.length < maxTargets + maxDistractors) {
+    const x = Math.floor(Math.random() * cols);
+    const y = Math.floor(Math.random() * rows);
+    const value = getRandomValue();
+    if (!snake.some(seg => seg.x === x && seg.y === y) &&
+        !targets.some(t => t.x === x && t.y === y) &&
+        !isTarget(value)) {
+      targets.push({ x, y, value });
+    }
+  }
+}
+
+
+function moveSnake(growValue = null) {
+  const prevPositions = snake.map(seg => ({ x: seg.x, y: seg.y }));
+
+  // Move head
+  snake[0].x += direction.x;
+  snake[0].y += direction.y;
+
+  // Move body
+  for (let i = 1; i < snake.length; i++) {
+    snake[i].x = prevPositions[i - 1].x;
+    snake[i].y = prevPositions[i - 1].y;
+  }
+
+  // If growing, add a new segment at the end with the value
+  if (growValue !== null) {
+    const last = prevPositions[prevPositions.length - 1];
+    snake.push({
+      x: last.x,
+      y: last.y,
+      isHead: false,
+      value: growValue
+    });
+  }
+}
+
+let targetType = 'square';
+
+function isTarget(n) {
+  switch (targetType) {
+    case 'odd': return n % 2 === 1;
+    case 'prime':
+      if (n < 2) return false;
+      for (let i = 2; i <= Math.sqrt(n); i++) if (n % i === 0) return false;
+      return true;
+    case 'square': return Number.isInteger(Math.sqrt(n));
+    case 'power2': return n && (n & (n - 1)) === 0;
+    case 'power10':
+      while (n >= 10 && n % 10 === 0) n /= 10;
+      return n === 1;
+  }
+}
+
+
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  targets.forEach(t => {
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.strokeRect(t.x * gridSize, t.y * gridSize, gridSize, gridSize);
+
+    ctx.fillStyle = 'white';
+    ctx.font = '18px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(t.value, t.x * gridSize + gridSize / 2, t.y * gridSize + gridSize / 2);
+  });
+
+  snake.forEach(seg => {
+    const cx = seg.x * gridSize + gridSize / 2;
+    const cy = seg.y * gridSize + gridSize / 2;
+
+    ctx.font = '22px serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    if (seg.isHead) {
+      ctx.fillText('🐍', cx, cy);
+    } else {
+      ctx.strokeStyle = 'white';
+      ctx.strokeRect(seg.x * gridSize, seg.y * gridSize, gridSize, gridSize);
+      if (seg.value !== null) {
+        ctx.fillStyle = 'white';
+        ctx.font = '18px sans-serif';
+        ctx.fillText(seg.value, cx, cy);
+      }
+    }
+  });
+
+}
+
+function tick() {
+  const head = snake[0];
+  const nextX = head.x + direction.x;
+  const nextY = head.y + direction.y;
+
+  // Count current squares and distractors
+  const targetsCount = targets.filter(t => isTarget(t.value)).length;
+  const distractorsCount = targets.filter(t => !isTarget(t.value)).length;
+
+  // Maybe refill a missing perfect square (after short delay)
+  if (targetsCount < level) {
+    ticksSinceLastTarget++;
+    if (ticksSinceLastTarget >= maxDelay) {
+      addRandomTarget(true); // true = must be a square
+      ticksSinceLastTarget = 0;
+    }
+  }
+
+  // Occasionally spawn a new distractor to keep things spicy
+  if (Math.random() < 0.1 && distractorsCount < level) {
+    addRandomTarget(false); // false = must be a non-square
+  }
+
+
+  // Wall collision
+  if (nextX < 0 || nextX >= cols || nextY < 0 || nextY >= rows) {
+    return gameOver();
+  }
+
+  // Self collision
+  if (snake.some((seg, i) => i !== 0 && seg.x === nextX && seg.y === nextY)) {
+    return gameOver();
+  }
+
+  // Check if we hit a target
+  const hitIndex = targets.findIndex(t => t.x === nextX && t.y === nextY);
+  let growValue = null;
+
+  if (hitIndex !== -1) {
+    const target = targets[hitIndex];
+    if (isTarget(target.value)) {
+      growValue = target.value;
+      targets.splice(hitIndex, 1);
+    } else {
+      return gameOver();
+    }
+
+    // Spawn a new target or distractor
+    const addingTarget = Math.random() < 0.5;
+    while (true) {
+      const x = Math.floor(Math.random() * cols);
+      const y = Math.floor(Math.random() * rows);
+      const newValue = getRandomValue();
+      if (!snake.some(seg => seg.x === x && seg.y === y) &&
+          !targets.some(t => t.x === x && t.y === y)) {
+        if (addingTarget && isTarget(newValue)) {
+          targets.push({ x, y, value: newValue });
+          break;
+        }
+        if (!addingTarget && !isTarget(newValue)) {
+          targets.push({ x, y, value: newValue });
+          break;
+        }
+      }
+    }
+  }
+
+  // Move the snake and optionally grow
+  moveSnake(growValue);
+  draw();
+}
+
+
+
+function gameOver() {
+  console.log("Ending game!");
+  clearInterval(gameInterval);
+  document.getElementById("summary-again").textContent = `Snake length: ${snake.length - 1}`;
+  document.getElementById("turn-in-screen").classList.remove("hidden");
+  document.getElementById("initial-0").focus();
+}
+
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowUp' && direction.y === 0) direction = { x: 0, y: -1 };
+  if (e.key === 'ArrowDown' && direction.y === 0) direction = { x: 0, y: 1 };
+  if (e.key === 'ArrowLeft' && direction.x === 0) direction = { x: -1, y: 0 };
+  if (e.key === 'ArrowRight' && direction.x === 0) direction = { x: 1, y: 0 };
+});
+
+const gameInfo = {
+  odd: {
+    title: "Odd Numbers",
+    instructions: "Use arrow keys. Eat odd numbers. Avoid even numbers and yourself!"
+  },
+  prime: {
+    title: "Prime Numbers",
+    instructions: "Use arrow keys. Eat prime numbers. Avoid composites and yourself!"
+  },
+  square: {
+    title: "Perfect Squares",
+    instructions: "Use arrow keys. Eat perfect squares. Avoid all others and yourself!"
+  },
+  power2: {
+    title: "Powers of Two",
+    instructions: "Use arrow keys. Eat powers of two. Avoid all others and yourself!"
+  },
+  power10: {
+    title: "Powers of Ten",
+    instructions: "Use arrow keys. Eat powers of ten. Avoid all others and yourself!"
+  }
+};
+
+
+function beginGame() {
+  console.log("Starting game!");
+  targetType = document.getElementById('number-type').value;
+  level = parseInt(document.getElementById('level-select').value);
+  configureLevelParams();  // ← call it here
+  document.getElementById('start-screen').style.display = 'none';
+
+  const info = gameInfo[targetType];
+  document.getElementById("game-title").textContent = info.title;
+  document.getElementById("game-instructions").textContent = info.instructions;
+
+  document.getElementById('game').style.display = 'block';
+
+  spawnTargets();
+  draw();
+  gameInterval = setInterval(tick, tickRate);  // Use dynamic tick rate
+}
+
+
+function handleSubmission() {
+  const initials = [...Array(3)].map((_, i) => document.getElementById(`initial-${i}`).value.toUpperCase()).join('');
+  const comments = document.getElementById("student-comments").value;
+
+  const numberText = {
+    odd: "Odd Numbers",
+    prime: "Prime Numbers",
+    square: "Perfect Squares",
+    power2: "Powers of Two",
+    power10: "Powers of Ten"
+  }[targetType];
+
+  const levelEmojis = {
+    1: "🐍 Peckish",
+    2: "🐍🐍 Snacky",
+    3: "🐍🐍🐍 Hungry",
+    4: "🐍🐍🐍🐍 Hangry",
+    5: "🐍🐍🐍🐍🐍 Ravenous",
+    6: "🐍🐍🐍🐍🐍🐍 Insatiable"
+  }[level];
+
+  const payload = {
+    game: "game_0030",
+    settings: `${numberText}; ${levelEmojis}`,
+    score: `${snake.length - 1}`,
+    elapsed: "N/A",
+    initials,
+    comments
+  };
+
+  submitResults(payload);
+}
+
+
+
+function addRandomTarget(isSquare) {
+  while (true) {
+    const x = Math.floor(Math.random() * cols);
+    const y = Math.floor(Math.random() * rows);
+    const value = getRandomValue();
+
+    if (
+      !snake.some(seg => seg.x === x && seg.y === y) &&
+      !targets.some(t => t.x === x && t.y === y) &&
+      isTarget(value) === isSquare
+    ) {
+      targets.push({ x, y, value });
+      break;
+    }
+  }
+}
+
+
+function configureLevelParams() {
+  const curve = {
+    1: { tickRate: 400, targets: 2, distractors: 2 },
+    2: { tickRate: 350, targets: 3, distractors: 4 },
+    3: { tickRate: 300, targets: 4, distractors: 6 },
+    4: { tickRate: 250, targets: 5, distractors: 9 },
+    5: { tickRate: 200, targets: 6, distractors: 12 },
+    6: { tickRate: 150, targets: 8, distractors: 16 },
+  };
+
+  const config = curve[level] || curve[3]; // fallback to level 3
+  tickRate = config.tickRate;
+  maxTargets = config.targets;
+  maxDistractors = config.distractors;
+}
+
+
+
+</script>
+
+</body>
+</html>
