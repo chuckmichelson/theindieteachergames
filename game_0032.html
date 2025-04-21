@@ -179,12 +179,6 @@ const swipeThreshold = 30; // Minimum distance in px to count as swipe
 
 
 
-window.addEventListener('touchmove', e => {
-  if (e.touches.length > 0) {
-    const touch = e.touches[0];
-    touchTarget = { x: touch.clientX, y: touch.clientY };
-  }
-});
 let touchStartX = null;
 let touchStartY = null;
 
@@ -679,33 +673,6 @@ function gameLoop() {
   if (keys['ArrowLeft']) playerX -= 3;
   if (keys['ArrowRight']) playerX += 3;
 
-  if (touchTarget) {
-    const maxSpeed = 8; // pixels per frame, tweak as needed
-    const speedFactor = 0.1;
-
-    const dx = touchTarget.x - playerX;
-    const dy = touchTarget.y - playerY;
-
-    let vx = dx * speedFactor;
-    let vy = dy * speedFactor;
-
-    // Apply max speed cap
-    const mag = Math.sqrt(vx * vx + vy * vy);
-    if (mag > maxSpeed) {
-      vx = (vx / mag) * maxSpeed;
-      vy = (vy / mag) * maxSpeed;
-    }
-
-    playerX += vx;
-    playerY += vy;
-
-    player.style.left = `${playerX}px`;
-    player.style.top = `${playerY}px`;
-
-
-    player.style.left = `${playerX}px`;
-    player.style.top = `${playerY}px`;
-  }
 
 
   // Auto-steering toward pipe (for clicks)
