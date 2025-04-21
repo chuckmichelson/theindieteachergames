@@ -180,13 +180,15 @@ let touchStartX = null;
 let touchStartY = null;
 
 document.addEventListener('touchstart', function (e) {
+  e.preventDefault();
   if (e.touches.length === 1) {
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
   }
-}, { passive: true });
+}, { passive: false });
 
 document.addEventListener('touchend', function (e) {
+  e.preventDefault();
   if (touchStartX === null || touchStartY === null) return;
 
   const touchEndX = e.changedTouches[0].clientX;
@@ -196,31 +198,17 @@ document.addEventListener('touchend', function (e) {
 
   const absDx = Math.abs(dx);
   const absDy = Math.abs(dy);
-
-  // Minimum swipe distance to register
   const minSwipe = 30;
 
   if (absDx > absDy && absDx > minSwipe) {
-    if (dx > 0) {
-      // Swipe right
-      simulateArrowPress('ArrowRight');
-    } else {
-      // Swipe left
-      simulateArrowPress('ArrowLeft');
-    }
+    simulateArrowPress(dx > 0 ? 'ArrowRight' : 'ArrowLeft');
   } else if (absDy > absDx && absDy > minSwipe) {
-    if (dy > 0) {
-      // Swipe down
-      simulateArrowPress('ArrowDown');
-    } else {
-      // Swipe up
-      simulateArrowPress('ArrowUp');
-    }
+    simulateArrowPress(dy > 0 ? 'ArrowDown' : 'ArrowUp');
   }
 
   touchStartX = null;
   touchStartY = null;
-}, { passive: true });
+}, { passive: false });
 
 
 
