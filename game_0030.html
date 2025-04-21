@@ -180,7 +180,10 @@ let touchStartX = null;
 let touchStartY = null;
 
 document.addEventListener('touchstart', function (e) {
-  e.preventDefault();
+  if (gameRunning) {
+    e.preventDefault();
+  }
+
   if (e.touches.length === 1) {
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
@@ -188,7 +191,10 @@ document.addEventListener('touchstart', function (e) {
 }, { passive: false });
 
 document.addEventListener('touchend', function (e) {
-  e.preventDefault();
+  if (gameRunning) {
+    e.preventDefault();
+  }
+
   if (touchStartX === null || touchStartY === null) return;
 
   const touchEndX = e.changedTouches[0].clientX;
@@ -212,6 +218,7 @@ document.addEventListener('touchend', function (e) {
 
 
 
+
 let level = 3;
 let baseTickRate = 350;
 let tickRate = baseTickRate;
@@ -229,6 +236,7 @@ const scorpionStrikeRadius = 2; // Manhattan distance
 const scorpionSpeed = 1;
 
 let webTiles = []; // For fly level
+let gameRunning = false;
 
 
 
@@ -641,6 +649,7 @@ function tick() {
 
 function gameOver() {
   console.log("Ending game!");
+  gameRunning = false;
   clearInterval(gameInterval);
   document.getElementById("summary-again").textContent = `Snake length: ${snake.length - 1}`;
   document.getElementById("turn-in-screen").classList.remove("hidden");
@@ -716,12 +725,13 @@ function updateAvatarPreview() {
 
 function beginGame() {
   console.log("Starting game!");
+  gameRunning = true;
 
 
-if (chosenAvatar !== 'lobster') {
-  shark = null;
-  sharkTimer = 0;
-}
+  if (chosenAvatar !== 'lobster') {
+    shark = null;
+    sharkTimer = 0;
+  }
 
 
 
