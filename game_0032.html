@@ -175,6 +175,11 @@ let touchTarget = null;
 let playerX = window.innerWidth / 2;
 let playerY = window.innerHeight / 2;
 
+let touchStartX = null;
+let touchStartY = null;
+const swipeThreshold = 30; // Minimum distance in px to count as swipe
+
+
 window.addEventListener('touchstart', e => {
   if (e.touches.length > 0) {
     const touch = e.touches[0];
@@ -194,9 +199,58 @@ window.addEventListener('touchend', () => {
 });
 
 
+window.addEventListener('touchstart', (e) => {
+  const touch = e.touches[0];
+  touchStartX = touch.clientX;
+  touchStartY = touch.clientY;
+});
+
+window.addEventListener('touchend', (e) => {
+  if (touchStartX === null || touchStartY === null) return;
+
+  const touch = e.changedTouches[0];
+  const dx = touch.clientX - touchStartX;
+  const dy = touch.clientY - touchStartY;
+
+  if (Math.abs(dx) > Math.abs(dy)) {
+    // Horizontal swipe
+    if (dx > swipeThreshold) {
+      triggerMove('right');
+    } else if (dx < -swipeThreshold) {
+      triggerMove('left');
+    }
+  } else {
+    // Vertical swipe
+    if (dy > swipeThreshold) {
+      triggerMove('down');
+    } else if (dy < -swipeThreshold) {
+      triggerMove('up');
+    }
+  }
+
+  // Reset for next swipe
+  touchStartX = null;
+  touchStartY = null;
+});
+
+
+
 const backgrounds = [
   'game_0032.png' // ocean
 ];
+
+
+
+function triggerMove(dir) {
+  if (dir === 'up') playerY -= 20;
+  if (dir === 'down') playerY += 20;
+  if (dir === 'left') playerX -= 20;
+  if (dir === 'right') playerX += 20;
+
+  player.style.left = `${playerX}px`;
+  player.style.top = `${playerY}px`;
+}
+
 
 
 function pickRandomBackground() {
