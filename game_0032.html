@@ -634,14 +634,28 @@ function gameLoop() {
   if (keys['ArrowRight']) playerX += 3;
 
   if (touchTarget) {
+    const maxSpeed = 8; // pixels per frame, tweak as needed
+    const speedFactor = 0.1;
+
     const dx = touchTarget.x - playerX;
     const dy = touchTarget.y - playerY;
-    const dist = Math.sqrt(dx * dx + dy * dy);
 
-    const speed = 0.1; // smaller = more floaty
+    let vx = dx * speedFactor;
+    let vy = dy * speedFactor;
 
-    playerX += dx * speed;
-    playerY += dy * speed;
+    // Apply max speed cap
+    const mag = Math.sqrt(vx * vx + vy * vy);
+    if (mag > maxSpeed) {
+      vx = (vx / mag) * maxSpeed;
+      vy = (vy / mag) * maxSpeed;
+    }
+
+    playerX += vx;
+    playerY += vy;
+
+    player.style.left = `${playerX}px`;
+    player.style.top = `${playerY}px`;
+
 
     player.style.left = `${playerX}px`;
     player.style.top = `${playerY}px`;
