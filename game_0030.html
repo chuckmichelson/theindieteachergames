@@ -45,35 +45,111 @@
       background-image: url('game_0030.png'); /* or full path to your water GIF */
       background-size: cover;
     }
+    #score-popup {
+      position: absolute;
+      color: white;
+      font-size: 48px;
+      font-weight: bold;
+      pointer-events: none;
+      z-index: 9999;
+      display: none;
+      text-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
+      transform: translate(-50%, -50%);
+    }
+    #scorpion-strike {
+      position: absolute;
+      font-size: 60px;
+      z-index: 1000;
+      pointer-events: none;
+      display: none;
+      transition: transform 0.25s linear;
+    }
+    #start-screen {
+      text-align: center;
+      padding: 2rem;
+      font-family: sans-serif;
+    }
+
+    #avatar-preview {
+      font-size: 80px;
+      margin-bottom: 1rem;
+    }
+
+    .start-options {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .label-col,
+    .input-col {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .label-col label {
+      text-align: right;
+      padding-right: 0.5rem;
+      font-size: 18px; /* increase font size */
+    }
+
+    .input-col select {
+      width: 220px;
+      text-align: left;
+      font-size: 24px; /* increase font size */
+      padding: 0.4rem;
+    }
 
 
   </style>
 </head>
 <body>
   <div id="start-screen">
-    <h1>Number Snake</h1>
-    <h1>🐍</h1>
-    <label>Choose your food:</label>
-    <select id="number-type">
-      <option value="odd">Odd Numbers  </option>
-      <option value="prime">Primes  </option>
-      <option value="square" selected>Perfect Squares  </option>
-      <option value="power2">Powers of Two  </option>
-      <option value="power10">Powers of Ten  </option>
-    </select>
-    <br><br>
-    <label>Choose hunger level:</label>
-    <select id="level-select">
-      <option value="1" selected>🐍 Peckish  </option>
-      <option value="2">🐍🐍 Snacky  </option>
-      <option value="3">🐍🐍🐍 Hungry  </option>
-      <option value="4">🐍🐍🐍🐍 Hangry  </option>
-      <option value="5">🐍🐍🐍🐍🐍 Ravenous  </option>
-      <option value="6">🐍🐍🐍🐍🐍🐍 Insatiable  </option>
-    </select>
-    <br><br>
-    <button onclick="beginGame()">Start Game</button>
+  <h1>Number Snake</h1>
+  <div id="avatar-preview">🦀</div>
+
+  <div class="start-options">
+    <div class="label-col">
+      <label for="avatar-select">Choose your animal:</label>
+      <label for="number-type">Choose your food:</label>
+      <label for="level-select">Choose hunger level:</label>
+    </div>
+
+    <div class="input-col">
+      <select id="avatar-select" onchange="updateAvatarPreview()">
+        <option value="ladybug">🐞 Ladybug</option>
+        <option value="spider">🕷 Spider</option>
+        <option value="crab" selected>🦀 Crab</option>
+        <option value="fly">🪰 Fly</option>
+        <option value="lobster">🦞 Lobster</option>
+        <option value="beetle">🪲 Beetle</option>
+      </select>
+
+      <select id="number-type">
+        <option value="odd">Odd Numbers</option>
+        <option value="prime">Primes</option>
+        <option value="square" selected>Perfect Squares</option>
+        <option value="power2">Powers of Two</option>
+        <option value="power10">Powers of Ten</option>
+      </select>
+
+      <select id="level-select">
+        <option value="1" selected>🐍 Peckish</option>
+        <option value="2">🐍🐍 Snacky</option>
+        <option value="3">🐍🐍🐍 Hungry</option>
+        <option value="4">🐍🐍🐍🐍 Hangry</option>
+        <option value="5">🐍🐍🐍🐍🐍 Ravenous</option>
+        <option value="6">🐍🐍🐍🐍🐍🐍 Insatiable</option>
+      </select>
+    </div>
   </div>
+
+  <button onclick="beginGame()">Start Game</button>
+</div>
+
 
   <h1 id="game-title"></h1>
   <p id="game-instructions"></p>
@@ -96,16 +172,82 @@
   </div>
 
 <script>
+
+
+
+
+let touchStartX = null;
+let touchStartY = null;
+
+document.addEventListener('touchstart', function (e) {
+  if (e.touches.length === 1) {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }
+}, { passive: true });
+
+document.addEventListener('touchend', function (e) {
+  if (touchStartX === null || touchStartY === null) return;
+
+  const touchEndX = e.changedTouches[0].clientX;
+  const touchEndY = e.changedTouches[0].clientY;
+  const dx = touchEndX - touchStartX;
+  const dy = touchEndY - touchStartY;
+
+  const absDx = Math.abs(dx);
+  const absDy = Math.abs(dy);
+
+  // Minimum swipe distance to register
+  const minSwipe = 30;
+
+  if (absDx > absDy && absDx > minSwipe) {
+    if (dx > 0) {
+      // Swipe right
+      simulateArrowPress('ArrowRight');
+    } else {
+      // Swipe left
+      simulateArrowPress('ArrowLeft');
+    }
+  } else if (absDy > absDx && absDy > minSwipe) {
+    if (dy > 0) {
+      // Swipe down
+      simulateArrowPress('ArrowDown');
+    } else {
+      // Swipe up
+      simulateArrowPress('ArrowUp');
+    }
+  }
+
+  touchStartX = null;
+  touchStartY = null;
+}, { passive: true });
+
+
+
 let level = 3;
 let baseTickRate = 350;
 let tickRate = baseTickRate;
 let maxTargets = 4;
 let maxDistractors = 4;
+let villain = null;
+
+let shark = null;
+let sharkTimer = 0;
+const sharkSpeed = 1; // tiles per tick
+const sharkCooldown = 20; // ticks between possible shark spawns
+
+let scorpion = null;
+const scorpionStrikeRadius = 2; // Manhattan distance
+const scorpionSpeed = 1;
+
+let webTiles = []; // For fly level
+
+
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 // Randomize background image from 1–3
-const backgroundOptions = ['game_0030_1.png', 'game_0030_2.png', 'game_0030_3.png'];
+const backgroundOptions = ['game_0030_crab.png'];
 preloadImages(backgroundOptions);
 const chosenBackground = backgroundOptions[Math.floor(Math.random() * backgroundOptions.length)];
 document.getElementById('game').style.backgroundImage = `url('${chosenBackground}')`;
@@ -174,6 +316,8 @@ function spawnTargets() {
 }
 
 
+
+
 function moveSnake(growValue = null) {
   const prevPositions = snake.map(seg => ({ x: seg.x, y: seg.y }));
 
@@ -218,66 +362,166 @@ function isTarget(n) {
 
 
 
+function lungeScorpion(fromX, fromY, toX, toY) {
+  const div = document.getElementById('scorpion-strike');
+
+  // Convert grid coords to screen px
+  const fromLeft = canvas.offsetLeft + fromX * gridSize + gridSize / 2;
+  const fromTop = canvas.offsetTop + fromY * gridSize + gridSize / 2;
+  const toLeft = canvas.offsetLeft + toX * gridSize + gridSize / 2;
+  const toTop = canvas.offsetTop + toY * gridSize + gridSize / 2;
+
+  // Initial position
+  div.style.left = `${fromLeft}px`;
+  div.style.top = `${fromTop}px`;
+  div.style.transform = 'translate(0, 0)';
+  div.style.display = 'block';
+
+  // Hide the static emoji immediately
+  scorpion.visible = false;
+
+  // Force reflow
+  void div.offsetWidth;
+
+  // Animate to the player's position
+  const dx = toLeft - fromLeft;
+  const dy = toTop - fromTop;
+  div.style.transform = `translate(${dx}px, ${dy}px)`;
+
+}
+
+
+
+
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   targets.forEach(t => {
-    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.strokeStyle = avatarThemes[chosenAvatar].lightText
+      ? 'rgba(0,0,0,0.1)'
+      : 'rgba(255,255,255,0.1)';
     ctx.strokeRect(t.x * gridSize, t.y * gridSize, gridSize, gridSize);
 
-    ctx.fillStyle = 'white';
+    ctx.fillStyle = avatarThemes[chosenAvatar].lightText ? 'black' : 'white';
     ctx.font = '18px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(t.value, t.x * gridSize + gridSize / 2, t.y * gridSize + gridSize / 2);
-  });
 
-  snake.forEach(seg => {
-    const cx = seg.x * gridSize + gridSize / 2;
-    const cy = seg.y * gridSize + gridSize / 2;
+    if (villain) {
+      const cx = villain.x * gridSize + gridSize / 2;
+      const cy = villain.y * gridSize + gridSize / 2;
 
-    ctx.font = '22px serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    if (seg.isHead) {
-      ctx.fillText('🐍', cx, cy);
-    } else {
-      ctx.strokeStyle = 'white';
-      ctx.strokeRect(seg.x * gridSize, seg.y * gridSize, gridSize, gridSize);
-      if (seg.value !== null) {
-        ctx.fillStyle = 'white';
-        ctx.font = '18px sans-serif';
-        ctx.fillText(seg.value, cx, cy);
-      }
+      ctx.font = '60px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(villain.emoji, cx, cy);
     }
+
+    if (shark) {
+      const cx = shark.x * gridSize + gridSize / 2;
+      const cy = shark.y * gridSize + gridSize / 2;
+
+      ctx.font = '60px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(shark.emoji, cx, cy);
+    }
+
   });
+
+
+snake.forEach(seg => {
+  const cx = seg.x * gridSize + gridSize / 2;
+  const cy = seg.y * gridSize + gridSize / 2;
+
+  ctx.font = '22px serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  if (seg.isHead) {
+    const emoji = avatarThemes[chosenAvatar].emoji;
+
+    // Save current context
+    ctx.save();
+    ctx.translate(cx, cy);
+
+
+    // Determine rotation angle
+    let angle = 0;
+    if (direction.x === -1)       angle = -Math.PI / 2;
+    else if (direction.x === 1) angle = Math.PI / 2;
+    else if (direction.y === -1)  angle = 0;
+    else if (direction.y === 1) angle = Math.PI;
+
+    ctx.font = '60px serif';  // Bigger emoji for the snake head
+
+
+    ctx.rotate(angle);
+    ctx.fillText(emoji, 0, 0);
+    ctx.restore();
+
+  } else {
+    ctx.fillStyle = avatarThemes[chosenAvatar].color;
+    ctx.fillRect(seg.x * gridSize, seg.y * gridSize, gridSize, gridSize);
+    ctx.strokeStyle = 'white';
+    ctx.strokeRect(seg.x * gridSize, seg.y * gridSize, gridSize, gridSize);
+
+    if (seg.value !== null) {
+      ctx.fillStyle = 'white';
+      ctx.font = '18px sans-serif';
+      ctx.fillText(seg.value, cx, cy);
+    }
+  }
+});
+
+    if (scorpion && scorpion.visible !== false) {
+      const cx = scorpion.x * gridSize + gridSize / 2;
+      const cy = scorpion.y * gridSize + gridSize / 2;
+
+      ctx.font = '60px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(scorpion.emoji, cx, cy);
+    }
+
+    if (webTiles.length > 0) {
+      const center = webTiles[4]; // middle tile of 3x3
+      const cx = center.x * gridSize + gridSize / 2;
+      const cy = center.y * gridSize + gridSize / 2;
+
+      ctx.font = `${gridSize * 6}px serif`; // 3x3 grid size
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🕸️', cx, cy);
+    }
+
+
 
 }
+
+
 
 function tick() {
   const head = snake[0];
   const nextX = head.x + direction.x;
   const nextY = head.y + direction.y;
 
-  // Count current squares and distractors
+  // Replenish missing targets after delay
   const targetsCount = targets.filter(t => isTarget(t.value)).length;
   const distractorsCount = targets.filter(t => !isTarget(t.value)).length;
 
-  // Maybe refill a missing perfect square (after short delay)
-  if (targetsCount < level) {
+  if (targetsCount < maxTargets) {
     ticksSinceLastTarget++;
     if (ticksSinceLastTarget >= maxDelay) {
-      addRandomTarget(true); // true = must be a square
+      addRandomTarget(true);  // true = must be a target
       ticksSinceLastTarget = 0;
     }
   }
 
-  // Occasionally spawn a new distractor to keep things spicy
-  if (Math.random() < 0.1 && distractorsCount < level) {
-    addRandomTarget(false); // false = must be a non-square
+  if (distractorsCount < maxDistractors && Math.random() < 0.05) {
+    addRandomTarget(false);  // false = must be a distractor
   }
-
 
   // Wall collision
   if (nextX < 0 || nextX >= cols || nextY < 0 || nextY >= rows) {
@@ -289,6 +533,20 @@ function tick() {
     return gameOver();
   }
 
+  if (chosenAvatar === 'fly') {
+    const nextX = snake[0].x + direction.x;
+    const nextY = snake[0].y + direction.y;
+
+    if (webTiles.some(tile => tile.x === nextX && tile.y === nextY)) {
+      return gameOver();
+    }
+  }
+
+  // Villian collision
+  if (villain && nextX === villain.x && nextY === villain.y) {
+    return gameOver();
+  }
+
   // Check if we hit a target
   const hitIndex = targets.findIndex(t => t.x === nextX && t.y === nextY);
   let growValue = null;
@@ -297,6 +555,7 @@ function tick() {
     const target = targets[hitIndex];
     if (isTarget(target.value)) {
       growValue = target.value;
+      flashScore('+1', head.x, head.y);  // ← Dopamine hit
       targets.splice(hitIndex, 1);
     } else {
       return gameOver();
@@ -322,10 +581,73 @@ function tick() {
     }
   }
 
+  if (chosenAvatar === 'lobster') {
+    sharkTimer++;
+
+    // Spawn shark if not active
+    if (!shark && sharkTimer > sharkCooldown && Math.random() < 0.5) {
+      const y = Math.floor(Math.random() * rows);
+      const direction = Math.random() < 0.5 ? 1 : -1;
+      shark = {
+        x: direction === 1 ? -1 : cols,
+        y,
+        direction,
+        emoji: '🦑'
+      };
+      sharkTimer = 0;
+    }
+
+    // Move shark if active
+    if (shark) {
+      shark.x += shark.direction * sharkSpeed;
+
+      // Check collision with snake
+      const head = snake[0];
+      if (shark.x === head.x && shark.y === head.y) {
+        return gameOver();
+      }
+
+      // Remove shark if fully off-screen
+      if (shark.x < -1 || shark.x > cols) {
+        shark = null;
+      }
+    }
+  }
+
+
+  if (chosenAvatar === 'beetle' && scorpion && !scorpion.active) {
+    const head = snake[0];
+    const dist = Math.abs(scorpion.x - head.x) + Math.abs(scorpion.y - head.y);
+
+    if (dist <= scorpionStrikeRadius) {
+      scorpion.active = true;
+
+      const nextX = head.x + direction.x;
+      const nextY = head.y + direction.y;
+
+      moveSnake();  // Let the beetle take its step
+
+      const headNow = snake[0];  // Get final position
+      scorpion.x = headNow.x;
+      scorpion.y = headNow.y;
+      scorpion.visible = true;
+
+      draw();  // Show the scorpion landing on top
+
+      return gameOver();  // End the game afterward
+
+    }
+  }
+
+
+
+
   // Move the snake and optionally grow
   moveSnake(growValue);
   draw();
 }
+
+
 
 
 
@@ -344,6 +666,12 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowLeft' && direction.x === 0) direction = { x: -1, y: 0 };
   if (e.key === 'ArrowRight' && direction.x === 0) direction = { x: 1, y: 0 };
 });
+
+function simulateArrowPress(key) {
+  const event = new KeyboardEvent('keydown', { key });
+  document.dispatchEvent(event);
+}
+
 
 const gameInfo = {
   odd: {
@@ -369,23 +697,129 @@ const gameInfo = {
 };
 
 
+const avatarThemes = {
+  crab: {
+    emoji: '🦀',
+    color: '#e07f4f',
+    villain: '🐙',
+    background: 'game_0030_crab.png',
+    lightText: true
+  },
+  lobster:  { emoji: '🦞', background: 'game_0030_lobster.png', color: 'rgba(255, 0, 0, 0.3)' },
+  beetle:   { emoji: '🪲', background: 'game_0030_beetle.png', color: 'rgba(139, 69, 19, 0.3)' },
+  ladybug:  { emoji: '🐞', background: 'game_0030_ladybug.png', color: 'rgba(255, 0, 0, 0.3)' },
+  spider:   { emoji: '🕷', background: 'game_0030_spider.png', color: 'rgba(50, 50, 50, 0.3)' },
+  fly: {
+    emoji: '🪰',
+    color: '#666666',
+    villain: '🕸️',
+    background: 'game_0030_fly.png',
+    lightText: true
+  }
+};
+
+let chosenAvatar = 'crab';
+
+function updateAvatarPreview() {
+  chosenAvatar = document.getElementById('avatar-select').value;
+  document.getElementById('avatar-preview').textContent = avatarThemes[chosenAvatar].emoji;
+}
+
+
 function beginGame() {
   console.log("Starting game!");
+
+
+if (chosenAvatar !== 'lobster') {
+  shark = null;
+  sharkTimer = 0;
+}
+
+
+
   targetType = document.getElementById('number-type').value;
   level = parseInt(document.getElementById('level-select').value);
   configureLevelParams();  // ← call it here
   document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('game').style.display = 'flex';
 
   const info = gameInfo[targetType];
   document.getElementById("game-title").textContent = info.title;
   document.getElementById("game-instructions").textContent = info.instructions;
 
-  document.getElementById('game').style.display = 'block';
+  const avatar = avatarThemes[chosenAvatar];
+  document.getElementById('game').style.backgroundImage = `url('${avatar.background}')`;
 
   spawnTargets();
-  draw();
-  gameInterval = setInterval(tick, tickRate);  // Use dynamic tick rate
-}
+
+  if (chosenAvatar === 'crab') {
+    while (true) {
+      const x = Math.floor(Math.random() * cols);
+      const y = Math.floor(Math.random() * rows);
+      if (
+        !snake.some(seg => seg.x === x && seg.y === y) &&
+        !targets.some(t => t.x === x && t.y === y)
+      ) {
+        villain = { x, y, emoji: '🪼' };
+        break;
+      }
+    }
+  } else {
+    villain = null; // no villain for other avatars yet
+  }
+
+  if (chosenAvatar === 'beetle') {
+    while (true) {
+      const x = Math.floor(Math.random() * cols);
+      const y = Math.floor(Math.random() * rows);
+      if (
+        !snake.some(seg => seg.x === x && seg.y === y) &&
+        !targets.some(t => t.x === x && t.y === y)
+      ) {
+        scorpion = {
+          x,
+          y,
+          emoji: '🦂',
+          active: false
+        };
+        break;
+      }
+    }
+  } else {
+    scorpion = null;
+  }
+
+
+  if (chosenAvatar === 'fly') {
+    while (true) {
+      const cx = Math.floor(Math.random() * (cols - 2)) + 1;
+      const cy = Math.floor(Math.random() * (rows - 2)) + 1;
+
+      // Ensure it doesn't collide with snake or targets
+      const overlapping = snake.some(seg =>
+        Math.abs(seg.x - cx) <= 1 && Math.abs(seg.y - cy) <= 1
+      ) || targets.some(t =>
+        Math.abs(t.x - cx) <= 1 && Math.abs(t.y - cy) <= 1
+      );
+
+      if (!overlapping) {
+        webTiles = [];
+        for (let dx = -1; dx <= 1; dx++) {
+          for (let dy = -1; dy <= 1; dy++) {
+            webTiles.push({ x: cx + dx, y: cy + dy });
+          }
+        }
+        break;
+      }
+    }
+  } else {
+    webTiles = [];
+  }
+
+    draw();
+
+    gameInterval = setInterval(tick, tickRate);  // Use dynamic tick rate
+  }
 
 
 function handleSubmission() {
@@ -457,9 +891,35 @@ function configureLevelParams() {
   maxDistractors = config.distractors;
 }
 
+function flashScore(text, x, y) {
+  const div = document.getElementById('score-popup');
+  div.textContent = text;
+  div.style.left = `${canvas.offsetLeft + x * gridSize + gridSize / 2}px`;
+  div.style.top = `${canvas.offsetTop + y * gridSize}px`;
+  div.style.display = 'block';
+  div.style.opacity = 1;
+
+  let frame = 0;
+  const anim = setInterval(() => {
+    frame++;
+    div.style.top = `${canvas.offsetTop + y * gridSize - frame * 1.5}px`;
+    div.style.opacity = 1 - frame / 60;
+    if (frame >= 60) {
+      clearInterval(anim);
+      div.style.display = 'none';
+    }
+  }, 16);
+}
+
 
 
 </script>
+
+
+<div id="score-popup">+3</div>
+<div id="scorpion-strike">🦂</div>
+
+
 
 </body>
 </html>
