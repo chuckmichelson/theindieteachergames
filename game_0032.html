@@ -185,24 +185,39 @@ window.addEventListener('touchstart', (e) => {
   touchStartY = touch.clientY;
 });
 
+const swipeThreshold = 20;
+const swipeMaxSpeed = 25;
+
 window.addEventListener('touchend', (e) => {
   if (touchStartX === null || touchStartY === null) return;
 
   const touch = e.changedTouches[0];
-  const dx = touch.clientX - touchStartX;
-  const dy = touch.clientY - touchStartY;
-
-  if (Math.abs(dx) > Math.abs(dy)) {
-    if (dx > swipeThreshold) triggerMove('right');
-    else if (dx < -swipeThreshold) triggerMove('left');
-  } else {
-    if (dy > swipeThreshold) triggerMove('down');
-    else if (dy < -swipeThreshold) triggerMove('up');
-  }
+  let dx = touch.clientX - touchStartX;
+  let dy = touch.clientY - touchStartY;
 
   touchStartX = null;
   touchStartY = null;
+
+  const distance = Math.sqrt(dx * dx + dy * dy);
+
+  // Ignore small swipes
+  if (distance < swipeThreshold) return;
+
+  // Cap magnitude
+  if (distance > swipeMaxSpeed) {
+    const scale = swipeMaxSpeed / distance;
+    dx *= scale;
+    dy *= scale;
+  }
+
+  // Apply movement
+  playerX += dx;
+  playerY += dy;
+
+  player.style.left = `${playerX}px`;
+  player.style.top = `${playerY}px`;
 });
+
 
 
 const backgrounds = [
