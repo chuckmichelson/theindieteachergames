@@ -58,6 +58,13 @@
       font-weight: bold;
       white-space: nowrap;
     }
+    #player {
+      position: absolute; /* or fixed */
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%); /* Optional for centering visually */
+    }
+
     .pipe {
       position: absolute;
       width: 120px;
@@ -171,9 +178,20 @@
   <script>
 
 
+window.addEventListener('load', () => {
+  const player = document.getElementById('player');
+  
+  // Grab computed position or fallback to center
+  const rect = player.getBoundingClientRect();
+  playerX = rect.left;
+  playerY = rect.top;
+
+  player.style.left = `${playerX}px`;
+  player.style.top = `${playerY}px`;
+});
+
+
 let touchTarget = null;
-let playerX = window.innerWidth / 2;
-let playerY = window.innerHeight / 2;
 
 let touchStartX = null;
 let touchStartY = null;
