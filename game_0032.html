@@ -175,8 +175,6 @@ let touchTarget = null;
 let playerX = window.innerWidth / 2;
 let playerY = window.innerHeight / 2;
 
-let touchStartX = null;
-let touchStartY = null;
 const swipeThreshold = 30; // Minimum distance in px to count as swipe
 
 
@@ -187,6 +185,8 @@ window.addEventListener('touchmove', e => {
     touchTarget = { x: touch.clientX, y: touch.clientY };
   }
 });
+let touchStartX = null;
+let touchStartY = null;
 
 window.addEventListener('touchstart', e => {
   if (e.touches.length > 0) {
@@ -198,16 +198,16 @@ window.addEventListener('touchstart', e => {
 
 window.addEventListener('touchend', e => {
   if (touchStartX === null || touchStartY === null) return;
-  const touch = e.changedTouches[0];
 
+  const touch = e.changedTouches[0];
   const dx = touch.clientX - touchStartX;
   const dy = touch.clientY - touchStartY;
   const magnitude = Math.sqrt(dx * dx + dy * dy);
 
-  const minSwipeDistance = 30; // Ignore short taps or holds
-  const maxSpeed = 40; // pixels per swipe
+  const minSwipeDistance = 20;
+  const maxSpeed = 40;
+
   if (magnitude > minSwipeDistance) {
-    // Normalize vector and scale to maxSpeed
     const scale = Math.min(1, maxSpeed / magnitude);
     const vx = dx * scale;
     const vy = dy * scale;
@@ -219,11 +219,10 @@ window.addEventListener('touchend', e => {
     player.style.top = `${playerY}px`;
   }
 
-  // Reset
+  // Reset swipe origin
   touchStartX = null;
   touchStartY = null;
 });
-
 
 
 
