@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Function Perfection</title>
+  <script src="end-screen.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;700&display=swap">
+  <link rel="stylesheet" href="end-screen.css">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #001f3f;
+      font-family: 'Roboto', sans-serif;
+    }
+    #start-screen, #turn-in-screen {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.85);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+    }
+    #start-screen input[type="number"], #start-screen label {
+      font-size: 1.2em;
+      margin: 10px;
+    }
+    #start-screen button {
+      padding: 10px 20px;
+      font-size: 1.2em;
+      margin-top: 20px;
+    }
+    #game {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-size: cover;
+    }
+    .player {
+      position: absolute;
+      min-width: 60px;
+      height: 40px;
+      padding: 0 10px;
+      background: rgba(255,255,255,0.7);
+      border: 2px solid #333;
+      border-radius: 5px;
+      text-align: center;
+      line-height: 40px;
+      font-size: 20px;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+    .pipe {
+      position: absolute;
+      width: 120px;
+      height: 40px;
+      background: rgba(0, 200, 255, 0.4);
+      border: 2px solid #0ff;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .perfect {
+      animation: sparkle 1s ease-in-out infinite alternate;
+    }
+    @keyframes sparkle {
+      0% { box-shadow: 0 0 5px #fff; }
+      100% { box-shadow: 0 0 20px #0ff; background: rgba(255, 255, 255, 0.9); }
+    }
+    #target-display {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0, 200, 255, 0.3);
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 1.2em;
+      color: white;
+      z-index: 5;
+    }
+    #target-display {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(255, 255, 255, 0.85);
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 1.6em;
+      font-weight: bold;
+      color: #000;
+      z-index: 5;
+      border: 2px solid black;
+    }
+    .glow {
+      box-shadow: 0 0 20px 10px #0ff, 0 0 40px 20px white;
+      border: 3px solid white;
+      background: white;
+      color: black;
+    }
+    .glow {
+      animation: halo-pulse 1.5s ease-out forwards, sparkle 1s ease-in-out infinite alternate;
+    }
+
+    @keyframes halo-pulse {
+      from { transform: scale(1.0); opacity: 0.8; }
+      to { transform: scale(1.1); opacity: 1; }
+    }
+    button {
+      font-size: 24px;
+      padding: 12px 24px;
+      margin: 10px 0;
+      cursor: pointer;
+    }
+    .hidden {
+      display: none;
+    }
+@keyframes bounce-off {
+  0% { transform: translateY(0); }
+  20% { transform: translateY(-20px) scale(1.05); }
+  40% { transform: translateY(0); }
+  60% { transform: translateY(-10px); }
+  100% { transform: translateY(0); }
+}
+
+.pipe.bounce {
+  animation: bounce-off 0.6s ease;
+  box-shadow: 0 0 8px 4px rgba(255, 100, 100, 0.7);
+}
+
+  </style>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
+</head>
+<body>
+  <div id="start-screen">
+    <h1>Function Perfection</h1>
+    <p>Float through the functions to achieve your perfect number.</p>
+    <p>Your perfect number is...</p>
+    <div id="target-spinner" style="font-size: 4em; margin: 20px;">???</div>
+    <button id="start-button" onclick="startGame()" style="display: hidden;">Begin</button>
+  </div>
+  <div id="game" style="display: none;">
+    <div id="player" class="player">0</div>
+    <div id="target-display"></div>
+  </div>
+  <div id="turn-in-screen" style="display: none;">
+    <h2>Perfection Achieved ✨</h2>
+    <p>Enter your initials:</p>
+    <div id="initials-boxes">
+      <input class="initial-box" id="initial-0" maxlength="1" type="text"/>
+      <input class="initial-box" id="initial-1" maxlength="1" type="text"/>
+      <input class="initial-box" id="initial-2" maxlength="1" type="text"/>
+    </div>
+    <textarea id="student-comments" placeholder="Comments (optional)"></textarea>
+    <button class="submit-btn" onclick="handleSubmission()">Send to Chuck</button>
+    <p id="submit-status"></p>
+    <button id="play-again-btn" onclick="location.reload()">Play Again</button>
+  </div>
+
+  <script>
+
+
+let touchTarget = null;
+let playerX = window.innerWidth / 2;
+let playerY = window.innerHeight / 2;
+
+window.addEventListener('touchstart', e => {
+  if (e.touches.length > 0) {
+    const touch = e.touches[0];
+    touchTarget = { x: touch.clientX, y: touch.clientY };
+  }
+});
+
+window.addEventListener('touchmove', e => {
+  if (e.touches.length > 0) {
+    const touch = e.touches[0];
+    touchTarget = { x: touch.clientX, y: touch.clientY };
+  }
+});
+
+window.addEventListener('touchend', () => {
+  touchTarget = null;
+});
+
+
+const backgrounds = [
+  'game_0032.png' // ocean
+];
+
+
+function pickRandomBackground() {
+  const index = Math.floor(Math.random() * backgrounds.length);
+  return backgrounds[index];
+}
+
+  const termGenerators = [
+  {
+    name: "linear",
+    weight: 50,
+    fn: () => {
+      const useFraction = Math.random() < 0.4; // 40% chance for rational a
+
+      let a, aStr;
+  if (useFraction) {
+    const num = Math.round(randomNormal(0, 5));
+    let den;
+    do {
+      den = Math.round(Math.abs(randomNormal(1, 3))); // avoid 0, keep den positive
+    } while (den === 0);
+
+    if (num === 0) return termGenerators.find(g => g.name === "linear").fn(); // fallback
+    a = num / den;
+    aStr = `\\frac{${num}x}{${den}}`;  // direct LaTeX output, if desired
+  }
+  else {
+  a = Math.round(randomNormal(0, 3));
+
+  if (a === 0) return termGenerators.find(g => g.name === "linear").fn(); // fallback
+
+  aStr = (a === 1) ? 'x' : (a === -1 ? '-x' : `${a}x`);
+}
+
+
+    const b = Math.random() < 0.2 ? 0 : Math.round(randomNormal(0, 12));
+    const bStr = b === 0 ? '' : (b > 0 ? `+${b}` : b);
+
+    return {
+      expr: `${aStr}${bStr}`,
+      func: x => a * x + b
+    };
+  }
+}
+,
+
+  { name: "quadratic", weight: 1, fn: () => {
+      return { expr: `x^2`, func: x => x * x };
+  }},
+{
+  name: "poly2",
+  weight: 10,
+  fn: () => {
+    const a = randInt(-3, 3);
+    const b = randInt(-5, 5);
+    const c = randInt(-5, 5);
+
+    if (a === 0 && b === 0) return termGenerators.find(g => g.name === "linear").fn();
+
+    let expr = '';
+    if (a !== 0) expr += `${a === 1 ? '' : a === -1 ? '-' : a}x^2`;
+    if (b !== 0) expr += `${b > 0 ? '+' : ''}${b === 1 ? '' : b === -1 ? '-' : b}x`;
+    if (c !== 0) expr += `${c > 0 ? '+' : ''}${c}`;
+
+    return {
+      expr,
+      func: x => a * x * x + b * x + c
+    };
+  }
+},
+  { name: "rational", weight: 5, fn: () => {
+      const shift = randInt(0, 5);
+      return {
+        expr: `1/(x${-shift >= 0 ? '+' : ''}${-shift})`,
+        func: x => 1 / (x - shift)
+      };
+  }},
+{
+  name: "sqrt",
+  weight: 3,
+  fn: () => {
+    const shift = randInt(-10, 10);
+    return {
+      expr: `sqrt(x${shift >= 0 ? '+' : ''}${shift})`,
+      func: x => Math.sqrt(x + shift)
+    };
+  }
+},
+  { name: "abs", weight: 2, fn: () => {
+      const shift = randInt(-3, 3);
+      return {
+        expr: `abs(x${shift >= 0 ? '+' : ''}${shift})`,
+        func: x => Math.abs(x + shift)
+      };
+  }},
+  { name: "floor", weight: 3, fn: () => {
+      const shift = randDecimal(0, 3);
+      return {
+        expr: `floor(x+${shift})`,
+        func: x => Math.floor(x + shift)
+      };
+  }},
+  { name: "ceil", weight: 3, fn: () => {
+      const shift = randDecimal(-3, 0);
+      return {
+        expr: `ceil(x${shift >= 0 ? '+' : ''}${shift})`,
+        func: x => Math.ceil(x + shift)
+      };
+  }},
+];
+
+
+    let targetValue = null;
+
+    function randomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function pickTargetValue() {
+      return Math.floor(randomNormal(0, 100));
+    }
+
+
+// generateExpression.js
+
+function randInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function randDecimal(min, max) {
+  return +(Math.random() * (max - min) + min).toFixed(3);
+}
+
+function formatReal(num) {
+  const isInt = Math.abs(num - Math.round(num)) < 1e-8;
+  return isInt
+    ? Math.round(num).toLocaleString()
+    : num.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+}
+
+function exprToLatex(expr) {
+  const original = expr;
+
+  const transformed = expr
+    .replace(/sqrt\(([^)]+)\)/g, (_, inner) => `\\sqrt{${inner}}`)
+    .replace(/abs\(([^)]+)\)/g, (_, inner) => `\\lvert ${inner} \\rvert`)
+    .replace(/floor\(([^)]+)\)/g, (_, inner) => `\\lfloor ${inner} \\rfloor`)
+    .replace(/ceil\(([^)]+)\)/g, (_, inner) => `\\lceil ${inner} \\rceil`)
+    .replace(/([\-]?\d+)x\/(\d+)/g, (_, a, b) => `\\frac{${a}x}{${b}}`)
+    .replace(/1\/\(x([-+]\d+)\)/g, (_, shift) => `\\frac{1}{x${shift}}`)
+    .replace(/\*/g, '\\cdot ')
+    .replace(/([0-9])x/g, '$1x');
+
+  console.log("exprToLatex input:", original);
+  console.log("exprToLatex output:", transformed);
+  return transformed;
+}
+
+
+
+
+function generateTerm() {
+  const totalWeight = termGenerators.reduce((sum, g) => sum + g.weight, 0);
+  const r = Math.random() * totalWeight;
+  let sum = 0;
+
+  for (let g of termGenerators) {
+    sum += g.weight;
+    if (r < sum) return g.fn();
+  }
+
+  return termGenerators[0].fn(); // fallback
+}
+
+
+function generateExpression(difficulty = 1) {
+  const numTerms = difficulty < 2 ? 1 : randInt(1, 2 + difficulty); // up to 3 terms at high levels
+
+  const terms = Array.from({ length: numTerms }, () => generateTerm());
+  const expr = terms.map(t => t.expr).join(' + ');
+  const func = x => terms.reduce((sum, t) => sum + t.func(x), 0);
+
+  return { expr, func };
+}
+
+
+    function handleSubmission() {
+      const initials = [...Array(3)].map((_, i) => document.getElementById(`initial-${i}`).value.toUpperCase()).join('');
+      const comments = document.getElementById("student-comments").value;
+
+      const payload = {
+        game: "game_0032",
+        settings: `${targetValue}`,
+        score: `✨`,
+        elapsed: "N/A",
+        initials,
+        comments
+      };
+
+      submitResults(payload);
+    }
+
+
+    function revealTargetNumber(target) {
+      const spinner = document.getElementById('target-spinner');
+      const button = document.getElementById('start-button');
+
+      let count = 0;
+      const interval = setInterval(() => {
+        spinner.innerHTML = Math.floor(Math.random() * 1000);
+        count++;
+        if (count > 30) {
+          clearInterval(interval);
+          spinner.innerHTML = target;
+          button.style.display = 'inline-block';
+        }
+      }, 50);
+    }
+
+
+function startGame() {
+  const game = document.getElementById('game');
+
+  if (game.dataset.ready !== 'true') {
+    alert("Hang on! The background image is still loading.");
+    return;
+  }
+
+  document.getElementById('start-screen').style.display = 'none';
+  game.style.display = 'block';
+  initializeGame();
+}
+
+
+
+function randomNormal(mu = 0, sigma = 1) {
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return mu + sigma * Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+}
+
+
+    function initializeGame() {
+      const game = document.getElementById('game');
+      const player = document.getElementById('player');
+      const targetBox = document.getElementById('target-display');
+
+      revealTargetNumber(targetValue);
+
+      MathJax.typesetPromise([targetBox]);
+
+
+      let playerX = 100;
+      let playerY = 200;
+      let value = 0;
+      targetBox.innerHTML = `Perfect Number: ${targetValue}`;
+
+      let targetAchieved = false;
+      let targetY = null;
+      let autoSteering = false;
+      const keys = {};
+      document.addEventListener('keydown', e => keys[e.key] = true);
+      document.addEventListener('keyup', e => keys[e.key] = false);
+
+      const pipes = [];
+
+      function weightedDegree(maxDegree) {
+        const weights = [];
+        for (let i = 0; i <= maxDegree; i++) {
+          weights.push((maxDegree - i + 1) ** 2); // quadratic bias toward lower degrees
+        }
+        const total = weights.reduce((a, b) => a + b, 0);
+        const rnd = Math.random() * total;
+        let sum = 0;
+        for (let i = 0; i <= maxDegree; i++) {
+          sum += weights[i];
+          if (rnd < sum) return i;
+        }
+        return maxDegree;
+      }
+
+
+      function weightedDegreeExcludingZero(maxDegree) {
+        const weights = [];
+        for (let i = 1; i <= maxDegree; i++) {
+          weights.push(1 / Math.pow(i, 1.8)); // sharper than inverse-square
+        }
+        const total = weights.reduce((a, b) => a + b, 0);
+        const r = Math.random() * total;
+        let sum = 0;
+        for (let i = 1; i <= maxDegree; i++) {
+          sum += weights[i - 1];
+          if (r < sum) return i;
+        }
+        return maxDegree;
+      }
+
+
+      function sampleSmallCoefficient() {
+        const weights = [1, 0.6, 0.3, 0.15, 0.07, 0.03]; // ±1 to ±6
+        const total = weights.reduce((a, b) => a + b, 0);
+        const r = Math.random() * total;
+        let sum = 0;
+        for (let i = 1; i <= weights.length; i++) {
+          sum += weights[i - 1];
+          if (r < sum) {
+            return Math.random() < 0.5 ? -i : i;
+          }
+        }
+        return 0;
+      }
+
+
+
+      function sampleConstant(targetValue) {
+        // Mix of small constants and target-centered values
+        return Math.random() < 0.4
+          ? sampleSmallCoefficient()
+          : Math.round(randomNormal(0, targetValue / 10));
+      }
+
+      function degreeInclusionProbability(degree, maxDegree) {
+        // Leading term always included
+        if (degree === maxDegree) return 1.0;
+
+        // Drop off: x^{d-1} is ~70%, x^{d-2} ~50%, ..., x^0 ~30%
+        const dropoff = 0.4;
+        const base = 0.3;
+        const delta = maxDegree - degree;
+        return Math.max(base, 1 - delta * dropoff);
+      }
+
+
+      function sampleNudgeConstant() {
+        const options = [-5, -3, -2, -1, 1, 2, 3, 5];
+        return options[Math.floor(Math.random() * options.length)];
+      }
+
+
+
+      function formatReal(num) {
+        const isInt = Math.abs(num - Math.round(num)) < 1e-8;
+        return isInt
+          ? Math.round(num).toLocaleString()
+          : num.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+      }
+
+
+      function createPipe(x, y, targetValue) {
+        const polyObj = generatePolynomial(targetValue, maxDegree);
+        const latexExpr = renderPolynomialToLatex(polyObj);
+
+        const pipe = document.createElement('div');
+        pipe.className = 'pipe';
+        pipe.style.left = `${x}px`;
+        pipe.style.top = `${y}px`;
+
+        pipe.dataset.exprObj = JSON.stringify(polyObj);
+        pipe.style.width = `${estimatePipeWidth(latexExpr)}px`;
+        pipe.innerHTML = `\\(${latexExpr}\\)`;
+
+        pipe.addEventListener('click', () => {
+          const pipeRect = pipe.getBoundingClientRect();
+          const playerRect = player.getBoundingClientRect();
+          const distX = pipeRect.left - playerRect.left;
+          if (distX > 60) {
+            targetY = parseFloat(pipe.style.top);
+            autoSteering = true;
+          }
+        });
+
+        game.appendChild(pipe);
+        MathJax.typesetPromise([pipe]);
+        pipes.push(pipe);
+      }
+
+
+      function estimatePipeWidth(expr) {
+        // rough estimate: base width + extra per operator/term
+        const base = 50;
+        const terms = expr.split(/(?=[+-])/); // split on + or - but keep the sign
+        return base + terms.length * 40;
+      }
+
+      for (let i = 0; i < 5; i++) {
+        createExpressionPipe(300 + i * 250, Math.random() * (window.innerHeight - 50), targetValue);
+      }
+
+      setInterval(() => {
+        const x = window.innerWidth + 100;
+        const y = Math.random() * (window.innerHeight - 50);
+        createExpressionPipe(x, y, value);;
+      }, 2000);
+
+
+
+      function createExpressionPipe(x, y, currentValue, difficulty = 1) {
+        const { expr, func } = generateExpression(difficulty);
+        const latex = exprToLatex(expr);
+
+        const pipe = document.createElement('div');
+        pipe.className = 'pipe';
+        pipe.style.left = `${x}px`;
+        pipe.style.top = `${y}px`;
+        pipe.dataset.expr = expr;
+        pipe.dataset.funcStr = func.toString(); // optional for debugging
+        pipe.dataset.difficulty = difficulty;
+
+        pipe.innerHTML = `\\(${latex}\\)`;
+        pipe.style.width = `${estimatePipeWidth(expr)}px`;
+
+        pipe.addEventListener('click', () => {
+          const pipeRect = pipe.getBoundingClientRect();
+          const playerRect = player.getBoundingClientRect();
+          const distX = pipeRect.left - playerRect.left;
+          if (distX > 60) {
+            targetY = parseFloat(pipe.style.top);
+            autoSteering = true;
+          }
+        });
+
+        game.appendChild(pipe);
+        MathJax.typesetPromise([pipe]);
+        pipes.push({ element: pipe, func });
+      }
+
+
+
+function gameLoop() {
+  // Handle movement
+  if (keys['ArrowUp']) playerY -= 3;
+  if (keys['ArrowDown']) playerY += 3;
+  if (keys['ArrowLeft']) playerX -= 3;
+  if (keys['ArrowRight']) playerX += 3;
+
+  if (touchTarget) {
+    const dx = touchTarget.x - playerX;
+    const dy = touchTarget.y - playerY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    const speed = 0.1; // smaller = more floaty
+
+    playerX += dx * speed;
+    playerY += dy * speed;
+
+    player.style.left = `${playerX}px`;
+    player.style.top = `${playerY}px`;
+  }
+
+
+  // Auto-steering toward pipe (for clicks)
+  if (autoSteering && targetY !== null) {
+    const dy = targetY - playerY;
+    if (Math.abs(dy) > 2) {
+      playerY += Math.sign(dy) * 2.5;
+    } else {
+      autoSteering = false;
+      targetY = null;
+    }
+  }
+
+  // Constrain movement
+  playerY = Math.max(0, Math.min(window.innerHeight - 40, playerY));
+  const playerWidth = player.offsetWidth;
+  playerX = Math.max(0, Math.min(window.innerWidth - playerWidth, playerX));
+
+  // Move pipes leftward
+  pipes.forEach(pipeObj => {
+    const pipe = pipeObj.element;
+    let left = parseFloat(pipe.style.left);
+    pipe.style.left = `${left - 1}px`;
+  });
+
+  // Collision detection
+  pipes.forEach(pipeObj => {
+    const pipe = pipeObj.element;
+    const rect1 = player.getBoundingClientRect();
+    const rect2 = pipe.getBoundingClientRect();
+
+    if (
+      rect1.left < rect2.right &&
+      rect1.right > rect2.left &&
+      rect1.top < rect2.bottom &&
+      rect1.bottom > rect2.top &&
+      !pipe.dataset.hit
+    ) {
+      pipe.dataset.hit = 'true';
+
+      if (targetAchieved) return;
+
+
+      try {
+        let result = pipeObj.func(value);
+
+        if (!isFinite(result) || isNaN(result)) throw Error("bad math");
+
+        value = result;
+        player.innerHTML = formatReal(value);
+
+        if (!targetAchieved && value === targetValue) {
+          player.classList.add('perfect');
+          targetAchieved = true;
+
+          // Lock movement
+          keys['ArrowUp'] = keys['ArrowDown'] = keys['ArrowLeft'] = keys['ArrowRight'] = false;
+
+          // Animate to center
+          const game = document.getElementById('game');
+          const centerX = game.clientWidth / 2 - player.offsetWidth / 2;
+          const centerY = game.clientHeight / 2 - player.offsetHeight / 2;
+
+          player.style.transition = 'all 1.5s ease-in-out';
+          player.style.left = `${centerX}px`;
+          player.style.top = `${centerY}px`;
+          player.style.zIndex = 20;
+          player.classList.add('glow');
+
+          setTimeout(() => {
+            document.getElementById('turn-in-screen').style.display = 'flex';
+            document.getElementById("initial-0").focus();
+          }, 1800);
+        }
+      } catch (e) {
+        console.warn("Invalid math operation — pipe will bounce");
+
+        pipe.classList.add('bounce');
+        setTimeout(() => pipe.classList.remove('bounce'), 600);
+      }
+    }
+  });
+
+  player.style.left = `${playerX}px`;
+  player.style.top = `${playerY}px`;
+  requestAnimationFrame(gameLoop);
+}
+
+
+
+
+
+      gameLoop();
+    }
+
+    targetValue = pickTargetValue();
+    window.addEventListener('load', () => {
+      const game = document.getElementById('game');
+      const bgUrl = pickRandomBackground();
+      const img = new Image();
+      img.src = bgUrl;
+
+      img.onload = () => {
+        game.style.backgroundImage = `url('${bgUrl}')`;
+        game.style.backgroundPosition = 'center center';
+        game.style.backgroundRepeat = 'no-repeat';
+        game.style.backgroundSize = 'cover';
+        game.style.backgroundAttachment = 'fixed';
+        game.dataset.ready = 'true'; // tag it as ready
+        console.log("Background fully loaded:", bgUrl);
+      };
+    });
+
+
+    revealTargetNumber(targetValue);
+
+  </script>
+</body>
+</html>
