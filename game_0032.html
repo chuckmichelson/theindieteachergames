@@ -179,26 +179,6 @@ let touchStartX = null;
 let touchStartY = null;
 const swipeThreshold = 30; // Minimum distance in px to count as swipe
 
-
-window.addEventListener('touchstart', e => {
-  if (e.touches.length > 0) {
-    const touch = e.touches[0];
-    touchTarget = { x: touch.clientX, y: touch.clientY };
-  }
-});
-
-window.addEventListener('touchmove', e => {
-  if (e.touches.length > 0) {
-    const touch = e.touches[0];
-    touchTarget = { x: touch.clientX, y: touch.clientY };
-  }
-});
-
-window.addEventListener('touchend', () => {
-  touchTarget = null;
-});
-
-
 window.addEventListener('touchstart', (e) => {
   const touch = e.touches[0];
   touchStartX = touch.clientX;
@@ -213,26 +193,16 @@ window.addEventListener('touchend', (e) => {
   const dy = touch.clientY - touchStartY;
 
   if (Math.abs(dx) > Math.abs(dy)) {
-    // Horizontal swipe
-    if (dx > swipeThreshold) {
-      triggerMove('right');
-    } else if (dx < -swipeThreshold) {
-      triggerMove('left');
-    }
+    if (dx > swipeThreshold) triggerMove('right');
+    else if (dx < -swipeThreshold) triggerMove('left');
   } else {
-    // Vertical swipe
-    if (dy > swipeThreshold) {
-      triggerMove('down');
-    } else if (dy < -swipeThreshold) {
-      triggerMove('up');
-    }
+    if (dy > swipeThreshold) triggerMove('down');
+    else if (dy < -swipeThreshold) triggerMove('up');
   }
 
-  // Reset for next swipe
   touchStartX = null;
   touchStartY = null;
 });
-
 
 
 const backgrounds = [
