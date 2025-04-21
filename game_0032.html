@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="favicon.png">
+  <link rel="shortcut icon" href="favicon.ico">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Function Perfection</title>
@@ -170,12 +173,13 @@
 
   <script>
 
-let gameRunning = false;
-
 
 let touchTarget = null;
 let playerX = window.innerWidth / 2;
 let playerY = window.innerHeight / 2;
+let heldKey = null;
+let keyHoldInterval = null;
+let gameRunning = false; // if not added yet
 
 const swipeThreshold = 30; // Minimum distance in px to count as swipe
 
@@ -755,6 +759,74 @@ function gameLoop() {
       const event = new KeyboardEvent('keydown', { key });
       document.dispatchEvent(event);
 }
+
+
+window.addEventListener('touchstart', e => {
+  if (!gameRunning) return;
+  if (e.touches.length !== 1) return;
+
+  const startX = e.touches[0].clientX;
+  const startY = e.touches[0].clientY;
+
+  const handleTouchMove = moveEvent => {
+    const dx = moveEvent.touches[0].clientX - startX;
+    const dy = moveEvent.touches[0].clientY - startY;
+
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+    const minSwipe = 30;
+
+    let key = null;
+
+    if (absDx > absDy && absDx > minSwipe) {
+      key = dx > 0 ? 'ArrowRight' : 'ArrowLeft';
+    } else if (absDy > absDx && absDy > minSwipe) {
+      key = dy > 0 ? 'ArrowDown' : 'ArrowUp';
+    }
+
+    if (key && key !== heldKey) {
+      simulateKeyDown(key);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    simulateKeyUp();
+    window.removeEventListener('touchmove', handleTouchMove);
+    window.removeEventListener('touchend', handleTouchEnd);
+  };
+
+  window.addEventListener('touchmove', handleTouchMove, { passive: false });
+  window.addEventListener('touchend', handleTouchEnd, { passive: false });
+}, { passive: false });
+
+
+
+function simulateKeyDown(key) {
+  simulateKeyUp(); // cancel any prior held key
+
+  heldKey = key;
+  const event = new KeyboardEvent('keydown', { key });
+  document.dispatchEvent(event);
+
+  keyHoldInterval = setInterval(() => {
+    const repeatEvent = new KeyboardEvent('keydown', { key });
+    document.dispatchEvent(repeatEvent);
+  }, 100);
+}
+
+function simulateKeyUp() {
+  if (heldKey) {
+    const event = new KeyboardEvent('keyup', { key: heldKey });
+    document.dispatchEvent(event);
+    heldKey = null;
+  }
+
+  if (keyHoldInterval) {
+    clearInterval(keyHoldInterval);
+    keyHoldInterval = null;
+  }
+}
+
 
 
   </script>
