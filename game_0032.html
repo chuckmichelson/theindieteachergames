@@ -170,56 +170,14 @@
 
   <script>
 
+let gameRunning = false;
+
 
 let touchTarget = null;
 let playerX = window.innerWidth / 2;
 let playerY = window.innerHeight / 2;
 
 const swipeThreshold = 30; // Minimum distance in px to count as swipe
-
-
-
-let touchStartX = null;
-let touchStartY = null;
-
-window.addEventListener('touchstart', e => {
-  if (e.touches.length > 0) {
-    const touch = e.touches[0];
-    touchStartX = touch.clientX;
-    touchStartY = touch.clientY;
-  }
-});
-
-window.addEventListener('touchend', e => {
-  if (touchStartX === null || touchStartY === null) return;
-
-  const touch = e.changedTouches[0];
-  const dx = touch.clientX - touchStartX;
-  const dy = touch.clientY - touchStartY;
-  const magnitude = Math.sqrt(dx * dx + dy * dy);
-
-  const minSwipeDistance = 20;
-  const maxSpeed = 40;
-
-  if (magnitude > minSwipeDistance) {
-    const scale = Math.min(1, maxSpeed / magnitude);
-    const vx = dx * scale;
-    const vy = dy * scale;
-
-    playerX += vx;
-    playerY += vy;
-
-    player.style.left = `${playerX}px`;
-    player.style.top = `${playerY}px`;
-  }
-
-  // Reset swipe origin
-  touchStartX = null;
-  touchStartY = null;
-});
-
-
-
 
 
 const backgrounds = [
@@ -458,6 +416,9 @@ function generateExpression(difficulty = 1) {
 
 
 function startGame() {
+
+  gameRunning = true;
+
   const game = document.getElementById('game');
 
   if (game.dataset.ready !== 'true') {
@@ -743,6 +704,7 @@ function gameLoop() {
           player.classList.add('glow');
 
           setTimeout(() => {
+            gameRunning = false;
             document.getElementById('turn-in-screen').style.display = 'flex';
             document.getElementById("initial-0").focus();
           }, 1800);
@@ -788,6 +750,12 @@ function gameLoop() {
 
 
     revealTargetNumber(targetValue);
+
+    function simulateArrowPress(key) {
+      const event = new KeyboardEvent('keydown', { key });
+      document.dispatchEvent(event);
+}
+
 
   </script>
 </body>
