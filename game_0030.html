@@ -102,6 +102,20 @@
       font-size: 24px; /* increase font size */
       padding: 0.4rem;
     }
+    #play-again-btn,
+    #new-settings-btn,
+    #show-submit-btn {
+      all: unset;
+      font-size: 20px;
+      padding: 10px 20px;
+      background-color: #444;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
 
 
   </style>
@@ -159,17 +173,27 @@
   <div id="turn-in-screen" class="hidden">
     <h2>Nice!</h2>
     <p id="summary-again"></p>
-    <p>Enter your initials:</p>
-    <div id="initials-boxes">
-      <input class="initial-box" id="initial-0" maxlength="1" type="text"/>
-      <input class="initial-box" id="initial-1" maxlength="1" type="text"/>
-      <input class="initial-box" id="initial-2" maxlength="1" type="text"/>
+
+    <div style="margin: 1rem 0;">
+      <button id="play-again-btn" onclick="restartGame()">Play Again</button>
+      <button id="new-settings-btn" onclick="location.reload()">New Settings</button>
+      <button id="show-submit-btn" onclick="revealTurnIn()">Send to Chuck</button>
     </div>
-    <textarea id="student-comments" placeholder="Comments (optional)"></textarea>
-    <button class="submit-btn" onclick="handleSubmission()">Send to Chuck</button>
-    <p id="submit-status"></p>
-    <button id="play-again-btn" onclick="location.reload()">Play Again</button>
+
+    <div id="turn-in-details" style="display: none;">
+      <p>Enter your initials:</p>
+      <div id="initials-boxes">
+        <input class="initial-box" id="initial-0" maxlength="1" type="text"/>
+        <input class="initial-box" id="initial-1" maxlength="1" type="text"/>
+        <input class="initial-box" id="initial-2" maxlength="1" type="text"/>
+      </div>
+      <textarea id="student-comments" placeholder="Comments (optional)"></textarea>
+      <button class="submit-btn" onclick="handleSubmission()">Send</button>
+      <p id="submit-status"></p>
+    </div>
   </div>
+
+
 
 <script>
 
@@ -267,6 +291,33 @@ let snake = [{
 let direction = { x: 1, y: 0 };
 let targets = [];
 let gameInterval;
+
+
+function restartGame() {
+  const turnInScreen = document.getElementById("turn-in-screen");
+  turnInScreen.classList.add("hidden");
+  turnInScreen.style.display = "none"; // ← This ensures it doesn’t linger
+
+  // Reset snake and game state
+  snake = [{ x: 5, y: 5, isHead: true, value: null }];
+  direction = { x: 1, y: 0 };
+
+  villain = null;
+  shark = null;
+  scorpion = null;
+  sharkTimer = 0;
+  webTiles = [];
+  targets = [];
+
+  configureLevelParams();
+  spawnTargets();
+  spawnVillainIfNeeded();
+
+  gameRunning = true;
+  draw();
+  gameInterval = setInterval(tick, tickRate);
+}
+
 
 
 function preloadImages(urls) {
@@ -651,10 +702,30 @@ function gameOver() {
   console.log("Ending game!");
   gameRunning = false;
   clearInterval(gameInterval);
+
   document.getElementById("summary-again").textContent = `Snake length: ${snake.length - 1}`;
-  document.getElementById("turn-in-screen").classList.remove("hidden");
+
+  const turnInScreen = document.getElementById("turn-in-screen");
+  turnInScreen.classList.remove("hidden");
+  turnInScreen.style.display = "block"; // ← Add this if needed
+
+  ["play-again-btn", "new-settings-btn", "show-submit-btn"].forEach(id => {
+    const btn = document.getElementById(id);
+    btn.classList.remove("hidden");
+    btn.style.display = "inline-block"; // ← Force visibility just in case
+  });
+
+  document.getElementById("turn-in-details").style.display = "none";
+}
+
+
+
+function revealTurnIn() {
+  document.getElementById("turn-in-details").style.display = "block";
   document.getElementById("initial-0").focus();
 }
+
+
 
 
 document.addEventListener('keydown', e => {
@@ -749,70 +820,7 @@ function beginGame() {
   document.getElementById('game').style.backgroundImage = `url('${avatar.background}')`;
 
   spawnTargets();
-
-  if (chosenAvatar === 'crab') {
-    while (true) {
-      const x = Math.floor(Math.random() * cols);
-      const y = Math.floor(Math.random() * rows);
-      if (
-        !snake.some(seg => seg.x === x && seg.y === y) &&
-        !targets.some(t => t.x === x && t.y === y)
-      ) {
-        villain = { x, y, emoji: '🪼' };
-        break;
-      }
-    }
-  } else {
-    villain = null; // no villain for other avatars yet
-  }
-
-  if (chosenAvatar === 'beetle') {
-    while (true) {
-      const x = Math.floor(Math.random() * cols);
-      const y = Math.floor(Math.random() * rows);
-      if (
-        !snake.some(seg => seg.x === x && seg.y === y) &&
-        !targets.some(t => t.x === x && t.y === y)
-      ) {
-        scorpion = {
-          x,
-          y,
-          emoji: '🦂',
-          active: false
-        };
-        break;
-      }
-    }
-  } else {
-    scorpion = null;
-  }
-
-
-  if (chosenAvatar === 'fly') {
-    while (true) {
-      const cx = Math.floor(Math.random() * (cols - 2)) + 1;
-      const cy = Math.floor(Math.random() * (rows - 2)) + 1;
-
-      // Ensure it doesn't collide with snake or targets
-      const overlapping = snake.some(seg =>
-        Math.abs(seg.x - cx) <= 1 && Math.abs(seg.y - cy) <= 1
-      ) || targets.some(t =>
-        Math.abs(t.x - cx) <= 1 && Math.abs(t.y - cy) <= 1
-      );
-
-      if (!overlapping) {
-        webTiles = [];
-        for (let dx = -1; dx <= 1; dx++) {
-          for (let dy = -1; dy <= 1; dy++) {
-            webTiles.push({ x: cx + dx, y: cy + dy });
-          }
-        }
-        break;
-      }
-    }
-  } else {
-    webTiles = [];
-  }
+  spawnVillainIfNeeded();
 
     draw();
 
@@ -908,6 +916,73 @@ function flashScore(text, x, y) {
     }
   }, 16);
 }
+
+
+
+
+function spawnVillainIfNeeded() {
+  if (chosenAvatar === 'crab') {
+    while (true) {
+      const x = Math.floor(Math.random() * cols);
+      const y = Math.floor(Math.random() * rows);
+      if (
+        !snake.some(seg => seg.x === x && seg.y === y) &&
+        !targets.some(t => t.x === x && t.y === y)
+      ) {
+        villain = { x, y, emoji: '🪼' };
+        break;
+      }
+    }
+  } else {
+    villain = null;
+  }
+
+  if (chosenAvatar === 'beetle') {
+    while (true) {
+      const x = Math.floor(Math.random() * cols);
+      const y = Math.floor(Math.random() * rows);
+      if (
+        !snake.some(seg => seg.x === x && seg.y === y) &&
+        !targets.some(t => t.x === x && t.y === y)
+      ) {
+        scorpion = {
+          x,
+          y,
+          emoji: '🦂',
+          active: false
+        };
+        break;
+      }
+    }
+  } else {
+    scorpion = null;
+  }
+
+  if (chosenAvatar === 'fly') {
+    while (true) {
+      const cx = Math.floor(Math.random() * (cols - 2)) + 1;
+      const cy = Math.floor(Math.random() * (rows - 2)) + 1;
+      const overlapping = snake.some(seg =>
+        Math.abs(seg.x - cx) <= 1 && Math.abs(seg.y - cy) <= 1
+      ) || targets.some(t =>
+        Math.abs(t.x - cx) <= 1 && Math.abs(t.y - cy) <= 1
+      );
+
+      if (!overlapping) {
+        webTiles = [];
+        for (let dx = -1; dx <= 1; dx++) {
+          for (let dy = -1; dy <= 1; dy++) {
+            webTiles.push({ x: cx + dx, y: cy + dy });
+          }
+        }
+        break;
+      }
+    }
+  } else {
+    webTiles = [];
+  }
+}
+
 
 
 
