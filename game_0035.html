@@ -1,8 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="favicon.png">
+  <link rel="shortcut icon" href="favicon.ico">
   <meta charset="UTF-8">
-  <title>Function Spells - Trace the Graph!</title>
+  <title>Function Spells</title>
   <style>
     body {
       background-color: #121212;
@@ -17,30 +20,133 @@
       margin: 40px auto;
       background-color: #1e1e1e;
       border: 2px solid #333;
-      touch-action: none; /* prevent scrolling during draw */
-    }
-    #instruction {
-      font-size: 20px;
-      margin-top: 20px;
+      touch-action: none;
     }
     #feedback {
       font-size: 24px;
       margin-top: 10px;
     }
+    #spell-popup {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 48px;
+      color: #ffe066;
+      text-shadow: 0 0 10px #ffe066, 0 0 20px #ffaa33;
+      opacity: 0;
+      pointer-events: none;
+      animation: none;
+      font-family: 'Georgia', serif;
+      z-index: 5;
+      display: none;
+    }
+    @keyframes spellPop {
+      0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+      20% { opacity: 1; transform: translate(-50%, -60%) scale(1.1); }
+      50% { transform: translate(-50%, -63%) scale(1.0); opacity: 1; }
+      100% { transform: translate(-50%, -65%) scale(1.0); opacity: 0; }
+    }
+    #bg {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: -1;
+      background: url('game_0035_background.png') no-repeat center center;
+      background-size: cover;
+      background-position: center bottom;
+    }
+    button {
+      font-size: 24px;
+      padding: 12px 24px;
+      margin: 10px 0;
+      cursor: pointer;
+    }
+    .hidden {
+      display: none;
+    }
+    select {
+      font-size: 24px;
+      width: 220px;
+    }
   </style>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
 </head>
 <body>
-  <h1>🪄 Function Spells</h1>
-  <p id="instruction">Trace the graph of <span id="functionLabel"></span> below:</p>
-  <canvas id="spellCanvas" width="500" height="500"></canvas>
-  <p id="feedback">🟠 Keep trying...</p>
+  <div id="start-screen">
+    <h1>Function Spells</h1>
 
+    <div class="start-options">
+      <div class="label-col">
+        <label>Choose function types:</label>
+        <div id="function-types">
+          <label><input type="checkbox" value="linear" checked> Linear</label>
+          <label><input type="checkbox" value="quadratic"> Quadratic</label>
+          <label><input type="checkbox" value="root"> Root</label>
+          <label><input type="checkbox" value="exponential"> Exponential</label>
+          <label><input type="checkbox" value="logarithmic"> Logarithmic</label>
+          <label><input type="checkbox" value="rational"> Rational</label>
+          <label><input type="checkbox" value="cubic"> Cubic</label>
+          <label><input type="checkbox" value="trig"> Trig</label>
+          <label><input type="checkbox" value="step"> Step</label>
+        </div>
+
+        <label for="difficulty-select">Choose difficulty:</label>
+        <select id="difficulty-select">
+          <option value="0">Very Easy (0s)</option>
+          <option value="0.1">Easy (0.1s)</option>
+          <option value="0.5">Moderate (0.5s)</option>
+          <option value="1">Hard (1s)</option>
+          <option value="5">Very Hard (5s)</option>
+          <option value="infinity">Impossible (no assist)</option>
+        </select>
+      </div>
+    </div>
+
+    <button onclick="startGame()">Start Game</button>
+  </div>
+
+  <div id="game-screen" style="display:none;">
+    <div id="bg"></div>
+    <canvas id="spellCanvas" width="500" height="500"></canvas>
+    <div id="equationLatex" style="margin-top: 1.5vh; font-size: 36px;"></div>
+    <p id="feedback"></p>
+    <div id="spell-popup"></div>
+  </div>
+
+  <div id="turn-in-screen" class="hidden">
+    <h2>Well Done!</h2>
+    <p id="summary-again"></p>
+
+    <div style="margin: 1rem 0;">
+      <button id="play-again-btn" onclick="restartGame()">Play Again</button>
+      <button id="new-settings-btn" onclick="location.reload()">New Settings</button>
+      <button id="show-submit-btn" onclick="revealTurnIn()">Send to Chuck</button>
+    </div>
+
+    <div id="turn-in-details" style="display: none;">
+      <p>Enter your initials:</p>
+      <div id="initials-boxes">
+        <input class="initial-box" id="initial-0" maxlength="1" type="text"/>
+        <input class="initial-box" id="initial-1" maxlength="1" type="text"/>
+        <input class="initial-box" id="initial-2" maxlength="1" type="text"/>
+      </div>
+      <textarea id="student-comments" placeholder="Comments (optional)"></textarea>
+      <button class="submit-btn" onclick="handleSubmission()">Send</button>
+      <p id="submit-status"></p>
+    </div>
+  </div>
   <script>
     const canvas = document.getElementById("spellCanvas");
     const ctx = canvas.getContext("2d");
     const width = canvas.width;
     const height = canvas.height;
     const feedback = document.getElementById("feedback");
+
+    let assistOpacity = 0;    // 0 to 1
+    let assistFullyDrawn = false;
 
     const worldMinX = -10, worldMaxX = 10;
     const worldMinY = -10, worldMaxY = 10;
@@ -49,12 +155,208 @@
     const functionCoefficient = choices[Math.floor(Math.random() * choices.length)];
     const functionConstant = choices[Math.floor(Math.random() * choices.length)];
 
+    const spellIncantations = {
+      linear: "Linearis Trajectum!",
+      absolute: "Reflexa Verta!",
+      quadratic: "Arcus Magnus!",
+      root: "Radix Revealio!",
+      exponential: "Exponere Ignis!",
+      logarithmic: "Siphona Veritas!",
+      rational: "Fracturum Equilibris!",
+      cubic: "Serpens Pathum!",
+      trig: "Oscilla Lux!",
+      step: "Stagnum Cadentis!"
+    };
+    const currentSpellName = spellIncantations.linear;
 
-    const targetFunction = (x) => functionCoefficient * x + functionConstant;
+    function triggerSpellPopup(spellName) {
+      const popup = document.getElementById("spell-popup");
+      popup.textContent = spellName;
+      popup.style.display = "block";
+      popup.style.animation = "none";
+      void popup.offsetWidth;
+      popup.style.animation = "spellPop 1.8s ease-out";
+      setTimeout(() => {
+        popup.style.display = "none";
+        popup.textContent = "";
+      }, 1800);
+    }
 
-    // Display the function
-    document.getElementById("functionLabel").textContent =
-      `y = ${functionCoefficient.toFixed(2)}x + ${functionConstant.toFixed(2)}`;
+    let targetFunction = (x) => functionCoefficient * x + functionConstant;
+
+    const aLatex = formatCoefficientLatex(functionCoefficient);
+    const bRounded = Math.round(functionConstant);
+
+    const sign = bRounded >= 0 ? '+' : '-';
+    const bLatex = Math.abs(bRounded).toString();
+
+    window.addEventListener('load', () => {
+      const latexString = formatLinearEquationLatex(functionCoefficient, functionConstant);
+      document.getElementById("equationLatex").innerHTML = `\\(${latexString}\\)`;
+      MathJax.typesetPromise();
+    });
+
+
+    let selectedFunctionTypes = [];
+    let assistDelay = 0;
+    let currentProblemIndex = 0;
+    const totalProblems = 10;
+    let startTime = 0;
+    let endTime = 0;
+
+    function startGame() {
+      // Hide start screen, show game screen
+      document.getElementById('start-screen').style.display = 'none';
+      document.getElementById('game-screen').style.display = 'block';
+
+      // Read selected function types
+      selectedFunctionTypes = [];
+      document.querySelectorAll('#function-types input[type="checkbox"]:checked').forEach(cb => {
+        selectedFunctionTypes.push(cb.value);
+      });
+
+      if (selectedFunctionTypes.length === 0) {
+        alert("Please select at least one function type!");
+        location.reload();
+        return;
+      }
+
+      // Read selected difficulty
+      const difficultyValue = document.getElementById('difficulty-select').value;
+      assistDelay = difficultyValue === 'infinity' ? Infinity : parseFloat(difficultyValue) * 1000; // ms
+
+      // Reset counters
+      currentProblemIndex = 0;
+
+      // Start timing
+      startTime = performance.now();
+
+      // Begin first problem
+      loadNextProblem();
+    }
+
+
+    function loadNextProblem() {
+      if (currentProblemIndex >= totalProblems) {
+        endGame();
+        return;
+      }
+
+      currentProblemIndex++;
+
+      // Clear previous traces
+      userTrace = [];
+      isCorrect = false;
+      isCorrectFinal = false;
+      ctx.clearRect(0, 0, width, height);
+      drawGridAndAxes();
+
+      // Randomly pick a function type
+      const funcType = selectedFunctionTypes[Math.floor(Math.random() * selectedFunctionTypes.length)];
+
+      // Generate a new random function based on funcType
+      const { func, latex } = generateFunction(funcType);
+      targetFunction = func;
+
+      // Show the equation
+      const equationLatex = latex;
+      document.getElementById("equationLatex").innerHTML = `\\(${equationLatex}\\)`;
+      MathJax.typesetPromise();
+
+      // Assist graph timing
+      if (assistDelay !== Infinity) {
+        setTimeout(() => {
+          fadeInAssist();
+        }, assistDelay);
+      }
+      // Enable player drawing (already set up)
+    }
+
+
+
+    function fadeInAssist() {
+      assistOpacity = 0;
+      function animate() {
+        assistOpacity += 0.001;  // control speed of fade
+        if (assistOpacity > 1) assistOpacity = 1;
+        redrawTrace();
+        if (assistOpacity < 1) {
+          requestAnimationFrame(animate);
+        }
+      }
+      requestAnimationFrame(animate);
+    }
+
+
+    function generateFunction(type) {
+      switch (type) {
+        case "linear":
+          const mChoices = [-3, -2, -1, -0.5, 0.5, 1, 2, 3];
+          const bChoices = [-5, -3, -1, 0, 1, 3, 5];
+          const m = mChoices[Math.floor(Math.random() * mChoices.length)];
+          const b = bChoices[Math.floor(Math.random() * bChoices.length)];
+          return {
+            func: (x) => m * x + b,
+            latex: formatLinearEquationLatex(m, b)
+          };
+        case "quadratic":
+          const aChoices = [-2, -1, 1, 2];
+          const a = aChoices[Math.floor(Math.random() * aChoices.length)];
+          const c = bChoices[Math.floor(Math.random() * bChoices.length)];
+          return {
+            func: (x) => a * x * x + c,
+            latex: `y = ${a === 1 ? '' : a === -1 ? '-' : a}x^2 ${c >= 0 ? '+ ' + c : '- ' + Math.abs(c)}`
+          };
+        case "root":
+          const shift = Math.floor(Math.random() * 5) - 2; // shift by -2 to 2
+          return {
+            func: (x) => Math.sqrt(x - shift),
+            latex: `y = \\sqrt{x ${shift >= 0 ? '-' : '+'} ${Math.abs(shift)}}`
+          };
+        // You can add more cases like "exponential", "logarithmic", "rational", etc.
+        default:
+          return generateFunction("linear");
+      }
+    }
+
+
+    function endGame() {
+      endTime = performance.now();
+      const elapsedSeconds = ((endTime - startTime) / 1000).toFixed(2);
+
+      document.getElementById('game-screen').style.display = 'none';
+      const turnInScreen = document.getElementById('turn-in-screen');
+      turnInScreen.classList.remove('hidden');
+      turnInScreen.style.display = 'block';
+
+      document.getElementById('summary-again').textContent = `Completed all spells in ${elapsedSeconds} seconds!`;
+
+      // Reset initials fields
+      [...Array(3)].forEach((_, i) => document.getElementById(`initial-${i}`).value = '');
+      document.getElementById('student-comments').value = '';
+    }
+
+
+    function handleSubmission() {
+      const initials = [...Array(3)].map((_, i) => document.getElementById(`initial-${i}`).value.toUpperCase()).join('');
+      const comments = document.getElementById("student-comments").value;
+
+      const difficulty = document.getElementById('difficulty-select').options[document.getElementById('difficulty-select').selectedIndex].text;
+      const functionList = selectedFunctionTypes.join(', ');
+
+      const elapsedSeconds = ((endTime - startTime) / 1000).toFixed(2);
+
+      const payload = {
+        game: "game_0035",
+        settings: `${functionList}; ${difficulty}`,
+        score: "10/10",
+        elapsed: `${elapsedSeconds} seconds`,
+        initials,
+        comments
+      };
+
+      submitResults(payload); // assuming you use a Formspree / Sheets integration like before
+    }
 
     function toCanvasX(x) {
       return ((x - worldMinX) / (worldMaxX - worldMinX)) * width;
@@ -63,6 +365,26 @@
     function toCanvasY(y) {
       return height - ((y - worldMinY) / (worldMaxY - worldMinY)) * height;
     }
+
+    function drawAssistGraph() {
+      ctx.save();
+      ctx.globalAlpha = assistOpacity;
+      ctx.beginPath();
+      let started = false;
+      for (let x = worldMinX; x <= worldMaxX; x += 0.1) {
+        const y = targetFunction(x);
+        const cx = toCanvasX(x);
+        const cy = toCanvasY(y);
+        if (!started) { ctx.moveTo(cx, cy); started = true; }
+        else { ctx.lineTo(cx, cy); }
+      }
+      ctx.strokeStyle = "#cccccc";  // gray assist
+      ctx.lineWidth = 2;
+      ctx.shadowBlur = 0;
+      ctx.stroke();
+      ctx.restore();
+    }
+
 
     function drawGridAndAxes() {
       ctx.strokeStyle = '#444';
@@ -74,7 +396,6 @@
         ctx.lineTo(cx, height);
         ctx.stroke();
       }
-
       for (let y = Math.ceil(worldMinY); y <= worldMaxY; y++) {
         const cy = toCanvasY(y);
         ctx.beginPath();
@@ -82,7 +403,6 @@
         ctx.lineTo(width, cy);
         ctx.stroke();
       }
-
       ctx.strokeStyle = '#666';
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -97,16 +417,22 @@
 
     let userTrace = [];
     let isCorrect = false;
+    let isCorrectFinal = false;
     const threshold = 2;
 
     function redrawTrace() {
       ctx.clearRect(0, 0, width, height);
       drawGridAndAxes();
 
+      // Always draw assist if any opacity
+      if (assistOpacity > 0) {
+        drawAssistGraph();
+      }
+
+      // Then draw user trace
       if (userTrace.length === 0) return;
-
+      
       const color = isCorrect ? "#00ff88" : "#ffaa33";
-
       ctx.beginPath();
       userTrace.forEach((pt, i) => {
         const cx = toCanvasX(pt.x);
@@ -114,14 +440,15 @@
         if (i === 0) ctx.moveTo(cx, cy);
         else ctx.lineTo(cx, cy);
       });
-
       ctx.strokeStyle = color;
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 4;
       ctx.shadowColor = color;
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 30;
       ctx.stroke();
       ctx.shadowBlur = 0;
     }
+
+
 
     function calculateLSE() {
       if (userTrace.length < 10) return Infinity;
@@ -136,7 +463,7 @@
     function evaluateTrace() {
       const lse = calculateLSE();
       isCorrect = lse < threshold;
-      feedback.textContent = isCorrect ? "✅ Correct! You cast the spell!" : "🟠 Keep trying...";
+      feedback.textContent = isCorrect ? "" : "";
       redrawTrace();
     }
 
@@ -158,17 +485,141 @@
     }
 
     canvas.addEventListener("mousedown", startTrace);
-    canvas.addEventListener("mousemove", (e) => {
-      if (e.buttons === 1) addPoint(e);
-    });
-
+    canvas.addEventListener("mousemove", (e) => { if (e.buttons === 1) addPoint(e); });
     canvas.addEventListener("touchstart", startTrace, { passive: false });
-    canvas.addEventListener("touchmove", (e) => {
-      addPoint(e);
-      e.preventDefault();
-    }, { passive: false });
+    canvas.addEventListener("touchmove", (e) => { addPoint(e); e.preventDefault(); }, { passive: false });
+    canvas.addEventListener("mouseup", handleRelease);
+    canvas.addEventListener("touchend", handleRelease, { passive: false });
 
-    drawGridAndAxes();
+    redrawTrace();
+
+    function handleRelease(e) {
+      isCorrectFinal = isCorrect;
+      if (isCorrectFinal) {
+        triggerSpellPopup(currentSpellName);
+
+        // Reveal full assist immediately
+        assistOpacity = 1;
+        assistFullyDrawn = true;
+        startGreenTraceAnimation();
+
+        // After green trace animation, move to next problem
+        setTimeout(() => {
+          loadNextProblem();
+        }, 2500); // spell popup + green trace time
+      }
+    }
+
+
+    function startGreenTraceAnimation() {
+      let progress = 0;
+      const duration = 2000; // ms
+
+      function animate() {
+        const now = performance.now();
+        progress += 16; // about 60fps
+        const t = Math.min(progress / duration, 1);
+
+        ctx.clearRect(0, 0, width, height);
+        drawGridAndAxes();
+
+        // Fade out user trace
+        if (userTrace.length > 0) {
+          ctx.save();
+          ctx.globalAlpha = 1 - t;
+          const color = "#ffaa33"; // user color
+          ctx.beginPath();
+          userTrace.forEach((pt, i) => {
+            const cx = toCanvasX(pt.x);
+            const cy = toCanvasY(pt.y);
+            if (i === 0) ctx.moveTo(cx, cy);
+            else ctx.lineTo(cx, cy);
+          });
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 4;
+          ctx.shadowColor = color;
+          ctx.shadowBlur = 30;
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Draw partial green assist
+        ctx.save();
+        ctx.beginPath();
+        let started = false;
+        let stopX = worldMinX + (worldMaxX - worldMinX) * t;
+        for (let x = worldMinX; x <= stopX; x += 0.1) {
+          const y = targetFunction(x);
+          const cx = toCanvasX(x);
+          const cy = toCanvasY(y);
+          if (!started) { ctx.moveTo(cx, cy); started = true; }
+          else { ctx.lineTo(cx, cy); }
+        }
+        ctx.strokeStyle = "#00ff88";  // magical green
+        ctx.lineWidth = 4;
+        ctx.shadowColor = "#00ff88";
+        ctx.shadowBlur = 20;
+        ctx.stroke();
+        ctx.restore();
+
+        if (t < 1) {
+          requestAnimationFrame(animate);
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+
+    function formatCoefficientLatex(coef) {
+      const isInteger = Math.abs(coef - Math.round(coef)) < 1e-6;
+      if (isInteger) {
+        if (coef === 1) return '';
+        if (coef === -1) return '-';
+        return coef.toString();
+      }
+
+      const frac = simplifyFraction(coef);
+      return `\\frac{${frac.numerator}}{${frac.denominator}}`;
+    }
+
+    function simplifyFraction(decimal) {
+      const precision = 1000;
+      let numerator = Math.round(decimal * precision);
+      let denominator = precision;
+
+      const gcd = (a, b) => (b === 0 ? a : gcd(b, a % b));
+      const divisor = gcd(Math.abs(numerator), denominator);
+
+      return {
+        numerator: numerator / divisor,
+        denominator: denominator / divisor
+      };
+    }
+
+
+    function formatLinearEquationLatex(a, b) {
+      let aStr = '';
+      if (Math.abs(a - Math.round(a)) < 1e-6) {
+        // Integer coefficient
+        if (a === 1) aStr = 'x';
+        else if (a === -1) aStr = '-x';
+        else aStr = `${a}x`;
+      } else {
+        // Fractional coefficient
+        const numerator = Math.round(a * 10);
+        const denominator = 10;
+        aStr = `\\frac{${numerator}}{${denominator}}x`;
+      }
+
+      const bRounded = Math.round(b);
+      const bStr = bRounded > 0 ? `+ ${bRounded}` : bRounded < 0 ? `- ${Math.abs(bRounded)}` : '';
+
+      return `y = ${aStr} ${bStr}`;
+    }
+
+
+
   </script>
 </body>
 </html>
