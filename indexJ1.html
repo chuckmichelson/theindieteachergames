@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="favicon.png">
+  <link rel="shortcut icon" href="favicon.ico">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Math Games Index</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: white;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    #search-input {
+      display: block;
+      margin: 0 auto 30px auto;
+      padding: 10px;
+      font-size: 18px;
+      width: 90%;
+      max-width: 500px;
+      background-color: #222;
+      color: white;
+      border: 2px solid #444;
+      border-radius: 10px;
+    }
+    #search-input:focus {
+      outline: none;
+      border-color: #666; /* Optional: custom border color on focus */
+      box-shadow: none;   /* Remove any glow or shadow */
+    }
+    .game-card {
+      background-color: #1e1e1e;
+      border: 2px solid #333;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px auto;
+      width: 90%;
+      max-width: 600px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    }
+    .game-title {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+    .game-desc {
+      font-size: 16px;
+      color: #ccc;
+      margin-bottom: 10px;
+    }
+    .hashtags {
+      margin-top: 10px;
+    }
+    .hashtag {
+      display: inline-block;
+      background-color: #333;
+      color: #ccc;
+      padding: 4px 10px;
+      margin: 2px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .hashtag:hover {
+      background-color: #555;
+      color: white;
+    }
+    .branding {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 30px;
+    }
+
+    .branding-link {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+      gap: 20px;
+    }
+
+    .branding-logo {
+      width: 80px;
+      height: 80px;
+    }
+
+    .branding-title {
+      font-size: 28px;
+      margin: 0;
+      color: white;
+    }
+    .search-wrapper {
+      position: relative;
+      width: 90%;
+      max-width: 500px;
+      margin: 0 auto 30px auto;
+    }
+    #clear-button {
+      position: absolute;
+      right: 20px; /* nudged from 10px to 20px total from the edge */
+      top: 8px;
+      background: transparent;
+      border: none;
+      color: #888;
+      font-size: 20px;
+      cursor: pointer;
+    }
+    #clear-button:hover {
+      color: white;
+    }
+    .branding-subtitle {
+      text-align: center;
+      font-weight: normal;
+      color: #ccc;
+      margin-top: -20px;
+      margin-bottom: 30px;
+      font-size: 18px;
+    }
+    .ninja {
+      font-size: 128px;
+    }
+    .game-card.checked {
+    }
+
+    .game-card.locked {
+      border: 2px #777;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    .lock-icon {
+      font-size: 18px;
+      margin-left: 10px;
+      color: #ccc;
+    }
+    .status-bubble {
+      position: absolute;
+      top: 10px;
+      right: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      padding: 4px 10px;
+      border-radius: 8px;
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+  </style>
+</head>
+<body>
+  <div class="branding">
+    <a href="https://www.theindieteacher.com/games-1" class="branding-link">
+      <img src="index-favicon.png" alt="The Indie Teacher Logo" class="branding-logo">
+      <h1 class="branding-title">Chuck's Math Games!</h1>
+    </a>
+  </div>
+  <h3 class="branding-subtitle">Minimalist math worksheets.</h3>
+  <div class="search-wrapper">
+    <input type="text" id="search-input" placeholder="Search anything..." />
+    <button id="clear-button" style="display: none;">&#x2715;</button>
+  </div>
+  <div id="game-container"></div>
+
+  <script>
+    const games = [
+      {
+        id: "game_0030",
+        name: "Number Snake",
+        description: "Eat numbers from the chosen category.",
+        hashtags: ["numbers", "exponents", "perfectsquares", "primes", "fun"],
+        status: "unlocked",
+        statusMessage: "",
+        statusColor: "lightblue" 
+      },
+      {
+        id: "game_0028",
+        name: "Powers of Ten",
+        description: "Complete the table.",
+        hashtags: ["numbers", "exponents", "powers", "prefixes", "metric system"],
+        status: "unlocked",
+        statusMessage: "",
+        statusColor: "lightblue" 
+      },
+      {
+        id: "game_0026",
+        name: "Powers of Two",
+        description: "Compute the value of 2 to the power of n.",
+        hashtags: ["numbers", "exponents"],
+        status: "unlocked",
+        statusMessage: "",
+        statusColor: "lightblue" 
+      },
+      {
+        id: "game_0011",
+        name: "Picture Multiplication Table",
+        description: "Fill in the multiplication table to reveal famous football moments.",
+        hashtags: ["arithmetic", "multiplication", "football", "osubuckeyes", "bengals"],
+        status: "unlocked",
+        statusMessage: "",
+        statusColor: "lightgreen"        
+      },     
+      {
+        id: "game_0021",
+        name: "Emoji Totals",
+        description: "Combine addition and multiplication to total up the number of emojis.",
+        hashtags: ["multiplication", "addition", "emojis", "categories", "arithmetic"],
+        status: "unlocked",
+        statusMessage: "",
+        statusColor: "lightblue" 
+      },
+      {
+        id: "game_0022",
+        name: "Perfect Squares Matching",
+        description: "Flip over cards and match the perfect square with its value. OSU Buckeyes themed.",
+        hashtags: ["perfectsquares", "numbers", "football", "osubuckeyes"],
+        status: "unlocked",
+        statusMessage: "",
+        statusColor: "lightgreen" 
+      },   
+      {
+        id: "game_0005",
+        name: "Pizza Division",
+        description: "A pizza has 10 slices. 5 friends are going to share it equally. How many slices does each friend get?",
+        hashtags: ["arithmetic", "division", "pizza"],
+        status: "unlocked",
+        statusMessage: "",
+        statusColor: "lightgreen" 
+      },
+      {
+        id: "game_0002",
+        name: "Colorful Multiplication Table",
+        description: "Fill in the multiplication table to reveal a nice colorful pattern.",
+        hashtags: ["arithmetic", "multiplication", "relaxing"],
+        status: "unlocked",
+        statusMessage: "",
+        statusColor: "lightgreen" 
+      },
+      {
+        id: "game_0014",
+        name: "Prime Factorization",
+        description: "Factor each number into its primes, and list them from least to greatest. Then, write the number with exponent notation.",
+        hashtags: ["arithmetic", "numbers", "primes"],
+        status: "unlocked",
+        statusMessage: "",
+        statusColor: "lightgreen" 
+      }
+      // Add more game entries here...
+    ];
+
+    const container = document.getElementById("game-container");
+    const searchInput = document.getElementById("search-input");
+
+    function renderGames(filter = "") {
+      container.innerHTML = "";
+      const lowerFilter = filter.toLowerCase();
+      games
+        .filter(game =>
+          game.name.toLowerCase().includes(lowerFilter) ||
+          game.description.toLowerCase().includes(lowerFilter) ||
+          game.hashtags.some(tag => tag.toLowerCase().includes(lowerFilter))
+        )
+        .forEach(game => {
+          const card = document.createElement("div");
+          card.className = "game-card";
+          card.style.display = "flex";
+          card.style.alignItems = "center";
+
+        const thumbnailLink = document.createElement("a");
+        thumbnailLink.href = `${game.id}.html`;
+
+        const thumbnail = document.createElement("img");
+        thumbnail.src = `${game.id}.png`;
+        thumbnail.alt = `${game.name} thumbnail`;
+        thumbnail.style.width = "100px";
+        thumbnail.style.height = "100px";
+        thumbnail.style.objectFit = "cover";
+        thumbnail.style.marginRight = "20px";
+        thumbnail.style.borderRadius = "8px";
+
+        thumbnailLink.appendChild(thumbnail);
+
+
+          const content = document.createElement("div");
+          content.style.flex = "1";
+
+          const title = document.createElement("div");
+          title.className = "game-title";
+          title.innerHTML = `<a href="${game.id}.html" style="color: white; text-decoration: none;">${game.name}</a>`;
+
+          const desc = document.createElement("div");
+          desc.className = "game-desc";
+          desc.textContent = game.description;
+
+          const tags = document.createElement("div");
+          tags.className = "hashtags";
+          game.hashtags.forEach(tag => {
+            const tagElem = document.createElement("span");
+            tagElem.className = "hashtag";
+            tagElem.textContent = tag;
+            tagElem.onclick = () => {
+              searchInput.value = tag;
+              renderGames(tag);
+              clearButton.style.display = "block"; // ensures clear button shows
+            };
+            tags.appendChild(tagElem);
+          });
+
+          card.style.position = "relative"; // enable absolute positioning inside
+          card.classList.add(game.status); // e.g., checked, unlocked, locked
+          if (game.statusMessage) {
+            const statusBubble = document.createElement("div");
+            statusBubble.className = "status-bubble";
+            statusBubble.textContent = game.statusMessage;
+            statusBubble.style.color = game.statusColor || "white";
+            card.appendChild(statusBubble);
+          }
+
+
+          const statusIcon = document.createElement("span");
+          statusIcon.className = "lock-icon";
+
+          if (game.status === "locked") {
+            statusIcon.textContent = "🔒";
+          } else if (game.status === "checked") {
+            statusIcon.textContent = "";
+          } else {
+            statusIcon.textContent = "";
+          }
+
+          title.innerHTML = `<a href="${game.id}.html" style="color: white; text-decoration: none;">${game.name}</a>`;
+          title.appendChild(statusIcon);
+
+          content.appendChild(title);
+          content.appendChild(desc);
+          content.appendChild(tags);
+
+          card.appendChild(thumbnailLink);
+          card.appendChild(content);
+          container.appendChild(card);
+        });
+
+    }
+
+    const clearButton = document.getElementById("clear-button");
+
+    searchInput.addEventListener("input", () => {
+      renderGames(searchInput.value);
+      clearButton.style.display = searchInput.value ? "block" : "none";
+    });
+
+    clearButton.addEventListener("click", () => {
+      searchInput.value = "";
+      renderGames();
+      clearButton.style.display = "none";
+    });
+
+
+    renderGames(); // Initial render
+  </script>
+</body>
+</html>
