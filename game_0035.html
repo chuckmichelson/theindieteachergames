@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Function Spells - Trace the Graph!</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: #fff;
+      font-family: 'Georgia', serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    canvas {
+      display: block;
+      margin: 40px auto;
+      background-color: #1e1e1e;
+      border: 2px solid #333;
+      touch-action: none; /* prevent scrolling during draw */
+    }
+    #instruction {
+      font-size: 20px;
+      margin-top: 20px;
+    }
+    #feedback {
+      font-size: 24px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🪄 Function Spells</h1>
+  <p id="instruction">Trace the graph of <span id="functionLabel"></span> below:</p>
+  <canvas id="spellCanvas" width="500" height="500"></canvas>
+  <p id="feedback">🟠 Keep trying...</p>
+
+  <script>
+    const canvas = document.getElementById("spellCanvas");
+    const ctx = canvas.getContext("2d");
+    const width = canvas.width;
+    const height = canvas.height;
+    const feedback = document.getElementById("feedback");
+
+    const worldMinX = -10, worldMaxX = 10;
+    const worldMinY = -10, worldMaxY = 10;
+
+    const choices = [-3, -2, -1, -0.5, 0.5, 1, 2, 3];
+    const functionCoefficient = choices[Math.floor(Math.random() * choices.length)];
+    const functionConstant = choices[Math.floor(Math.random() * choices.length)];
+
+
+    const targetFunction = (x) => functionCoefficient * x + functionConstant;
+
+    // Display the function
+    document.getElementById("functionLabel").textContent =
+      `y = ${functionCoefficient.toFixed(2)}x + ${functionConstant.toFixed(2)}`;
+
+    function toCanvasX(x) {
+      return ((x - worldMinX) / (worldMaxX - worldMinX)) * width;
+    }
+
+    function toCanvasY(y) {
+      return height - ((y - worldMinY) / (worldMaxY - worldMinY)) * height;
+    }
+
+    function drawGridAndAxes() {
+      ctx.strokeStyle = '#444';
+      ctx.lineWidth = 1;
+      for (let x = Math.ceil(worldMinX); x <= worldMaxX; x++) {
+        const cx = toCanvasX(x);
+        ctx.beginPath();
+        ctx.moveTo(cx, 0);
+        ctx.lineTo(cx, height);
+        ctx.stroke();
+      }
+
+      for (let y = Math.ceil(worldMinY); y <= worldMaxY; y++) {
+        const cy = toCanvasY(y);
+        ctx.beginPath();
+        ctx.moveTo(0, cy);
+        ctx.lineTo(width, cy);
+        ctx.stroke();
+      }
+
+      ctx.strokeStyle = '#666';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, toCanvasY(0));
+      ctx.lineTo(width, toCanvasY(0));
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(toCanvasX(0), 0);
+      ctx.lineTo(toCanvasX(0), height);
+      ctx.stroke();
+    }
+
+    let userTrace = [];
+    let isCorrect = false;
+    const threshold = 2;
+
+    function redrawTrace() {
+      ctx.clearRect(0, 0, width, height);
+      drawGridAndAxes();
+
+      if (userTrace.length === 0) return;
+
+      const color = isCorrect ? "#00ff88" : "#ffaa33";
+
+      ctx.beginPath();
+      userTrace.forEach((pt, i) => {
+        const cx = toCanvasX(pt.x);
+        const cy = toCanvasY(pt.y);
+        if (i === 0) ctx.moveTo(cx, cy);
+        else ctx.lineTo(cx, cy);
+      });
+
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 10;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+
+    function calculateLSE() {
+      if (userTrace.length < 10) return Infinity;
+      let error = 0;
+      for (const pt of userTrace) {
+        const expectedY = targetFunction(pt.x);
+        error += (expectedY - pt.y) ** 2;
+      }
+      return error / userTrace.length;
+    }
+
+    function evaluateTrace() {
+      const lse = calculateLSE();
+      isCorrect = lse < threshold;
+      feedback.textContent = isCorrect ? "✅ Correct! You cast the spell!" : "🟠 Keep trying...";
+      redrawTrace();
+    }
+
+    function startTrace(e) {
+      e.preventDefault();
+      userTrace = [];
+      isCorrect = false;
+      addPoint(e);
+    }
+
+    function addPoint(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const x = (clientX - rect.left) / (width / (worldMaxX - worldMinX)) + worldMinX;
+      const y = worldMaxY - (clientY - rect.top) / (height / (worldMaxY - worldMinY));
+      userTrace.push({ x, y });
+      evaluateTrace();
+    }
+
+    canvas.addEventListener("mousedown", startTrace);
+    canvas.addEventListener("mousemove", (e) => {
+      if (e.buttons === 1) addPoint(e);
+    });
+
+    canvas.addEventListener("touchstart", startTrace, { passive: false });
+    canvas.addEventListener("touchmove", (e) => {
+      addPoint(e);
+      e.preventDefault();
+    }, { passive: false });
+
+    drawGridAndAxes();
+  </script>
+</body>
+</html>
