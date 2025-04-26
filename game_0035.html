@@ -4,6 +4,8 @@
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="favicon.png">
   <link rel="shortcut icon" href="favicon.ico">
+  <script src="end-screen.js"></script>
+  <link rel="stylesheet" href="end-screen.css">
   <meta charset="UTF-8">
   <title>Function Spells</title>
   <style>
@@ -14,6 +16,7 @@
       text-align: center;
       margin: 0;
       padding: 0;
+      font-size: 18px;
     }
     canvas {
       display: block;
@@ -67,45 +70,120 @@
       display: none;
     }
     select {
-      font-size: 24px;
+      font-size: 32px;
       width: 220px;
     }
+    #start-screen {
+      text-align: center;
+      padding: 2rem;
+      font-family: sans-serif;
+    }
+    #overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.5); /* semi-transparent black */
+      z-index: 3; /* below turn-in screen, above gameplay */
+    }
+    #turn-in-screen {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #222;
+      padding: 2rem;
+      border-radius: 20px;
+      box-shadow: 0 0 20px #000;
+      z-index: 4; /* on top */
+      width: 400px;
+      height: 550px;
+    }
+    #play-again-btn {
+      font-size: 24px;
+      padding: 12px 24px;
+      margin: 10px 0;
+      cursor: pointer;
+      display: block;
+    }
+#start-screen {
+  text-align: center;
+  padding: 2rem;
+  font-family: sans-serif;
+  color: white;
+}
+
+#function-types {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 0.75rem 2rem;
+  justify-content: center;
+  margin: 2rem auto;
+  font-size: 20px;
+  color: white;
+}
+
+#function-types label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 20px;
+}
+
+#function-types input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+}
+
+
+#difficulty-select {
+  font-size: 20px;
+  padding: 6px;
+  border-radius: 8px;
+  border: none;
+  margin-top: 1rem;
+}
+
+
+
   </style>
   <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
 </head>
 <body>
-  <div id="start-screen">
-    <h1>Function Spells</h1>
+    <div id="start-screen">
+      <h1>Function Spells</h1>
+      <p>Draw the function on the plane.</p>
 
-    <div class="start-options">
-      <div class="label-col">
-        <label>Choose function types:</label>
-        <div id="function-types">
-          <label><input type="checkbox" value="linear" checked> Linear</label>
-          <label><input type="checkbox" value="quadratic"> Quadratic</label>
-          <label><input type="checkbox" value="root"> Root</label>
-          <label><input type="checkbox" value="exponential"> Exponential</label>
-          <label><input type="checkbox" value="logarithmic"> Logarithmic</label>
-          <label><input type="checkbox" value="rational"> Rational</label>
-          <label><input type="checkbox" value="cubic"> Cubic</label>
-          <label><input type="checkbox" value="trig"> Trig</label>
-          <label><input type="checkbox" value="step"> Step</label>
-        </div>
-
-        <label for="difficulty-select">Choose difficulty:</label>
-        <select id="difficulty-select">
-          <option value="0">Very Easy (0s)</option>
-          <option value="0.1">Easy (0.1s)</option>
-          <option value="0.5">Moderate (0.5s)</option>
-          <option value="1">Hard (1s)</option>
-          <option value="5">Very Hard (5s)</option>
-          <option value="infinity">Impossible (no assist)</option>
-        </select>
+      <div id="function-types">
+        <label><input type="checkbox" value="linear" checked> Linear</label>
+        <label><input type="checkbox" value="quadratic" checked> Quadratic</label>
+        <label><input type="checkbox" value="root" checked> Root</label>
+        <label><input type="checkbox" value="exponential" checked> Exponential</label>
+        <label><input type="checkbox" value="logarithmic" checked> Logarithmic</label>
+        <label><input type="checkbox" value="rational" checked> Rational</label>
+        <label><input type="checkbox" value="cubic" checked> Cubic</label>
+        <label><input type="checkbox" value="trig" checked> Trig</label>
+        <label><input type="checkbox" value="step" checked> Step</label>
+        <label><input type="checkbox" value="absolute" checked> Absolute Value</label>
       </div>
+
+      <label for="difficulty-select">Wizardry:</label><br>
+      <select id="difficulty-select">
+        <option value="1"> Muggle</option>
+        <option value="3">✨ Apprentice</option>
+        <option value="5">✨✨ Adept</option>
+        <option value="7">✨✨✨ Mage</option>
+        <option value="10">✨✨✨✨ Sorcerer</option>
+        <option value="infinity">✨✨✨✨✨ Archmage</option>
+      </select>
+
+      <br><br>
+      <button onclick="startGame()">Start Game</button>
     </div>
 
-    <button onclick="startGame()">Start Game</button>
+
+    <br>
   </div>
 
   <div id="game-screen" style="display:none;">
@@ -120,13 +198,13 @@
     <h2>Well Done!</h2>
     <p id="summary-again"></p>
 
-    <div style="margin: 1rem 0;">
-      <button id="play-again-btn" onclick="restartGame()">Play Again</button>
-      <button id="new-settings-btn" onclick="location.reload()">New Settings</button>
-      <button id="show-submit-btn" onclick="revealTurnIn()">Send to Chuck</button>
+    <!-- 👇 MOVE END BUTTONS TO HERE -->
+    <div id="end-buttons" style="margin-top: 1.5rem; display: flex; justify-content: center; gap: 20px;">
+      <button class="submit-btn" id="play-again-btn" onclick="restartGame()">Play Again</button>
+      <button class="submit-btn" id="new-settings-btn" onclick="location.reload()">New Settings</button>
     </div>
 
-    <div id="turn-in-details" style="display: none;">
+    <div id="turn-in-details" style="margin-top: 2rem;">
       <p>Enter your initials:</p>
       <div id="initials-boxes">
         <input class="initial-box" id="initial-0" maxlength="1" type="text"/>
@@ -138,6 +216,10 @@
       <p id="submit-status"></p>
     </div>
   </div>
+
+  <div id="overlay" class="hidden"></div>
+
+
   <script>
     const canvas = document.getElementById("spellCanvas");
     const ctx = canvas.getContext("2d");
@@ -156,18 +238,30 @@
     const functionConstant = choices[Math.floor(Math.random() * choices.length)];
 
     const spellIncantations = {
-      linear: "Linearis Trajectum!",
-      absolute: "Reflexa Verta!",
-      quadratic: "Arcus Magnus!",
-      root: "Radix Revealio!",
-      exponential: "Exponere Ignis!",
-      logarithmic: "Siphona Veritas!",
-      rational: "Fracturum Equilibris!",
-      cubic: "Serpens Pathum!",
-      trig: "Oscilla Lux!",
-      step: "Stagnum Cadentis!"
+      linear: "Linus Lux!",
+      quadratic: "Quadraticus Arcana!",
+      root: "Lumina Radicalis!",
+      exponential: "Ignis Exponentia!",
+      logarithmic: "Logarithmus Dimini!",
+      rational: "Rationalis Supra!",
+      cubic: "Cubicus Vortexi!",
+      trig: "Trigonis Oscillare!",
+      step: "Gradatum Terra!",
+      absolute: "Absolutum Valore!"
     };
-    const currentSpellName = spellIncantations.linear;
+    let currentSpellName = spellIncantations.linear;
+    let currentFunctionType = "linear";
+
+    const difficultyNames = {
+      "1": "Muggle",
+      "3": "Apprentice",
+      "5": "Adept",
+      "7": "Mage",
+      "10": "Sorcerer",
+      "infinity": "Archmage"
+    };
+
+    let freezeGreen = false;
 
     function triggerSpellPopup(spellName) {
       const popup = document.getElementById("spell-popup");
@@ -236,6 +330,51 @@
     }
 
 
+    function restartGame() {
+      // Hide overlay and turn-in screen
+      document.getElementById('overlay').classList.add('hidden');
+      const turnInScreen = document.getElementById('turn-in-screen');
+      turnInScreen.classList.add('hidden');
+      turnInScreen.style.display = 'none';
+
+      // Clear initials fields and restore background color
+      for (let i = 0; i < 3; i++) {
+        const box = document.getElementById(`initial-${i}`);
+        box.value = '';
+        box.style.backgroundColor = '#fff';  // Reset to white
+      }
+
+      // Clear comments and submit status
+      document.getElementById('student-comments').value = '';
+      document.getElementById('submit-status').textContent = '';
+
+      // Reset key variables
+      currentProblemIndex = 0;
+      startTime = performance.now();
+      freezeGreen = false;
+
+      // Reset canvas
+      userTrace = [];
+      isCorrect = false;
+      isCorrectFinal = false;
+      assistOpacity = 0;
+      assistFullyDrawn = false;
+
+      ctx.clearRect(0, 0, width, height);
+      drawGridAndAxes();
+
+      // Start next problem immediately
+      loadNextProblem();
+    }
+
+
+
+
+    function revealTurnIn() {
+      document.getElementById("turn-in-details").style.display = "block";
+      document.getElementById("initial-0").focus();
+    }
+
     function loadNextProblem() {
       if (currentProblemIndex >= totalProblems) {
         endGame();
@@ -253,6 +392,10 @@
 
       // Randomly pick a function type
       const funcType = selectedFunctionTypes[Math.floor(Math.random() * selectedFunctionTypes.length)];
+
+      currentFunctionType = funcType;
+      currentSpellName = spellIncantations[funcType];
+
 
       // Generate a new random function based on funcType
       const { func, latex } = generateFunction(funcType);
@@ -287,61 +430,160 @@
       requestAnimationFrame(animate);
     }
 
-
     function generateFunction(type) {
+      const bChoices = [-5, -3, -1, 0, 1, 3, 5];
+      const shifts = [-3, -2, -1, 0, 1, 2, 3]; // gentle shifts
+      const scaleChoices = [-2, -1, 1, 2];
+
+      const randomChoice = (arr) => arr[Math.floor(Math.random() * arr.length)];
+      const formatShift = (h) => {
+        if (h === 0) return "x";
+        return `(x ${h >= 0 ? '-' : '+'} ${Math.abs(h)})`;
+      };
+
+      const formatPlusK = (k) => {
+        if (k === 0) return "";
+        return ` ${k > 0 ? '+ ' : '- '}${Math.abs(k)}`;
+      };
+
       switch (type) {
         case "linear":
-          const mChoices = [-3, -2, -1, -0.5, 0.5, 1, 2, 3];
-          const bChoices = [-5, -3, -1, 0, 1, 3, 5];
-          const m = mChoices[Math.floor(Math.random() * mChoices.length)];
-          const b = bChoices[Math.floor(Math.random() * bChoices.length)];
+          const m = randomChoice(scaleChoices);
+          const b = randomChoice(bChoices);
           return {
             func: (x) => m * x + b,
-            latex: formatLinearEquationLatex(m, b)
+            latex: m === 1 ? `y = x${formatPlusK(b)}`
+                 : m === -1 ? `y = -x${formatPlusK(b)}`
+                 : `y = ${m}x${formatPlusK(b)}`
           };
+
         case "quadratic":
-          const aChoices = [-2, -1, 1, 2];
-          const a = aChoices[Math.floor(Math.random() * aChoices.length)];
-          const c = bChoices[Math.floor(Math.random() * bChoices.length)];
+          const a = randomChoice(scaleChoices);
+          const h = randomChoice(shifts);
+          const k = randomChoice(bChoices);
           return {
-            func: (x) => a * x * x + c,
-            latex: `y = ${a === 1 ? '' : a === -1 ? '-' : a}x^2 ${c >= 0 ? '+ ' + c : '- ' + Math.abs(c)}`
+            func: (x) => a * (x - h) * (x - h) + k,
+            latex: a === 1
+              ? `y = ${formatShift(h)}^2${formatPlusK(k)}`
+              : a === -1
+              ? `y = -${formatShift(h)}^2${formatPlusK(k)}`
+              : `y = ${a}${formatShift(h)}^2${formatPlusK(k)}`
           };
+
         case "root":
-          const shift = Math.floor(Math.random() * 5) - 2; // shift by -2 to 2
+          const hRoot = randomChoice(shifts.filter(x => x >= -2)); // avoid too negative
+          const kRoot = randomChoice(bChoices);
           return {
-            func: (x) => Math.sqrt(x - shift),
-            latex: `y = \\sqrt{x ${shift >= 0 ? '-' : '+'} ${Math.abs(shift)}}`
+            func: (x) => (x - hRoot >= 0 ? Math.sqrt(x - hRoot) + kRoot : NaN),
+            latex: `y = \\sqrt{${formatShift(hRoot)}}${formatPlusK(kRoot)}`
           };
-        // You can add more cases like "exponential", "logarithmic", "rational", etc.
+
+        case "exponential":
+          const kExp = randomChoice(scaleChoices);
+          const hExp = randomChoice(shifts);
+          const vExp = randomChoice(bChoices);
+          return {
+            func: (x) => Math.exp(kExp * (x - hExp)) + vExp,
+            latex: `y = e^{${kExp}${formatShift(hExp)}}${formatPlusK(vExp)}`
+          };
+
+        case "logarithmic":
+          const hLog = randomChoice(shifts.filter(x => x >= -2));
+          const kLog = randomChoice(bChoices);
+          return {
+            func: (x) => (x - hLog > 0 ? Math.log(x - hLog) + kLog : NaN),
+            latex: `y = \\ln{${formatShift(hLog)}}${formatPlusK(kLog)}`
+          };
+
+        case "rational":
+          const hRat = randomChoice(shifts.filter(x => x !== 0));
+          const kRat = randomChoice(bChoices);
+          return {
+            func: (x) => (x - hRat !== 0 ? 1 / (x - hRat) + kRat : NaN),
+            latex: `y = \\frac{1}{${formatShift(hRat)}}${formatPlusK(kRat)}`
+          };
+
+        case "cubic":
+          const aCubic = randomChoice(scaleChoices);
+          const hCubic = randomChoice(shifts);
+          const kCubic = randomChoice(bChoices);
+          return {
+            func: (x) => aCubic * Math.pow(x - hCubic, 3) + kCubic,
+            latex: aCubic === 1
+              ? `y = ${formatShift(hCubic)}^3${formatPlusK(kCubic)}`
+              : aCubic === -1
+              ? `y = -${formatShift(hCubic)}^3${formatPlusK(kCubic)}`
+              : `y = ${aCubic}${formatShift(hCubic)}^3${formatPlusK(kCubic)}`
+          };
+
+        case "trig":
+          const shiftTrig = randomChoice(shifts);
+          return {
+            func: (x) => Math.sin(x - shiftTrig),
+            latex: `y = \\sin${formatShift(shiftTrig)}`
+          };
+
+        case "step":
+          const shiftStep = randomChoice(shifts);
+          return {
+            func: (x) => Math.floor(x - shiftStep),
+            latex: `y = \\lfloor ${formatShift(shiftStep)} \\rfloor`
+          };
+        case "absolute":
+          const hAbs = randomChoice(shifts);
+          const kAbs = randomChoice(bChoices);
+          return {
+            func: (x) => Math.abs(x - hAbs) + kAbs,
+            latex: `y = \\left|${formatShift(hAbs)}\\right|${formatPlusK(kAbs)}`
+          };
+
+
         default:
           return generateFunction("linear");
       }
     }
 
 
+
+
     function endGame() {
       endTime = performance.now();
       const elapsedSeconds = ((endTime - startTime) / 1000).toFixed(2);
 
-      document.getElementById('game-screen').style.display = 'none';
+      document.getElementById('overlay').classList.remove('hidden');
+
       const turnInScreen = document.getElementById('turn-in-screen');
       turnInScreen.classList.remove('hidden');
       turnInScreen.style.display = 'block';
 
-      document.getElementById('summary-again').textContent = `Completed all spells in ${elapsedSeconds} seconds!`;
+      // Reset initials and background color
+      for (let i = 0; i < 3; i++) {
+        const box = document.getElementById(`initial-${i}`);
+        box.value = '';
+        box.style.backgroundColor = '#fff';
+      }
 
-      // Reset initials fields
-      [...Array(3)].forEach((_, i) => document.getElementById(`initial-${i}`).value = '');
+      // Clear comments and submit status
       document.getElementById('student-comments').value = '';
+      document.getElementById('submit-status').textContent = '';
+
+      // Focus the first initial box immediately
+      document.getElementById('initial-0').focus();
+
+      // Update summary
+      document.getElementById('summary-again').textContent = `Completed ${totalProblems} spells in ${elapsedSeconds} seconds!`;
     }
+
 
 
     function handleSubmission() {
       const initials = [...Array(3)].map((_, i) => document.getElementById(`initial-${i}`).value.toUpperCase()).join('');
       const comments = document.getElementById("student-comments").value;
 
-      const difficulty = document.getElementById('difficulty-select').options[document.getElementById('difficulty-select').selectedIndex].text;
+      const difficultySelect = document.getElementById('difficulty-select');
+      const selectedDifficultyValue = difficultySelect.value;
+      const difficulty = difficultyNames[selectedDifficultyValue];
+
       const functionList = selectedFunctionTypes.join(', ');
 
       const elapsedSeconds = ((endTime - startTime) / 1000).toFixed(2);
@@ -349,7 +591,7 @@
       const payload = {
         game: "game_0035",
         settings: `${functionList}; ${difficulty}`,
-        score: "10/10",
+        score: `${totalProblems}; ${totalProblems}`,
         elapsed: `${elapsedSeconds} seconds`,
         initials,
         comments
@@ -432,7 +674,7 @@
       // Then draw user trace
       if (userTrace.length === 0) return;
       
-      const color = isCorrect ? "#00ff88" : "#ffaa33";
+      const color = (freezeGreen || isCorrect) ? "#00ff88" : "#ffaa33";
       ctx.beginPath();
       userTrace.forEach((pt, i) => {
         const cx = toCanvasX(pt.x);
@@ -494,20 +736,83 @@
     redrawTrace();
 
     function handleRelease(e) {
-      isCorrectFinal = isCorrect;
-      if (isCorrectFinal) {
+      const traceLength = calculateTraceLength();
+      const minimumLength = 4; // adjust this if needed
+
+      if (isCorrect && (traceLength > minimumLength)) {
+        // RIGHT AWAY: lock the color green
+        freezeGreen = true;
+        isCorrectFinal = true;
+
         triggerSpellPopup(currentSpellName);
 
-        // Reveal full assist immediately
         assistOpacity = 1;
         assistFullyDrawn = true;
         startGreenTraceAnimation();
 
-        // After green trace animation, move to next problem
         setTimeout(() => {
+          freezeGreen = false; // reset for next problem
           loadNextProblem();
-        }, 2500); // spell popup + green trace time
+        }, 2500);
+
+      } else {
+        if (!freezeGreen) { 
+          isCorrectFinal = false;
+          vanishSpell();
+        }
       }
+    }
+
+
+
+    function calculateTraceLength() {
+      let total = 0;
+      for (let i = 1; i < userTrace.length; i++) {
+        const dx = userTrace[i].x - userTrace[i-1].x;
+        const dy = userTrace[i].y - userTrace[i-1].y;
+        total += Math.sqrt(dx*dx + dy*dy);
+      }
+      return total;
+    }
+
+
+    function vanishSpell() {
+      let fade = 1;
+
+      function animate() {
+        ctx.clearRect(0, 0, width, height);
+        drawGridAndAxes();
+
+        if (userTrace.length > 0) {
+          ctx.save();
+          ctx.globalAlpha = fade;
+          ctx.beginPath();
+          userTrace.forEach((pt, i) => {
+            const cx = toCanvasX(pt.x);
+            const cy = toCanvasY(pt.y);
+            if (i === 0) ctx.moveTo(cx, cy);
+            else ctx.lineTo(cx, cy);
+          });
+          ctx.strokeStyle = "#ffaa33"; // fading out orange
+          ctx.lineWidth = 4;
+          ctx.shadowColor = "#ffaa33";
+          ctx.shadowBlur = 20;
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        fade -= 0.05;
+        if (fade > 0) {
+          requestAnimationFrame(animate);
+        } else {
+          userTrace = [];
+          isCorrect = false;
+          isCorrectFinal = false;
+          redrawTrace();
+        }
+      }
+
+      requestAnimationFrame(animate);
     }
 
 
@@ -527,7 +832,7 @@
         if (userTrace.length > 0) {
           ctx.save();
           ctx.globalAlpha = 1 - t;
-          const color = "#ffaa33"; // user color
+          const color = freezeGreen ? "#00ff88" : "#ffaa33"; // green if frozen
           ctx.beginPath();
           userTrace.forEach((pt, i) => {
             const cx = toCanvasX(pt.x);
@@ -618,6 +923,18 @@
       return `y = ${aStr} ${bStr}`;
     }
 
+    window.addEventListener('load', () => {
+      for (let i = 0; i < 3; i++) {
+        const box = document.getElementById(`initial-${i}`);
+        box.addEventListener('input', () => {
+          if (box.value.trim() !== "") {
+            box.style.backgroundColor = "#00ff88"; // light green
+          } else {
+            box.style.backgroundColor = "#fff"; // back to white if emptied
+          }
+        });
+      }
+    });
 
 
   </script>
