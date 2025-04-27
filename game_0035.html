@@ -109,12 +109,7 @@
       cursor: pointer;
       display: block;
     }
-#start-screen {
-  text-align: center;
-  padding: 2rem;
-  font-family: sans-serif;
-  color: white;
-}
+
 
 #function-types {
   display: grid;
@@ -239,6 +234,9 @@
     const functionCoefficient = choices[Math.floor(Math.random() * choices.length)];
     const functionConstant = choices[Math.floor(Math.random() * choices.length)];
 
+    let assistTimeoutId = null;
+    let assistAllowed = false;
+
     const spellIncantations = {
       linear: "Linus Lux!",
       quadratic: "Quadraticus Arcana!",
@@ -332,6 +330,12 @@
 
 
     function restartGame() {
+
+      if (assistTimeoutId !== null) {
+        clearTimeout(assistTimeoutId);
+        assistTimeoutId = null;
+      }
+
       // Hide overlay and turn-in screen
       document.getElementById('overlay').classList.add('hidden');
       const turnInScreen = document.getElementById('turn-in-screen');
@@ -376,7 +380,24 @@
       document.getElementById("initial-0").focus();
     }
 
+
+    if (assistTimeoutId !== null) {
+      clearTimeout(assistTimeoutId);
+      assistTimeoutId = null;
+    }
+
+
     function loadNextProblem() {
+      // --- Reset assist system ---
+      if (assistTimeoutId !== null) {
+        clearTimeout(assistTimeoutId);
+        assistTimeoutId = null;
+      }
+      assistOpacity = 0;
+      assistFullyDrawn = false;
+      assistAllowed = (assistDelay !== Infinity);
+
+      // --- End game if finished ---
       if (currentProblemIndex >= totalProblems) {
         endGame();
         return;
@@ -384,41 +405,40 @@
 
       currentProblemIndex++;
 
-      // Clear previous traces
+      // --- Clear previous traces ---
       userTrace = [];
       isCorrect = false;
       isCorrectFinal = false;
       ctx.clearRect(0, 0, width, height);
       drawGridAndAxes();
 
-      // Randomly pick a function type
+      // --- Pick a new function type ---
       const funcType = selectedFunctionTypes[Math.floor(Math.random() * selectedFunctionTypes.length)];
-
       currentFunctionType = funcType;
       currentSpellName = spellIncantations[funcType];
 
-
-      // Generate a new random function based on funcType
+      // --- Generate a new random function ---
       const { func, latex } = generateFunction(funcType);
       targetFunction = func;
 
-      // Show the equation
-      const equationLatex = latex;
-      document.getElementById("equationLatex").innerHTML = `\\(${equationLatex}\\)`;
+      // --- Display the equation ---
+      document.getElementById("equationLatex").innerHTML = `\\(${latex}\\)`;
       MathJax.typesetPromise();
 
-      // Assist graph timing
-      if (assistDelay !== Infinity) {
-        setTimeout(() => {
+      // --- Set up assist if allowed ---
+      if (assistAllowed) {
+        assistTimeoutId = setTimeout(() => {
           fadeInAssist();
         }, assistDelay);
       }
-      // Enable player drawing (already set up)
     }
 
 
 
     function fadeInAssist() {
+      if (!assistAllowed) {
+        return; // Prevent assist if not allowed
+      }
       assistOpacity = 0;
       function animate() {
         assistOpacity += 0.001;  // control speed of fade
@@ -430,6 +450,7 @@
       }
       requestAnimationFrame(animate);
     }
+
 
     function generateFunction(type) {
       const bChoices = [-5, -3, -1, 0, 1, 3, 5];
