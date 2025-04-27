@@ -76,11 +76,39 @@
       font-size: 32px;
       width: 220px;
     }
-    #start-screen {
-      text-align: center;
-      padding: 2rem;
-      font-family: sans-serif;
-    }
+#start-screen {
+  text-align: center;
+  padding: 2rem;
+  font-family: sans-serif;
+  position: absolute; /* 🛠 make it flexible on the page */
+  top: 10vh; /* 🛠 adjust this value to move it up or down */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90vw; /* optional: keeps content neat on small screens */
+  max-width: 600px; /* optional: keeps start screen from getting too wide */
+}
+
+/* --- 📱 iPad Landscape --- */
+@media (max-width: 1100px) and (orientation: landscape) {
+  #start-screen {
+    top: 5vh; /* 👈 move start screen slightly higher */
+  }
+}
+
+/* --- 📱 iPad Portrait --- */
+@media (max-width: 850px) and (orientation: portrait) {
+  #start-screen {
+    top: 10vh; /* 👈 even higher for tall screens */
+  }
+}
+
+/* --- 📱 Phone Portrait --- */
+@media (max-width: 600px) and (orientation: portrait) {
+  #start-screen {
+    top: 8vh; /* 👈 higher still if needed */
+  }
+}
+
     #overlay {
       position: fixed;
       top: 0; left: 0;
@@ -142,6 +170,65 @@
   margin-top: 1rem;
 }
 
+    /* Base setup */
+    body {
+      background-image: url('game_0035_background4.png'); /* 🖼 Your image here */
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: center bottom;
+      background-attachment: fixed; /* optional, for a "fixed" background feel */
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    /* Equation placement */
+    #equationLatex {
+      position: absolute;
+      top: 59vh; /* Adjust as needed */
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 36px;
+      text-align: center;
+    }
+
+    /* 🧹 Clean up default layout */
+    #game-screen {
+      position: relative; /* Make sure equation is positioned relative to game screen */
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* --- 📱 iPad Landscape --- */
+    @media (max-width: 1100px) and (orientation: landscape) {
+      body {
+        background-position: center calc(100% + 40px); /* 👈 shift book slightly upward */
+      }
+      #equationLatex {
+        top: 62vh; /* 👈 hover a little higher */
+      }
+    }
+
+    /* --- 📱 iPad Portrait --- */
+    @media (max-width: 850px) and (orientation: portrait) {
+      body {
+        background-position: center calc(100% + 40px); /* 👈 more upward shift */
+      }
+      #equationLatex {
+        top: 60vh; /* 👈 higher for tall screen */
+      }
+    }
+
+    /* --- 📱 Phone Portrait --- */
+    @media (max-width: 600px) and (orientation: portrait) {
+      body {
+        background-position: center calc(100% - 80px);
+      }
+      #equationLatex {
+        top: 58vh;
+      }
+    }
 
 
   </style>
