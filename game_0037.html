@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Human Cannon Coordinate Plane</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #87CEEB; /* sky blue background fallback */
+      font-family: sans-serif;
+    }
+    #gameCanvas {
+      display: block;
+      margin: 0 auto;
+    }
+    #equationLatex {
+      position: absolute;
+      top: 5vh;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 32px;
+      color: white;
+      text-shadow: 0 0 8px #000;
+    }
+  </style>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+
+<div id="equationLatex">Loading equation...</div>
+<canvas id="gameCanvas" width="1200" height="600"></canvas>
+
+<script>
+// ----- World Settings -----
+const worldMinX = -12, worldMaxX = 12;
+const worldMinY = -2, worldMaxY = 10;
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const width = canvas.width;
+const height = canvas.height;
+
+// ----- Load Background Image -----
+const backgroundImage = new Image();
+backgroundImage.src = 'game_0037_background_1.png';
+
+// ----- Mapping Functions -----
+function toCanvasX(x) {
+  return ((x - worldMinX) / (worldMaxX - worldMinX)) * width;
+}
+
+function toCanvasY(y) {
+  return height - ((y - worldMinY) / (worldMaxY - worldMinY)) * height;
+}
+
+// ----- Game State Placeholders -----
+let human = { x: 0, y: 0, vx: 0 };
+let cannonX = 0;
+let poolX = 0;
+let root1 = 0;
+let root2 = 0;
+let launched = false;
+
+// ----- Drawing Functions -----
+function drawGridAndAxes() {
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+  ctx.lineWidth = 1;
+
+  for (let x = Math.ceil(worldMinX); x <= worldMaxX; x++) {
+    const cx = toCanvasX(x);
+    ctx.beginPath();
+    ctx.moveTo(cx, 0);
+    ctx.lineTo(cx, height);
+    ctx.stroke();
+  }
+  for (let y = Math.ceil(worldMinY); y <= worldMaxY; y++) {
+    const cy = toCanvasY(y);
+    ctx.beginPath();
+    ctx.moveTo(0, cy);
+    ctx.lineTo(width, cy);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = 'white';
+  ctx.lineWidth = 2;
+
+  ctx.beginPath();
+  ctx.moveTo(0, toCanvasY(0));
+  ctx.lineTo(width, toCanvasY(0));
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(toCanvasX(0), 0);
+  ctx.lineTo(toCanvasX(0), height);
+  ctx.stroke();
+}
+
+function drawSprites() {
+  ctx.fillStyle = 'gray';
+  ctx.fillRect(toCanvasX(cannonX) - 20, toCanvasY(0) - 40, 40, 40);
+
+  ctx.fillStyle = 'blue';
+  ctx.beginPath();
+  ctx.arc(toCanvasX(poolX), toCanvasY(0), 20, 0, 2 * Math.PI);
+  ctx.fill();
+
+  ctx.font = '30px Arial';
+  ctx.fillText('🤹‍♂️', toCanvasX(human.x) - 15, toCanvasY(human.y));
+}
+
+function draw() {
+  ctx.clearRect(0, 0, width, height);
+
+  // Draw background image scaled to canvas
+  if (backgroundImage.complete) {
+    ctx.drawImage(backgroundImage, 0, 0, width, height);
+  }
+
+  drawGridAndAxes();
+  drawSprites();
+}
+
+// ----- Motion Functions -----
+function evaluateQuadratic(x) {
+  const A = -2;
+  return A * (x - root1) * (x - root2);
+}
+
+function update() {
+  if (launched) {
+    human.x += human.vx;
+    human.y = evaluateQuadratic(human.x);
+
+    if ((human.vx > 0 && human.x >= poolX) || (human.vx < 0 && human.x <= poolX)) {
+      checkLanding();
+    }
+  }
+}
+
+function checkLanding() {
+  launched = false;
+  const distanceX = Math.abs(human.x - poolX);
+  if (distanceX <= 0.5) {
+    alert('Success!');
+  } else {
+    alert('Missed!');
+  }
+  reset();
+}
+
+function launch() {
+  launched = true;
+  human.vx = (poolX > cannonX) ? 0.1 : -0.1;
+}
+
+// ----- Setup Functions -----
+function generateEquation() {
+  root1 = Math.floor(Math.random() * 9) - 4;
+  do {
+    root2 = Math.floor(Math.random() * 9) - 4;
+  } while (root2 === root1);
+
+  if (root1 > root2) [root1, root2] = [root2, root1];
+
+  cannonX = root1;
+  poolX = root2;
+
+  human.x = cannonX;
+  human.y = evaluateQuadratic(cannonX);
+
+  document.getElementById("equationLatex").innerHTML = `$$y = -2(x ${-root1 >= 0 ? '+' : ''}${-root1})(x ${-root2 >= 0 ? '+' : ''}${-root2})$$`;
+  if (window.MathJax && MathJax.typesetPromise) {
+    MathJax.typesetPromise();
+  } else {
+    console.warn("MathJax not loaded");
+  }
+}
+
+function reset() {
+  launched = false;
+  generateEquation();
+}
+
+// ----- Controls -----
+document.addEventListener('keydown', (e) => {
+  if (!launched && e.key === ' ') {
+    launch();
+  }
+});
+
+// ----- Game Loop -----
+function gameLoop() {
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+// ----- Start Game -----
+reset();
+gameLoop();
+
+</script>
+
+</body>
+</html>
