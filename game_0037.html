@@ -2,203 +2,394 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Human Cannon Coordinate Plane</title>
+  <title>Ski Jump Game - Clean Version</title>
   <style>
     body {
+      background-color: #87CEEB;
+      color: #fff;
+      font-family: 'Georgia', serif;
+      text-align: center;
       margin: 0;
-      overflow: hidden;
-      background: #87CEEB; /* sky blue background fallback */
-      font-family: sans-serif;
+      padding: 0;
+      font-size: 18px;
+      background: url('game_0037_foreground_2.png') no-repeat center bottom;
+      background-size: cover;
+      background-attachment: fixed;
+      background-color: #121212; /* fallback color if image fails */
     }
     #gameCanvas {
       display: block;
       margin: 0 auto;
+      margin-top: 40px;
     }
     #equationLatex {
       position: absolute;
-      top: 5vh;
+      bottom: -170px;          /* Pull up inside the window, nice and cozy */
+      width: 35%;            /* Wider to center nicely */
+      height: 15%;
+      text-align: center;
+      font-size: 28px;
+      color: black;
+      z-index: 3;
+      pointer-events: none;  /* Allow clicks through */
+      background: rgba(255, 255, 255, 0.7); /* Soft translucent background */
+      padding: 3px 6px;     /* Cozy breathing space */
+      border-radius: 12px;   /* Rounded corners */
+      margin: 0 auto;
       left: 50%;
-      transform: translateX(-50%);
-      font-size: 32px;
-      color: white;
-      text-shadow: 0 0 8px #000;
+      transform: translateX(-50%); /* Perfect center horizontally */
     }
+
+
   </style>
-  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script>
+  window.MathJax = {
+    tex: {inlineMath: [['$', '$'], ['\\(', '\\)']]},
+    svg: {fontCache: 'global'}
+  };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body>
 
-<div id="equationLatex">Loading equation...</div>
-<canvas id="gameCanvas" width="1200" height="600"></canvas>
+<div id="gameWrapper" style="position: relative; width: 1080px; height: 600px; margin: auto; border: none;">
+  <canvas id="gameCanvas" width="1080" height="600" style="position: absolute; top: 0; left: 0; z-index: 1;"></canvas>
+  <div id="equationLatex"></div>
+</div>
+
 
 <script>
-// ----- World Settings -----
-const worldMinX = -12, worldMaxX = 12;
-const worldMinY = -2, worldMaxY = 10;
 
+// ==========================
+// Constants and Assets
+// ==========================
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const width = canvas.width;
 const height = canvas.height;
 
-// ----- Load Background Image -----
+const world = { minX: -12, maxX: 12, minY: -2, maxY: 12 };
+const g = 1;
+const possibleA = [-0.5, -1, -2];
+
+const offsets = {
+  jump: { x: -55, y: -96 },
+  skier: { x: -30, y: -70 },
+  fire: { x: -41, y: -90 }
+};
+
 const backgroundImage = new Image();
-backgroundImage.src = 'game_0037_background_1.png';
+backgroundImage.src = 'game_0037_background_2.png';
+const skierImage = new Image();
+skierImage.src = 'game_0037_skier_2.png';
+const jumpImage = new Image();
+jumpImage.src = 'game_0037_jump_1.png';
+const fireImage = new Image();
+fireImage.src = 'game_0037_fire_1.png';
 
-// ----- Mapping Functions -----
+
+// ==========================
+// State Variables
+// ==========================
+let skier = { x: 0, y: 0, vx: 0 };
+let root1 = 0, root2 = 0, A = 0;
+let ramp1 = 0, ramp2 = 0;
+let vertexX = 0, vertexY = 0;
+let launched = false, landed = false, readyToLaunch = false, allowInput = true;
+let goingRight = true, reachedPeak = false;
+let baseSpeed = 0;
+let showAssist = true;
+let flightSpeedMultiplier = 0; // Add this new state variable
+
+
+// ==========================
+// Utility Functions
+// ==========================
 function toCanvasX(x) {
-  return ((x - worldMinX) / (worldMaxX - worldMinX)) * width;
+  return ((x - world.minX) / (world.maxX - world.minX)) * width;
 }
-
 function toCanvasY(y) {
-  return height - ((y - worldMinY) / (worldMaxY - worldMinY)) * height;
+  return height - ((y - world.minY) / (world.maxY - world.minY)) * height;
+}
+function evaluateQuadratic(x, Aparam = A, r1 = root1, r2 = root2) {
+  return Aparam * (x - r1) * (x - r2);
 }
 
-// ----- Game State Placeholders -----
-let human = { x: 0, y: 0, vx: 0 };
-let cannonX = 0;
-let poolX = 0;
-let root1 = 0;
-let root2 = 0;
-let launched = false;
+function slopeAtRoot(rootX) {
+  return A * (2 * rootX - (root1 + root2));
+}
 
-// ----- Drawing Functions -----
-function drawGridAndAxes() {
-  ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-  ctx.lineWidth = 1;
+function drawAssistParabola() {
+  ctx.save();
+  ctx.beginPath();
+  let started = false;
+  const step = 0.05; // smoothness of curve
+  for (let x = root1; x <= root2; x += step) {
+    const y = evaluateQuadratic(x, A, root1, root2);
+    if (y > 0) {
+      const cx = toCanvasX(x);
+      const cy = toCanvasY(y);
+      if (!started) {
+        ctx.moveTo(cx, cy);
+        started = true;
+      } else {
+        ctx.lineTo(cx, cy);
+      }
+    }
+  }
+  ctx.strokeStyle = 'black';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+}
 
-  for (let x = Math.ceil(worldMinX); x <= worldMaxX; x++) {
+// ==========================
+// Game Functions (MATH ONLY)
+// ==========================
+function updatePhysics() {
+  if (!launched) return;
+
+  if (!landed) {
+    if (goingRight) {
+      if (skier.x < root1) { // Approach
+        skier.vx = baseSpeed;
+        skier.y = 0;
+      } else if (skier.x <= root2) { // Jump phase
+        skier.vx = baseSpeed * flightSpeedMultiplier;
+        skier.y = evaluateQuadratic(skier.x, A, root1, root2);
+        if (skier.y > 0) reachedPeak = true;
+        if (reachedPeak && skier.y <= 0) checkLanding();
+      } else { // After jump
+        skier.vx = baseSpeed;
+        skier.y = 0;
+        checkLanding();
+      }
+    } else {
+      if (skier.x > root2) { // Approach
+        skier.vx = -baseSpeed;
+        skier.y = 0;
+      } else if (skier.x >= root1) { // Jump phase
+        skier.vx = -baseSpeed * flightSpeedMultiplier;
+        skier.y = evaluateQuadratic(skier.x, A, root1, root2);
+        if (skier.y > 0) reachedPeak = true;
+        if (reachedPeak && skier.y <= 0) checkLanding();
+      } else { // After jump
+        skier.vx = -baseSpeed;
+        skier.y = 0;
+        checkLanding();
+      }
+    }
+  } else {
+    skier.vx = goingRight ? 0.1 : -0.1;
+    skier.y = 0;
+  }
+
+  skier.x += skier.vx;
+}
+
+function launchSkier() {
+  launched = true;
+  readyToLaunch = false;
+  allowInput = false;
+
+  const h = Math.abs(vertexY);
+  baseSpeed = Math.sqrt(2 * g * h) * 0.1;
+
+  const launchSlope = goingRight ? slopeAtRoot(root1) : slopeAtRoot(root2);
+  const launchAngle = Math.atan(launchSlope);
+  flightSpeedMultiplier = Math.abs(Math.cos(launchAngle));
+
+  skier.vx = goingRight ? baseSpeed : -baseSpeed;
+}
+
+function checkLanding() {
+  if (landed) return;
+
+  const tolerance = 0.4;
+  const targetX = goingRight ? ramp2 : ramp1;
+
+  if (Math.abs(skier.x - targetX) <= tolerance) {
+    console.log("Perfect Landing!");
+    landed = true;
+    setTimeout(resetGame, 3000);
+  } else {
+    console.log("Crash Landing!");
+    launched = false;
+    setTimeout(resetGame, 2000);
+  }
+}
+
+function generateNewEquation() {
+  do {
+    root1 = Math.floor(Math.random() * 17) - 6;
+    root2 = Math.floor(Math.random() * 17) - 6;
+  } while (root2 === root1 || Math.abs(root2 - root1) < 4);
+
+  if (root1 > root2) [root1, root2] = [root2, root1];
+
+  ramp1 = root1;
+  ramp2 = root2;
+
+  goingRight = Math.random() < 0.5;
+  A = possibleA[Math.floor(Math.random() * possibleA.length)];
+
+  vertexX = (root1 + root2) / 2;
+  vertexY = evaluateQuadratic(vertexX, A, root1, root2);
+
+  if (Math.abs(vertexY) > 9) {
+    generateNewEquation();
+    return;
+  }
+
+  if (Math.abs(root2 - root1) < 6 && Math.random() < 0.8) {
+    // re-roll to make wider jumps happen sometimes
+    return generateNewEquation();
+  }
+
+  skier.x = goingRight ? world.minX - 2 : world.maxX + 2;
+  skier.y = 0;
+
+  document.getElementById("equationLatex").innerHTML = `$$y = ${A}(x ${-root1 >= 0 ? '+' : ''}${-root1})(x ${-root2 >= 0 ? '+' : ''}${-root2})$$`;
+  if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) MathJax.typesetPromise();
+}
+
+function resetGame() {
+  skier = { x: 0, y: 0, vx: 0 };
+  launched = false;
+  landed = false;
+  readyToLaunch = true;
+  allowInput = true;
+  reachedPeak = false;
+  baseSpeed = 0;
+  generateNewEquation();
+}
+
+
+// ==========================
+// Draw Functions (RENDER ONLY)
+// ==========================
+function drawWorld() {
+  ctx.clearRect(0, 0, width, height);
+  if (backgroundImage.complete) ctx.drawImage(backgroundImage, 0, 0, width, height);
+
+  drawGrid();
+  drawJump();
+  if (showAssist) {
+    drawAssistParabola();
+  }
+  drawSkier();
+  drawFire();
+}
+
+
+// drawGrid updated only
+function drawGrid() {
+  ctx.strokeStyle = 'darkgrey';
+  ctx.lineWidth = 0.25;
+
+  for (let x = Math.ceil(world.minX); x <= world.maxX; x++) {
     const cx = toCanvasX(x);
     ctx.beginPath();
     ctx.moveTo(cx, 0);
     ctx.lineTo(cx, height);
+    if (Math.abs(x) < 0.001) {
+      ctx.strokeStyle = 'darkgrey';
+      ctx.lineWidth = 2;
+    } else {
+      ctx.strokeStyle = 'darkgrey';
+      ctx.lineWidth = 0.5;
+    }
     ctx.stroke();
   }
-  for (let y = Math.ceil(worldMinY); y <= worldMaxY; y++) {
+
+  for (let y = Math.ceil(world.minY); y <= world.maxY; y++) {
     const cy = toCanvasY(y);
     ctx.beginPath();
     ctx.moveTo(0, cy);
     ctx.lineTo(width, cy);
+    if (Math.abs(y) < 0.001) {
+      ctx.strokeStyle = 'darkgrey';
+      ctx.lineWidth = 2;
+    } else {
+      ctx.strokeStyle = 'darkgrey';
+      ctx.lineWidth = 0.5;
+    }
     ctx.stroke();
   }
-
-  ctx.strokeStyle = 'white';
-  ctx.lineWidth = 2;
-
-  ctx.beginPath();
-  ctx.moveTo(0, toCanvasY(0));
-  ctx.lineTo(width, toCanvasY(0));
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(toCanvasX(0), 0);
-  ctx.lineTo(toCanvasX(0), height);
-  ctx.stroke();
 }
 
-function drawSprites() {
-  ctx.fillStyle = 'gray';
-  ctx.fillRect(toCanvasX(cannonX) - 20, toCanvasY(0) - 40, 40, 40);
 
-  ctx.fillStyle = 'blue';
-  ctx.beginPath();
-  ctx.arc(toCanvasX(poolX), toCanvasY(0), 20, 0, 2 * Math.PI);
-  ctx.fill();
-
-  ctx.font = '30px Arial';
-  ctx.fillText('🤹‍♂️', toCanvasX(human.x) - 15, toCanvasY(human.y));
+function drawJump() {
+  if (!jumpImage.complete) return;
+  ctx.drawImage(jumpImage, toCanvasX(ramp1) + offsets.jump.x, toCanvasY(0) + offsets.jump.y, 100, 100);
+  drawMirroredImage(jumpImage, toCanvasX(ramp2) + offsets.jump.x, toCanvasY(0) + offsets.jump.y, 100, 100);
 }
 
-function draw() {
-  ctx.clearRect(0, 0, width, height);
-
-  // Draw background image scaled to canvas
-  if (backgroundImage.complete) {
-    ctx.drawImage(backgroundImage, 0, 0, width, height);
-  }
-
-  drawGridAndAxes();
-  drawSprites();
+function drawFire() {
+  if (!fireImage.complete) return;
+  ctx.drawImage(fireImage, toCanvasX(vertexX) + offsets.fire.x, toCanvasY(vertexY) + offsets.fire.y, 80, 150);
 }
 
-// ----- Motion Functions -----
-function evaluateQuadratic(x) {
-  const A = -2;
-  return A * (x - root1) * (x - root2);
-}
-
-function update() {
-  if (launched) {
-    human.x += human.vx;
-    human.y = evaluateQuadratic(human.x);
-
-    if ((human.vx > 0 && human.x >= poolX) || (human.vx < 0 && human.x <= poolX)) {
-      checkLanding();
-    }
-  }
-}
-
-function checkLanding() {
-  launched = false;
-  const distanceX = Math.abs(human.x - poolX);
-  if (distanceX <= 0.5) {
-    alert('Success!');
+function drawSkier() {
+  if (!skierImage.complete || !launched) return;
+  if (goingRight) {
+    drawMirroredImage(skierImage, toCanvasX(skier.x) + offsets.skier.x, toCanvasY(skier.y) + offsets.skier.y, 60, 90);
   } else {
-    alert('Missed!');
-  }
-  reset();
-}
-
-function launch() {
-  launched = true;
-  human.vx = (poolX > cannonX) ? 0.1 : -0.1;
-}
-
-// ----- Setup Functions -----
-function generateEquation() {
-  root1 = Math.floor(Math.random() * 9) - 4;
-  do {
-    root2 = Math.floor(Math.random() * 9) - 4;
-  } while (root2 === root1);
-
-  if (root1 > root2) [root1, root2] = [root2, root1];
-
-  cannonX = root1;
-  poolX = root2;
-
-  human.x = cannonX;
-  human.y = evaluateQuadratic(cannonX);
-
-  document.getElementById("equationLatex").innerHTML = `$$y = -2(x ${-root1 >= 0 ? '+' : ''}${-root1})(x ${-root2 >= 0 ? '+' : ''}${-root2})$$`;
-  if (window.MathJax && MathJax.typesetPromise) {
-    MathJax.typesetPromise();
-  } else {
-    console.warn("MathJax not loaded");
+    ctx.drawImage(skierImage, toCanvasX(skier.x) + offsets.skier.x, toCanvasY(skier.y) + offsets.skier.y, 60, 90);
   }
 }
 
-function reset() {
-  launched = false;
-  generateEquation();
+function drawMirroredImage(img, x, y, w, h) {
+  ctx.save();
+  ctx.scale(-1, 1);
+  ctx.drawImage(img, -x - w, y, w, h);
+  ctx.restore();
 }
 
-// ----- Controls -----
+
+// ==========================
+// Input Handling
+// ==========================
 document.addEventListener('keydown', (e) => {
-  if (!launched && e.key === ' ') {
-    launch();
+  if (!allowInput) return;
+
+  if (readyToLaunch) {
+    if (e.key === ' ') {
+      launchSkier();
+    } else if (e.key === 'ArrowLeft') {
+      if (goingRight) ramp2 -= 0.25;
+      else ramp1 -= 0.25;
+    } else if (e.key === 'ArrowRight') {
+      if (goingRight) ramp2 += 0.25;
+      else ramp1 += 0.25;
+    }
   }
 });
 
-// ----- Game Loop -----
+
+// ==========================
+// Main Game Loop
+// ==========================
 function gameLoop() {
-  update();
-  draw();
+  updatePhysics();
+  drawWorld();
   requestAnimationFrame(gameLoop);
 }
 
-// ----- Start Game -----
-reset();
-gameLoop();
+
+// ==========================
+// Start Game
+// ==========================
+if (typeof MathJax !== 'undefined' && MathJax.startup) {
+  MathJax.startup.promise.then(() => {
+    resetGame();
+    gameLoop();
+  });
+} else {
+  console.warn("MathJax startup not loaded. Starting immediately.");
+  resetGame();
+  gameLoop();
+}
 
 </script>
 
