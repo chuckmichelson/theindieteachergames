@@ -12,9 +12,6 @@
       margin: 0;
       padding: 0;
       font-size: 18px;
-      background: url('game_0037_foreground_2.png') no-repeat center bottom;
-      background-size: cover;
-      background-attachment: fixed;
       background-color: #121212; /* fallback color if image fails */
     }
     #gameCanvas {
@@ -39,6 +36,28 @@
       left: 50%;
       transform: translateX(-50%); /* Perfect center horizontally */
     }
+    #backgroundWrapper {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw; /* Full viewport width */
+      height: 100vh; /* Full viewport height */
+      overflow: hidden;
+      z-index: 0; /* Behind everything */
+    }
+
+    #backgroundImage {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: 
+        translate(-50%, -50%) /* center */
+        translate(0px, -28px) /* nudge right +10px, up -30px */
+        scale(0.8355); /* zoom in 1.3x */
+      min-width: 120vw;
+      min-height: 120vh;
+    }
+
 
 
   </style>
@@ -52,10 +71,16 @@
 </head>
 <body>
 
+<div id="backgroundWrapper">
+  <img id="backgroundImage" src="game_0037_unifiedbackground_01.png">
+</div>
+
 <div id="gameWrapper" style="position: relative; width: 1080px; height: 600px; margin: auto; border: none;">
   <canvas id="gameCanvas" width="1080" height="600" style="position: absolute; top: 0; left: 0; z-index: 1;"></canvas>
   <div id="equationLatex"></div>
 </div>
+
+
 
 
 <script>
@@ -78,15 +103,16 @@ const offsets = {
   fire: { x: -41, y: -90 }
 };
 
+
 const backgroundImage = new Image();
-backgroundImage.src = 'game_0037_background_2.png';
+backgroundImage.src = 'game_0037_unifiedbackground_01.png';
+
 const skierImage = new Image();
 skierImage.src = 'game_0037_skier_2.png';
 const jumpImage = new Image();
 jumpImage.src = 'game_0037_jump_1.png';
 const fireImage = new Image();
 fireImage.src = 'game_0037_fire_1.png';
-
 
 // ==========================
 // State Variables
@@ -98,8 +124,10 @@ let vertexX = 0, vertexY = 0;
 let launched = false, landed = false, readyToLaunch = false, allowInput = true;
 let goingRight = true, reachedPeak = false;
 let baseSpeed = 0;
-let showAssist = true;
+let showAssist = false;
 let flightSpeedMultiplier = 0; // Add this new state variable
+let ringX = 0;
+let ringY = 2; // starting height
 
 
 // ==========================
@@ -185,6 +213,8 @@ function updatePhysics() {
   }
 
   skier.x += skier.vx;
+
+
 }
 
 function launchSkier() {
@@ -220,6 +250,9 @@ function checkLanding() {
 }
 
 function generateNewEquation() {
+  ringX = (ramp1 + ramp2) / 2;
+  ringY = 2;
+
   do {
     root1 = Math.floor(Math.random() * 17) - 6;
     root2 = Math.floor(Math.random() * 17) - 6;
@@ -270,7 +303,8 @@ function resetGame() {
 // ==========================
 function drawWorld() {
   ctx.clearRect(0, 0, width, height);
-  if (backgroundImage.complete) ctx.drawImage(backgroundImage, 0, 0, width, height);
+
+
 
   drawGrid();
   drawJump();
@@ -280,6 +314,7 @@ function drawWorld() {
   drawSkier();
   drawFire();
 }
+
 
 
 // drawGrid updated only
@@ -327,7 +362,7 @@ function drawJump() {
 
 function drawFire() {
   if (!fireImage.complete) return;
-  ctx.drawImage(fireImage, toCanvasX(vertexX) + offsets.fire.x, toCanvasY(vertexY) + offsets.fire.y, 80, 150);
+  ctx.drawImage(fireImage, toCanvasX(ringX) + offsets.fire.x, toCanvasY(ringY) + offsets.fire.y, 80, 150);
 }
 
 function drawSkier() {
@@ -362,7 +397,12 @@ document.addEventListener('keydown', (e) => {
     } else if (e.key === 'ArrowRight') {
       if (goingRight) ramp2 += 0.25;
       else ramp1 += 0.25;
+    } else if (e.key === 'ArrowUp') {
+      ringY += 0.25;
+    } else if (e.key === 'ArrowDown') {
+      ringY -= 0.25;
     }
+
   }
 });
 
