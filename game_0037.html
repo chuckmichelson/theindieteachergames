@@ -35,7 +35,21 @@
       left: 50%;
       transform: translateX(-50%); /* Perfect center horizontally */
     }
-
+    #launchButton {
+      position: absolute;
+      bottom: -170px;          /* Pull up inside the window, nice and cozy */
+      width: 40%;            /* Wider to center nicely */
+      height: 15%;
+      text-align: center;
+      font-size: 28px;
+      color: black;
+      z-index: 3;
+      padding: 3px 6px;     /* Cozy breathing space */
+      border-radius: 12px;   /* Rounded corners */
+      margin: 0 auto;
+      left: 50%;
+      transform: translateX(-50%); /* Perfect center horizontally */
+    }
 
   </style>
   <script>
@@ -50,7 +64,7 @@
 
 <div id="gameWrapper" style="position: relative; width: 1080px; height: 600px; margin: auto; border: none;">
   <canvas id="gameCanvas" width="1080" height="600" style="position: absolute; top: 0; left: 0; z-index: 1;"></canvas>
-  <div id="equationLatex"></div>
+  <button id="launchButton" onclick="launchSkier()">Launch</button>
 </div>
 
 
@@ -514,10 +528,6 @@ function generateNewEquation() {
   skier.x = goingRight ? world.minX - 2 : world.maxX + 2;
   skier.y = 0;
 
-  // Create LaTeX for the equation
-  document.getElementById("equationLatex").innerHTML = `$$y = ${A}(x ${-root1 >= 0 ? '+' : ''}${-root1})(x ${-root2 >= 0 ? '+' : ''}${-root2})$$`;
-  if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) MathJax.typesetPromise();
-
   // --- New: Calculate flipStartX and flipEndX ---
   // Solve for where y = 3 (f(x) - 3 = 0)
   const a = A;
@@ -539,6 +549,16 @@ function generateNewEquation() {
     flipStartX = xA;
     flipEndX = xB;
   }
+
+
+  // Update Launch Button LaTeX
+  const launchButton = document.getElementById("launchButton");
+  launchButton.innerHTML = `\\( y = ${A}(x ${-root1 >= 0 ? '+' : ''}${-root1})(x ${-root2 >= 0 ? '+' : ''}${-root2}) \\)`;
+
+  if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
+    MathJax.typesetPromise([launchButton]);
+  }
+
 }
 
 
