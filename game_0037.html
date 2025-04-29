@@ -5,7 +5,6 @@
   <title>Ski Jump Game - Clean Version</title>
   <style>
     body {
-      background-color: #87CEEB;
       color: #fff;
       font-family: 'Georgia', serif;
       text-align: center;
@@ -19,11 +18,21 @@
       margin: 0 auto;
       margin-top: 40px;
     }
-    #equationLatex {
+
+    #equationContainer {
       position: absolute;
       bottom: -170px;          /* Pull up inside the window, nice and cozy */
-      width: 35%;            /* Wider to center nicely */
-      height: 15%;
+      width: 36%;            /* Wider to center nicely */
+      height: 14%;
+      padding: 3px 6px;     /* Cozy breathing space */
+      border-radius: 12px;   /* Rounded corners */
+      margin: 0 auto;
+      left: 50%;
+      transform: translateX(-50%); /* Perfect center horizontally */
+    }
+
+
+    #equationLatex {
       text-align: center;
       font-size: 28px;
       color: black;
@@ -33,31 +42,21 @@
       padding: 3px 6px;     /* Cozy breathing space */
       border-radius: 12px;   /* Rounded corners */
       margin: 0 auto;
+    }
+
+
+    #buttonInstructions {
+      position: absolute;
+      bottom: -270px;          /* Pull up inside the window, nice and cozy */
+      width: 35%;            /* Wider to center nicely */
+      height: 15%;
+      color: darkgrey;
+      padding: 3px 6px;     /* Cozy breathing space */
+      border-radius: 12px;   /* Rounded corners */
+      margin: 0 auto;
       left: 50%;
       transform: translateX(-50%); /* Perfect center horizontally */
     }
-    #backgroundWrapper {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw; /* Full viewport width */
-      height: 100vh; /* Full viewport height */
-      overflow: hidden;
-      z-index: 0; /* Behind everything */
-    }
-
-    #backgroundImage {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: 
-        translate(-50%, -50%) /* center */
-        translate(0px, -28px) /* nudge right +10px, up -30px */
-        scale(0.8355); /* zoom in 1.3x */
-      min-width: 120vw;
-      min-height: 120vh;
-    }
-
 
 
   </style>
@@ -71,16 +70,15 @@
 </head>
 <body>
 
-<div id="backgroundWrapper">
-  <img id="backgroundImage" src="game_0037_unifiedbackground_01.png">
-</div>
-
 <div id="gameWrapper" style="position: relative; width: 1080px; height: 600px; margin: auto; border: none;">
   <canvas id="gameCanvas" width="1080" height="600" style="position: absolute; top: 0; left: 0; z-index: 1;"></canvas>
-  <div id="equationLatex"></div>
+  <div id="equationContainer">
+    <div id="equationLatex"></div>
+  </div>
+  <div id="buttonInstructions">
+    <p>Tap equation to launch</p>
+  </div>
 </div>
-
-
 
 
 <script>
@@ -95,24 +93,26 @@ const height = canvas.height;
 
 const world = { minX: -12, maxX: 12, minY: -2, maxY: 12 };
 const g = 1;
-const possibleA = [-0.5, -1, -2];
+const possibleA = [-.125,-0.25, -0.5, -1, -2];
+
+const fireSafeTolerance = 0.5;   // Close enough = bonus
+const fireDangerTolerance = 1.5; // Not too far = death
 
 const offsets = {
-  jump: { x: -55, y: -96 },
+  jump: { x: -75, y: -82 },
   skier: { x: -30, y: -70 },
-  fire: { x: -41, y: -90 }
+  fire: { x: -41, y: -76 }
 };
 
-
 const backgroundImage = new Image();
-backgroundImage.src = 'game_0037_unifiedbackground_01.png';
-
+backgroundImage.src = 'game_0037_background_2.png';
 const skierImage = new Image();
 skierImage.src = 'game_0037_skier_2.png';
 const jumpImage = new Image();
-jumpImage.src = 'game_0037_jump_1.png';
+jumpImage.src = 'game_0037_jump.png';
 const fireImage = new Image();
-fireImage.src = 'game_0037_fire_1.png';
+fireImage.src = 'game_0037_fire.png';
+
 
 // ==========================
 // State Variables
@@ -124,10 +124,92 @@ let vertexX = 0, vertexY = 0;
 let launched = false, landed = false, readyToLaunch = false, allowInput = true;
 let goingRight = true, reachedPeak = false;
 let baseSpeed = 0;
-let showAssist = false;
+let showAssist = true;
 let flightSpeedMultiplier = 0; // Add this new state variable
 let ringX = 0;
 let ringY = 2; // starting height
+let score = 0;
+let scorePopups = []; // Store active "+5" popups
+let fireChecked = false;
+let trialScore = {
+  landingCategory: "miss",
+  fireCategory: "miss",
+  landingAwarded: false,
+  fireAwarded: false,
+  perfectTrial: false
+};
+let showGlow = true;
+let flipping = false;
+let totalFlips = 0; // how many total flips to complete
+let flipStartY = null;
+let flipEndY = null;
+let flipStartTime = null;
+let flipEndTime = null;
+let flipAngle = 0; // current flip angle
+let flipDirection = 1; // 1 = backflip, -1 = frontflip
+
+
+
+let touchStartX = null;
+let touchStartY = null;
+
+
+
+
+// ==========================
+// User controls
+// ==========================
+document.addEventListener('touchstart', function (e) {
+  if (gameRunning) {
+    e.preventDefault();
+  }
+
+  if (e.touches.length === 1) {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }
+}, { passive: false });
+
+document.addEventListener('touchend', function (e) {
+  if (gameRunning) {
+    e.preventDefault();
+  }
+
+  if (touchStartX === null || touchStartY === null) return;
+
+  const touchEndX = e.changedTouches[0].clientX;
+  const touchEndY = e.changedTouches[0].clientY;
+  const dx = touchEndX - touchStartX;
+  const dy = touchEndY - touchStartY;
+
+  const absDx = Math.abs(dx);
+  const absDy = Math.abs(dy);
+  const minSwipe = 30;
+
+  if (absDx > absDy && absDx > minSwipe) {
+    simulateArrowPress(dx > 0 ? 'ArrowRight' : 'ArrowLeft');
+  } else if (absDy > absDx && absDy > minSwipe) {
+    simulateArrowPress(dy > 0 ? 'ArrowDown' : 'ArrowUp');
+  }
+
+  touchStartX = null;
+  touchStartY = null;
+}, { passive: false });
+
+
+
+const equationContainer = document.getElementById('equationContainer');
+
+equationContainer.addEventListener('click', () => {
+  if (readyToLaunch && allowInput) {
+    launchSkier();
+  }
+});
+
+equationContainer.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+}, { passive: false });
+
 
 
 // ==========================
@@ -175,6 +257,9 @@ function drawAssistParabola() {
 // Game Functions (MATH ONLY)
 // ==========================
 function updatePhysics() {
+
+  ringX = (ramp1 + ramp2) / 2;
+
   if (!launched) return;
 
   if (!landed) {
@@ -186,11 +271,9 @@ function updatePhysics() {
         skier.vx = baseSpeed * flightSpeedMultiplier;
         skier.y = evaluateQuadratic(skier.x, A, root1, root2);
         if (skier.y > 0) reachedPeak = true;
-        if (reachedPeak && skier.y <= 0) checkLanding();
       } else { // After jump
         skier.vx = baseSpeed;
         skier.y = 0;
-        checkLanding();
       }
     } else {
       if (skier.x > root2) { // Approach
@@ -200,11 +283,9 @@ function updatePhysics() {
         skier.vx = -baseSpeed * flightSpeedMultiplier;
         skier.y = evaluateQuadratic(skier.x, A, root1, root2);
         if (skier.y > 0) reachedPeak = true;
-        if (reachedPeak && skier.y <= 0) checkLanding();
       } else { // After jump
         skier.vx = -baseSpeed;
         skier.y = 0;
-        checkLanding();
       }
     }
   } else {
@@ -214,44 +295,224 @@ function updatePhysics() {
 
   skier.x += skier.vx;
 
+// --- Flipping Management (based on x) ---
+if (trialScore.perfectTrial && vertexY > 4) {
+  if (!flipStartX && !flipEndX) {
+    // Solve for flip region first: f(x) - 3 = 0
+    const a = A;
+    const b = -A * (root1 + root2);
+    const c = A * (root1 * root2) - 3;
 
+    const discriminant = b * b - 4 * a * c;
+    if (discriminant < 0) {
+      console.error("No real solutions for flip region!");
+    } else {
+      const sqrtD = Math.sqrt(discriminant);
+      let xA = (-b + sqrtD) / (2 * a);
+      let xB = (-b - sqrtD) / (2 * a);
+
+      // Make sure startX < endX
+      if (xA > xB) [xA, xB] = [xB, xA];
+
+      flipStartX = xA;
+      flipEndX = xB;
+    }
+  }
+
+  // Now, once the skier ENTERS the flip region, start flipping
+  if (!flipping && skier.x >= flipStartX && skier.x <= flipEndX) {
+    flipping = true;
+
+    // Deterministic choice of flips based on vertexY
+    if (vertexY <= 5) {
+      totalFlips = 0;
+    } else if (vertexY <= 7) {
+      totalFlips = 1;
+    } else if (vertexY <= 9) {
+      totalFlips = 2;
+    }
+
+    console.log(`Starting ${totalFlips} flips!`);
+    flipAngle = 0;
+  }
 }
+
+
+  // Update flip during motion
+  if (flipping) {
+    const flipProgress = (skier.x - flipStartX) / (flipEndX - flipStartX);
+    const clampedProgress = Math.min(Math.max(flipProgress, 0), 1);
+    flipAngle = 2 * Math.PI * totalFlips * clampedProgress;
+
+    if (flipProgress > 1) {
+      flipping = false;
+      flipAngle = 0;
+    }
+  }
+
+  // --- Fire Ring Crossing ---
+  if (!trialScore.fireAwarded) {
+    const crossedFire = goingRight 
+      ? skier.x >= ringX
+      : skier.x <= ringX;
+
+    if (crossedFire) {
+      trialScore.fireAwarded = true;
+
+      if (trialScore.fireCategory === "perfect") {
+        score += 5;
+        createScorePopup(skier.x, skier.y, "+5");
+      } else if (trialScore.fireCategory === "normal") {
+        score += 3;
+        createScorePopup(skier.x, skier.y, "+3");
+      } else { // Fire category is "miss"
+        console.log("Missed fire ring.");
+
+        const verticalDifference = Math.abs(skier.y - ringY);
+
+        if (verticalDifference <= fireDangerTolerance) {
+          console.log("Hit the ring badly! SMOKE!");
+          createSmokePuff(skier.x, skier.y);
+          launched = false;
+          landed = false;
+          setTimeout(resetGame, 2000);
+        }
+      }
+    }
+  }
+
+  // --- Landing Check ---
+  if (!trialScore.landingAwarded) {
+    const landingX = goingRight ? root2 : root1;
+    const closeToLanding = Math.abs(skier.x - landingX) <= 0.25; // Forgiving
+
+    if (closeToLanding) {
+      trialScore.landingAwarded = true;
+      if (trialScore.landingCategory === "perfect") {
+        score += 5;
+        createScorePopup(skier.x, skier.y, "+5 Perfect Landing");
+      } else if (trialScore.landingCategory === "normal") {
+        score += 3;
+        createScorePopup(skier.x, skier.y, "+3 Landing");
+      } else {
+        console.log("Bad landing.");
+      }
+    }
+  }
+
+  // --- Final Landing (Crash or Success) ---
+  if (trialScore.landingAwarded && !landed && skier.y <= 0) {
+    landed = true;
+
+    if (trialScore.landingCategory === "miss") {
+      console.log("Missed landing! Crash!");
+      createSplat(skier.x, skier.y);
+      launched = false;
+      setTimeout(resetGame, 3000);
+    } else {
+      console.log("Successful landing!");
+      setTimeout(resetGame, 3000);
+    }
+  }
+}
+
+
+
+function createSmokePuff(x, y) {
+  scorePopups.push({
+    x: toCanvasX(x),
+    y: toCanvasY(y),
+    text: "💨", // emoji smoke puff
+    opacity: 1.0,
+    lifetime: 60
+  });
+}
+
+
+function createSplat(x, y) {
+  scorePopups.push({
+    x: toCanvasX(x),
+    y: toCanvasY(y),
+    text: "🤬", // splat
+    opacity: 1.0,
+    lifetime: 60
+  });
+}
+
 
 function launchSkier() {
   launched = true;
   readyToLaunch = false;
   allowInput = false;
+  showGlow = false; // 👈 Turn off glow at launch
 
   const h = Math.abs(vertexY);
   baseSpeed = Math.sqrt(2 * g * h) * 0.1;
+
+  flipDirection = Math.random() < 0.5 ? 1 : -1; // 50/50 backflip or frontflip
 
   const launchSlope = goingRight ? slopeAtRoot(root1) : slopeAtRoot(root2);
   const launchAngle = Math.atan(launchSlope);
   flightSpeedMultiplier = Math.abs(Math.cos(launchAngle));
 
   skier.vx = goingRight ? baseSpeed : -baseSpeed;
+
+  scoreTrial();
 }
 
-function checkLanding() {
-  if (landed) return;
 
-  const tolerance = 0.4;
-  const targetX = goingRight ? ramp2 : ramp1;
 
-  if (Math.abs(skier.x - targetX) <= tolerance) {
-    console.log("Perfect Landing!");
-    landed = true;
-    setTimeout(resetGame, 3000);
+
+function createScorePopup(x, y, text) {
+  scorePopups.push({
+    x: toCanvasX(x),
+    y: toCanvasY(y),
+    text: text,
+    opacity: 1.0,
+    lifetime: 60 // frames
+  });
+}
+
+
+function scoreTrial() {
+  const landingTolerancePerfect = 0.25;
+  const landingToleranceNormal = 0.75;
+  const targetX = goingRight ? root2 : root1;
+  const landingError = Math.abs((goingRight ? ramp2 : ramp1) - targetX);
+
+  if (landingError <= landingTolerancePerfect) {
+    trialScore.landingCategory = "perfect";
+  } else if (landingError <= landingToleranceNormal) {
+    trialScore.landingCategory = "normal";
   } else {
-    console.log("Crash Landing!");
-    launched = false;
-    setTimeout(resetGame, 2000);
+    trialScore.landingCategory = "miss";
+  }
+
+  const fireTolerancePerfect = 0.25;
+  const fireToleranceNormal = 0.75;
+  const fireError = Math.abs(ringY - vertexY);
+
+  if (fireError <= fireTolerancePerfect) {
+    trialScore.fireCategory = "perfect";
+  } else if (fireError <= fireToleranceNormal) {
+    trialScore.fireCategory = "normal";
+  } else {
+    trialScore.fireCategory = "miss";
+  }
+
+  trialScore.landingAwarded = false;
+  trialScore.fireAwarded = false;
+  trialScore.perfectTrial = (trialScore.landingCategory === "perfect" && trialScore.fireCategory === "perfect");
+
+  // If perfect trial, set flag so that we can later trigger the flip animation during flight
+  if (trialScore.perfectTrial) {
+    skier.doingFlip = false; // Start flip only later at right moment
   }
 }
 
+
 function generateNewEquation() {
   ringX = (ramp1 + ramp2) / 2;
-  ringY = 2;
 
   do {
     root1 = Math.floor(Math.random() * 17) - 6;
@@ -279,12 +540,37 @@ function generateNewEquation() {
     return generateNewEquation();
   }
 
+  // Set skier starting position
   skier.x = goingRight ? world.minX - 2 : world.maxX + 2;
   skier.y = 0;
 
+  // Create LaTeX for the equation
   document.getElementById("equationLatex").innerHTML = `$$y = ${A}(x ${-root1 >= 0 ? '+' : ''}${-root1})(x ${-root2 >= 0 ? '+' : ''}${-root2})$$`;
   if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) MathJax.typesetPromise();
+
+  // --- New: Calculate flipStartX and flipEndX ---
+  // Solve for where y = 3 (f(x) - 3 = 0)
+  const a = A;
+  const b = -A * (root1 + root2);
+  const c = A * (root1 * root2) - 3; // <-- Note: -3, not -2
+
+  const discriminant = b * b - 4 * a * c;
+  if (discriminant < 0) {
+    console.error("No real solutions for flip region! Setting flipStartX and flipEndX to NaN.");
+    flipStartX = NaN;
+    flipEndX = NaN;
+  } else {
+    const sqrtD = Math.sqrt(discriminant);
+    let xA = (-b + sqrtD) / (2 * a);
+    let xB = (-b - sqrtD) / (2 * a);
+
+    if (xA > xB) [xA, xB] = [xB, xA]; // Make sure xA < xB
+
+    flipStartX = xA;
+    flipEndX = xB;
+  }
 }
+
 
 function resetGame() {
   skier = { x: 0, y: 0, vx: 0 };
@@ -294,8 +580,12 @@ function resetGame() {
   allowInput = true;
   reachedPeak = false;
   baseSpeed = 0;
+  fireChecked = false;
+  showGlow = true; // 🌟 Turn glow back ON for new setup
   generateNewEquation();
 }
+
+
 
 
 // ==========================
@@ -303,8 +593,7 @@ function resetGame() {
 // ==========================
 function drawWorld() {
   ctx.clearRect(0, 0, width, height);
-
-
+  if (backgroundImage.complete) ctx.drawImage(backgroundImage, 0, 0, width, height);
 
   drawGrid();
   drawJump();
@@ -313,8 +602,44 @@ function drawWorld() {
   }
   drawSkier();
   drawFire();
+  drawScorePopups(); // ✅ Draw score popups
+
+  // ✨ Draw Score in upper-left
+  ctx.save();
+  ctx.font = 'bold 28px Georgia';
+  ctx.fillStyle = 'white';
+  ctx.shadowColor = 'black';
+  ctx.shadowBlur = 4;
+  ctx.textAlign = 'left';
+  ctx.fillText(`Score: ${score}`, 20, 40);
+  ctx.restore();
 }
 
+
+
+function drawScorePopups() {
+  ctx.save();
+  ctx.font = 'bold 24px Georgia';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'gold';
+  ctx.shadowColor = 'black';
+  ctx.shadowBlur = 4;
+
+  scorePopups.forEach(popup => {
+    ctx.globalAlpha = popup.opacity;
+    ctx.fillText(popup.text, popup.x, popup.y);
+  });
+
+  ctx.restore();
+
+  // Update popups
+  scorePopups = scorePopups.filter(popup => {
+    popup.y -= 1; // move up
+    popup.opacity -= 0.02; // fade out
+    popup.lifetime--;
+    return popup.lifetime > 0 && popup.opacity > 0;
+  });
+}
 
 
 // drawGrid updated only
@@ -356,23 +681,72 @@ function drawGrid() {
 
 function drawJump() {
   if (!jumpImage.complete) return;
-  ctx.drawImage(jumpImage, toCanvasX(ramp1) + offsets.jump.x, toCanvasY(0) + offsets.jump.y, 100, 100);
-  drawMirroredImage(jumpImage, toCanvasX(ramp2) + offsets.jump.x, toCanvasY(0) + offsets.jump.y, 100, 100);
+
+  // Draw first ramp (always normal)
+  ctx.save();
+  if (showGlow && !goingRight) { // If leftward movement, ramp1 is movable
+    ctx.shadowColor = 'gold';
+    ctx.shadowBlur = 20;
+  }
+  ctx.drawImage(jumpImage, toCanvasX(ramp1) + offsets.jump.x, toCanvasY(0) + offsets.jump.y, 150, 100);
+  ctx.restore();
+
+  // Draw second ramp (always mirrored)
+  ctx.save();
+  if (showGlow && goingRight) { // If rightward movement, ramp2 is movable
+    ctx.shadowColor = 'gold';
+    ctx.shadowBlur = 20;
+  }
+  drawMirroredImage(jumpImage, toCanvasX(ramp2) + offsets.jump.x, toCanvasY(0) + offsets.jump.y, 150, 100);
+  ctx.restore();
 }
+
 
 function drawFire() {
   if (!fireImage.complete) return;
+
+  ringX = (ramp1 + ramp2) / 2;
+
+  ctx.save();
+
+  if (showGlow) {
+    // ✨ Glow effect
+    ctx.shadowColor = 'gold';
+    ctx.shadowBlur = 20;
+  } else {
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+  }
+
   ctx.drawImage(fireImage, toCanvasX(ringX) + offsets.fire.x, toCanvasY(ringY) + offsets.fire.y, 80, 150);
+  ctx.restore();
 }
+
 
 function drawSkier() {
   if (!skierImage.complete || !launched) return;
-  if (goingRight) {
-    drawMirroredImage(skierImage, toCanvasX(skier.x) + offsets.skier.x, toCanvasY(skier.y) + offsets.skier.y, 60, 90);
-  } else {
-    ctx.drawImage(skierImage, toCanvasX(skier.x) + offsets.skier.x, toCanvasY(skier.y) + offsets.skier.y, 60, 90);
+  
+  ctx.save();
+
+  const skierCanvasX = toCanvasX(skier.x) + offsets.skier.x + 30; // 30 is half skier width
+  const skierCanvasY = toCanvasY(skier.y) + offsets.skier.y + 45; // 45 is half skier height
+
+  ctx.translate(skierCanvasX, skierCanvasY);
+
+  if (flipping) {
+    ctx.rotate(flipAngle * flipDirection);
   }
+
+  if (goingRight) {
+    ctx.scale(-1, 1);
+    ctx.drawImage(skierImage, -30, -45, 60, 90);
+  } else {
+    ctx.drawImage(skierImage, -30, -45, 60, 90);
+  }
+
+  ctx.restore();
 }
+
 
 function drawMirroredImage(img, x, y, w, h) {
   ctx.save();
@@ -394,17 +768,19 @@ document.addEventListener('keydown', (e) => {
     } else if (e.key === 'ArrowLeft') {
       if (goingRight) ramp2 -= 0.25;
       else ramp1 -= 0.25;
+      ringX = (ramp1 + ramp2) / 2; // ✅ update fire immediately
     } else if (e.key === 'ArrowRight') {
       if (goingRight) ramp2 += 0.25;
       else ramp1 += 0.25;
+      ringX = (ramp1 + ramp2) / 2; // ✅ update fire immediately
     } else if (e.key === 'ArrowUp') {
       ringY += 0.25;
     } else if (e.key === 'ArrowDown') {
       ringY -= 0.25;
     }
-
   }
 });
+
 
 
 // ==========================
