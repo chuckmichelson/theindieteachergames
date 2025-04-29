@@ -1,9 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="icon" type="image/png" href="favicon.png">
-  <link rel="apple-touch-icon" href="favicon.png">
-  <link rel="shortcut icon" href="favicon.ico">
   <meta charset="UTF-8">
   <title>Ski Jump Game - Clean Version</title>
   <style>
@@ -38,11 +35,7 @@
       left: 50%;
       transform: translateX(-50%); /* Perfect center horizontally */
     }
-    #gameWrapper {
-      position: relative;
-      margin: auto;
-      border: none;
-    }
+
 
   </style>
   <script>
@@ -187,37 +180,6 @@ canvas.addEventListener('touchmove', (e) => {
 
 canvas.addEventListener('touchend', () => {
   draggingObject = null;
-});
-
-
-
-document.addEventListener('DOMContentLoaded', () => {
-  const gameWrapper = document.getElementById('gameWrapper');
-  const canvas = document.getElementById('gameCanvas');
-  const aspectRatio = 1.8; // width / height = 1080 / 600
-
-  if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-    // Touch device (like iPad)
-    gameWrapper.style.width = '70vw';     // 90% of viewport width
-    gameWrapper.style.maxWidth = '600px'; // cap at 800px
-
-    const width = gameWrapper.clientWidth;
-    const height = width / aspectRatio;
-
-    canvas.width = width;
-    canvas.height = height;
-    gameWrapper.style.height = height + 'px'; // set wrapper height too
-  } else {
-    // Non-touch device (like laptop)
-    const width = 1080;
-    const height = width / aspectRatio;
-
-    gameWrapper.style.width = width + 'px';
-    gameWrapper.style.height = height + 'px';
-
-    canvas.width = width;
-    canvas.height = height;
-  }
 });
 
 // ==========================
