@@ -18,39 +18,17 @@
       margin: 0 auto;
       margin-top: 40px;
     }
-
-    #equationContainer {
+    #equationLatex {
       position: absolute;
       bottom: -170px;          /* Pull up inside the window, nice and cozy */
-      width: 36%;            /* Wider to center nicely */
-      height: 14%;
-      padding: 3px 6px;     /* Cozy breathing space */
-      border-radius: 12px;   /* Rounded corners */
-      margin: 0 auto;
-      left: 50%;
-      transform: translateX(-50%); /* Perfect center horizontally */
-    }
-
-
-    #equationLatex {
+      width: 35%;            /* Wider to center nicely */
+      height: 15%;
       text-align: center;
       font-size: 28px;
       color: black;
       z-index: 3;
       pointer-events: none;  /* Allow clicks through */
       background: rgba(255, 255, 255, 0.7); /* Soft translucent background */
-      padding: 3px 6px;     /* Cozy breathing space */
-      border-radius: 12px;   /* Rounded corners */
-      margin: 0 auto;
-    }
-
-
-    #buttonInstructions {
-      position: absolute;
-      bottom: -270px;          /* Pull up inside the window, nice and cozy */
-      width: 35%;            /* Wider to center nicely */
-      height: 15%;
-      color: darkgrey;
       padding: 3px 6px;     /* Cozy breathing space */
       border-radius: 12px;   /* Rounded corners */
       margin: 0 auto;
@@ -72,12 +50,7 @@
 
 <div id="gameWrapper" style="position: relative; width: 1080px; height: 600px; margin: auto; border: none;">
   <canvas id="gameCanvas" width="1080" height="600" style="position: absolute; top: 0; left: 0; z-index: 1;"></canvas>
-  <div id="equationContainer">
-    <div id="equationLatex"></div>
-  </div>
-  <div id="buttonInstructions">
-    <p>Tap equation to launch</p>
-  </div>
+  <div id="equationLatex"></div>
 </div>
 
 
@@ -150,66 +123,64 @@ let flipDirection = 1; // 1 = backflip, -1 = frontflip
 
 
 
-let touchStartX = null;
-let touchStartY = null;
+let draggingObject = null; // 'ramp' or 'ring'
+let touchStartX = 0;
+let touchStartY = 0;
 
-
-
-
-// ==========================
-// User controls
-// ==========================
-document.addEventListener('touchstart', function (e) {
-  if (gameRunning) {
-    e.preventDefault();
-  }
-
-  if (e.touches.length === 1) {
-    touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
-  }
-}, { passive: false });
-
-document.addEventListener('touchend', function (e) {
-  if (gameRunning) {
-    e.preventDefault();
-  }
-
-  if (touchStartX === null || touchStartY === null) return;
-
-  const touchEndX = e.changedTouches[0].clientX;
-  const touchEndY = e.changedTouches[0].clientY;
-  const dx = touchEndX - touchStartX;
-  const dy = touchEndY - touchStartY;
-
-  const absDx = Math.abs(dx);
-  const absDy = Math.abs(dy);
-  const minSwipe = 30;
-
-  if (absDx > absDy && absDx > minSwipe) {
-    simulateArrowPress(dx > 0 ? 'ArrowRight' : 'ArrowLeft');
-  } else if (absDy > absDx && absDy > minSwipe) {
-    simulateArrowPress(dy > 0 ? 'ArrowDown' : 'ArrowUp');
-  }
-
-  touchStartX = null;
-  touchStartY = null;
-}, { passive: false });
-
-
-
-const equationContainer = document.getElementById('equationContainer');
-
-equationContainer.addEventListener('click', () => {
-  if (readyToLaunch && allowInput) {
-    launchSkier();
-  }
-});
-
-equationContainer.addEventListener('touchstart', (e) => {
+canvas.addEventListener('touchstart', (e) => {
   e.preventDefault();
+  const touch = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  const x = touch.clientX - rect.left;
+  const y = touch.clientY - rect.top;
+
+  const canvasX_ring = toCanvasX((ramp1 + ramp2) / 2);
+  const canvasY_ring = toCanvasY(ringY);
+  if (Math.abs(x - canvasX_ring) < 60 && Math.abs(y - canvasY_ring) < 60) {
+    draggingObject = 'ring';
+  }
+
+  const targetRamp = goingRight ? ramp2 : ramp1;
+  const canvasX_ramp = toCanvasX(targetRamp);
+  const canvasY_ramp = toCanvasY(0);
+  if (Math.abs(x - canvasX_ramp) < 60 && Math.abs(y - canvasY_ramp) < 60) {
+    draggingObject = 'ramp';
+  }
+
+  touchStartX = x;
+  touchStartY = y;
 }, { passive: false });
 
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  if (!draggingObject) return;
+
+  const touch = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  const x = touch.clientX - rect.left;
+  const y = touch.clientY - rect.top;
+
+  const dx = x - touchStartX;
+  const dy = y - touchStartY;
+
+  // Convert dx and dy from pixels to world units
+  const dxWorld = dx / width * (world.maxX - world.minX);
+  const dyWorld = -dy / height * (world.maxY - world.minY);
+
+  if (draggingObject === 'ramp') {
+    if (goingRight) ramp2 += dxWorld;
+    else ramp1 += dxWorld;
+  } else if (draggingObject === 'ring') {
+    ringY += dyWorld;
+  }
+
+  touchStartX = x;
+  touchStartY = y;
+}, { passive: false });
+
+canvas.addEventListener('touchend', () => {
+  draggingObject = null;
+});
 
 
 // ==========================
