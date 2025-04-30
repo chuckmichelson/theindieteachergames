@@ -94,6 +94,44 @@
       left: 50%;
       transform: translateX(-50%); /* Perfect center horizontally */
     }
+    #end-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+    }
+
+    #end-card {
+      background-color: #222;
+      border: 2px solid gold;
+      border-radius: 16px;
+      padding: 40px;
+      text-align: center;
+      color: gold;
+      font-family: 'Georgia', serif;
+      box-shadow: 0 0 20px gold;
+    }
+
+    #end-card h2 {
+      font-size: 36px;
+      margin-bottom: 16px;
+    }
+
+    #end-card button {
+      margin-top: 30px;
+      font-size: 20px;
+      padding: 10px 24px;
+      background-color: gold;
+      color: black;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
 
   </style>
   <script>
@@ -107,10 +145,9 @@
 <body>
 <div id="menuContainer">
   <select id="level-select">
-    <option value="1" selected>🏂 Freestyle</option>
-    <option value="2">🐰 Factors</option>
-    <option value="3">🐰 Vertex</option>
-    <option value="4">🐰 Standard</option>
+    <option value="2">🐰 Factored Form</option>
+    <option value="3">🐰 Vertex Form</option>
+    <option value="4">🐰 Standard Form</option>
   </select>
 </div>
 <div id="settingsContainer">
@@ -120,7 +157,15 @@
 
 <div id="gameWrapper" style="position: relative; width: 1080px; height: 600px; margin: auto; border: none;">
   <canvas id="gameCanvas" width="1080" height="600" style="position: absolute; top: 0; left: 0; z-index: 1;"></canvas>
+  <div id="end-screen" style="display: none;">
+    <div id="end-card">
+      <h2>🎯 Score</h2>
+      <div id="final-score" style="font-size: 32px; margin: 20px 0;"></div>
+      <button id="play-again">Play Again</button>
+    </div>
+  </div>
   <button id="launchButton" onclick="launchSkier()">Launch</button>
+
 </div>
 
 
@@ -173,6 +218,9 @@ let flightSpeedMultiplier = 0; // Add this new state variable
 let ringX = 0;
 let ringY = 2; // starting height
 let score = 0;
+const endScreen = document.getElementById("end-screen");
+const finalScoreText = document.getElementById("final-score");
+const playAgainButton = document.getElementById("play-again");
 let scorePopups = []; // Store active "+5" popups
 let fireChecked = false;
 let trialScore = {
@@ -307,11 +355,10 @@ document.addEventListener('DOMContentLoaded', () => {
       displayForm = "standard";
     }
 
-    resetGame(); // ✅ Restart the game
-
-    // ✅ Remove focus to hide blue highlight
+    updateEquationDisplay(); // ✅ Just change form, not problem
     e.target.blur();
   });
+
 
 
 
@@ -358,6 +405,13 @@ function drawAssistParabola() {
   ctx.stroke();
   ctx.restore();
 }
+
+
+function showEndScreen() {
+  finalScoreText.textContent = `${score}`;
+  endScreen.style.display = 'flex';
+}
+
 
 // ==========================
 // Game Functions (MATH ONLY)
@@ -476,13 +530,18 @@ if (trialScore.perfectTrial && vertexY > 4) {
 
         const verticalDifference = Math.abs(skier.y - ringY);
 
+
         if (verticalDifference <= fireDangerTolerance) {
           console.log("Hit the ring badly! SMOKE!");
           createSmokePuff(skier.x, skier.y);
           launched = false;
           landed = false;
-          setTimeout(resetGame, 2000);
+          setTimeout(() => {
+            if (score > 0) showEndScreen();
+            else resetGame();
+          }, 1500);
         }
+
       }
     }
   }
@@ -514,10 +573,17 @@ if (trialScore.perfectTrial && vertexY > 4) {
       console.log("Missed landing! Crash!");
       createSplat(skier.x, skier.y);
       launched = false;
-      setTimeout(resetGame, 3000);
+      setTimeout(() => {
+        if (score > 0) showEndScreen();
+        else resetGame(); // no score? just retry quietly
+      }, 1500);
+
     } else {
       console.log("Successful landing!");
-      setTimeout(resetGame, 3000);
+      setTimeout(() => {
+        resetGame();
+      }, 1500);
+
     }
   }
 }
@@ -627,8 +693,18 @@ function generateNewEquation() {
 
   if (root1 > root2) [root1, root2] = [root2, root1];
 
-  ramp1 = root1;
-  ramp2 = root2;
+  if (goingRight) {
+    ramp1 = root1; // launch point
+    const maxX = world.maxX - 1; // give some buffer
+    const minX = root2 + 2; // always past the root
+    ramp2 = Math.random() * (maxX - minX) + minX;
+  } else {
+    ramp2 = root2;
+    const minX = world.minX + 1;
+    const maxX = root1 - 2;
+    ramp1 = Math.random() * (maxX - minX) + minX;
+  }
+
 
   goingRight = Math.random() < 0.5;
   A = possibleA[Math.floor(Math.random() * possibleA.length)];
@@ -715,10 +791,20 @@ function resetGame() {
   reachedPeak = false;
   baseSpeed = 0;
   fireChecked = false;
-  showGlow = true; // 🌟 Turn glow back ON for new setup
-  showAssist = false;
+  showGlow = true;
+  flipStartX = null;
+  flipEndX = null;
+  flipping = false;
+  flipAngle = 0;
+  totalFlips = 0;
+
+  // Hide end screen if showing
+  endScreen.style.display = 'none';
+
   generateNewEquation();
+  updateEquationDisplay();
 }
+
 
 
 
@@ -962,6 +1048,13 @@ if (typeof MathJax !== 'undefined' && MathJax.startup) {
   resetGame();
   gameLoop();
 }
+
+
+playAgainButton.addEventListener('click', () => {
+  score = 0;
+  resetGame();
+});
+
 
 </script>
 
