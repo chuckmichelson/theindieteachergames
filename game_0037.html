@@ -325,13 +325,14 @@ document.addEventListener('DOMContentLoaded', () => {
     canvas.style.marginTop = '0px';
     launchButton.style.top = '610px';
     settingsContainer.style.top = '617px';
-    menuContainer.top = '618px';
+    menuContainer.style.top = '618px'; // for touch
   } else {
     // Desktop
     canvas.style.marginTop = '40px';
     launchButton.style.top = '670px';
     settingsContainer.style.top = '677px';
-    menuContainer.top = '678px';
+    menuContainer.style.top = '678px'; // for desktop
+
 
     // 👉 Add background image for desktop only
     body.style.backgroundImage = "url('game_0037_foreground_2.png')";
