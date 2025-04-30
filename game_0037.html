@@ -58,6 +58,21 @@
       z-index: 3;
     }
 
+    #launchButton {
+      position: absolute;
+      bottom: -140px;          /* Pull up inside the window, nice and cozy */
+      width: 40%;            /* Wider to center nicely */
+      height: 12%;
+      text-align: center;
+      font-size: 28px;
+      color: black;
+      z-index: 3;
+      padding: 3px 4px;     /* Cozy breathing space */
+      border-radius: 12px;   /* Rounded corners */
+      margin: 0 auto;
+      left: 50%;
+      transform: translateX(-50%); /* Perfect center horizontally */
+    }
 
   </style>
   <script>
@@ -72,7 +87,6 @@
 <div id="settingsContainer">
   <button class="setting-button" id="toggleLabels">🧮</button>
   <button class="setting-button" id="toggleAssist">📈</button>
-  <button class="setting-button" id="toggleFire">🔥</button>
 </div>
 
 <div id="gameWrapper" style="position: relative; width: 1080px; height: 600px; margin: auto; border: none;">
@@ -124,9 +138,8 @@ let vertexX = 0, vertexY = 0;
 let launched = false, landed = false, readyToLaunch = false, allowInput = true;
 let goingRight = true, reachedPeak = false;
 let baseSpeed = 0;
-let showAssist = true;
-let showLabels = true;
-let showFireBonus = true;
+let showAssist = false;
+let showLabels = false;
 let flightSpeedMultiplier = 0; // Add this new state variable
 let ringX = 0;
 let ringY = 2; // starting height
@@ -225,23 +238,29 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log("Show assist:", showAssist);
   });
 
-  document.getElementById('toggleFire').addEventListener('click', () => {
-    showFireBonus = !showFireBonus;
-    console.log("Show fire bonus:", showFireBonus);
-  });
 
+
+  const body = document.body;
 
   if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-    // Touch device (like iPad)
+    // Touch device
     canvas.style.marginTop = '0px';
-    launchButton.style.top = '610px'; // 👈 Slightly higher for iPad
-    settingsContainer.style.top = '615px'; // 👈 Slightly higher for iPad
+    launchButton.style.top = '610px';
+    settingsContainer.style.top = '617px';
   } else {
-    // Laptop or non-touch
+    // Desktop
     canvas.style.marginTop = '40px';
-    launchButton.style.top = '670px'; // 👈 Normal position
-    settingsContainer.style.top = '675px'; // 👈 Slightly higher for iPad
+    launchButton.style.top = '670px';
+    settingsContainer.style.top = '677px';
+
+    // 👉 Add background image for desktop only
+    body.style.backgroundImage = "url('game_0037_foreground_2.png')";
+    body.style.backgroundRepeat = 'no-repeat';
+    body.style.backgroundPosition = 'center bottom';
+    body.style.backgroundSize = 'cover';
+    body.style.backgroundAttachment = 'fixed';
   }
+
 });
 
 
@@ -651,7 +670,7 @@ function drawWorld() {
   ctx.shadowColor = 'black';
   ctx.shadowBlur = 4;
   ctx.textAlign = 'left';
-  ctx.fillText(`Score: ${score}`, 20, 40);
+  ctx.fillText(`Score: ${score}`, 20, 15);
   ctx.restore();
 }
 
@@ -686,12 +705,17 @@ function drawScorePopups() {
 function drawGrid() {
   ctx.strokeStyle = 'darkgrey';
   ctx.lineWidth = 0.25;
+  ctx.font = '12px Georgia';
+  ctx.fillStyle = 'black';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
 
   for (let x = Math.ceil(world.minX); x <= world.maxX; x++) {
     const cx = toCanvasX(x);
     ctx.beginPath();
     ctx.moveTo(cx, 0);
     ctx.lineTo(cx, height);
+
     if (Math.abs(x) < 0.001) {
       ctx.strokeStyle = 'darkgrey';
       ctx.lineWidth = 2;
@@ -699,7 +723,13 @@ function drawGrid() {
       ctx.strokeStyle = 'darkgrey';
       ctx.lineWidth = 0.5;
     }
+
     ctx.stroke();
+
+    // 👉 Draw X axis numbers
+    if (showLabels) {
+      ctx.fillText(x, cx, toCanvasY(0) + 2); // numbers just below the axis
+    }
   }
 
   for (let y = Math.ceil(world.minY); y <= world.maxY; y++) {
@@ -707,6 +737,7 @@ function drawGrid() {
     ctx.beginPath();
     ctx.moveTo(0, cy);
     ctx.lineTo(width, cy);
+
     if (Math.abs(y) < 0.001) {
       ctx.strokeStyle = 'darkgrey';
       ctx.lineWidth = 2;
@@ -714,9 +745,18 @@ function drawGrid() {
       ctx.strokeStyle = 'darkgrey';
       ctx.lineWidth = 0.5;
     }
+
     ctx.stroke();
+
+    // 👉 Draw Y axis numbers
+    if (showLabels) {
+      ctx.textAlign = 'right';
+      ctx.fillText(y, toCanvasX(0) - 5, cy - 6); // numbers to the left of axis
+      ctx.textAlign = 'center'; // reset for x-axis
+    }
   }
 }
+
 
 
 function drawJump() {
