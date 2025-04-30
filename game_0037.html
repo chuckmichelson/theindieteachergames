@@ -18,33 +18,16 @@
       margin: 0 auto;
       margin-top: 40px;
     }
-    #equationLatex {
-      position: absolute;
-      bottom: -170px;          /* Pull up inside the window, nice and cozy */
-      width: 35%;            /* Wider to center nicely */
-      height: 15%;
-      text-align: center;
-      font-size: 28px;
-      color: black;
-      z-index: 3;
-      pointer-events: none;  /* Allow clicks through */
-      background: rgba(255, 255, 255, 0.7); /* Soft translucent background */
-      padding: 3px 6px;     /* Cozy breathing space */
-      border-radius: 12px;   /* Rounded corners */
-      margin: 0 auto;
-      left: 50%;
-      transform: translateX(-50%); /* Perfect center horizontally */
-    }
     #launchButton {
       position: absolute;
-      bottom: -170px;          /* Pull up inside the window, nice and cozy */
+      bottom: -140px;          /* Pull up inside the window, nice and cozy */
       width: 40%;            /* Wider to center nicely */
-      height: 15%;
+      height: 12%;
       text-align: center;
       font-size: 28px;
       color: black;
       z-index: 3;
-      padding: 3px 6px;     /* Cozy breathing space */
+      padding: 3px 4px;     /* Cozy breathing space */
       border-radius: 12px;   /* Rounded corners */
       margin: 0 auto;
       left: 50%;
@@ -195,6 +178,18 @@ canvas.addEventListener('touchmove', (e) => {
 canvas.addEventListener('touchend', () => {
   draggingObject = null;
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+
+  if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+    // Touch device (like iPad)
+    canvas.style.marginTop = '0px'; // 👈 THIS LINE CHANGES margin-top
+  } else {
+    // Laptop or non-touch
+    canvas.style.marginTop = '40px'; // 👈 Normal spacing on desktop
+  }
+});
+
 
 // ==========================
 // Utility Functions
