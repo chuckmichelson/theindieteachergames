@@ -180,13 +180,17 @@ canvas.addEventListener('touchend', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  const canvas = document.getElementById('gameCanvas');
+  const launchButton = document.getElementById('launchButton');
 
   if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
     // Touch device (like iPad)
-    canvas.style.marginTop = '0px'; // 👈 THIS LINE CHANGES margin-top
+    canvas.style.marginTop = '0px';
+    launchButton.style.top = '620px'; // 👈 Slightly higher for iPad
   } else {
     // Laptop or non-touch
-    canvas.style.marginTop = '40px'; // 👈 Normal spacing on desktop
+    canvas.style.marginTop = '40px';
+    launchButton.style.top = '670px'; // 👈 Normal position
   }
 });
 
