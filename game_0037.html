@@ -82,7 +82,7 @@
       position: absolute;
       background-color: lightgrey;
       bottom: -140px;          /* Pull up inside the window, nice and cozy */
-      width: 40%;            /* Wider to center nicely */
+      width: 41%;            /* Wider to center nicely */
       height: 12%;
       text-align: center;
       font-size: 28px;
@@ -325,11 +325,13 @@ document.addEventListener('DOMContentLoaded', () => {
     canvas.style.marginTop = '0px';
     launchButton.style.top = '610px';
     settingsContainer.style.top = '617px';
+    menuContainer.top = '618px';
   } else {
     // Desktop
     canvas.style.marginTop = '40px';
     launchButton.style.top = '670px';
     settingsContainer.style.top = '677px';
+    menuContainer.top = '678px';
 
     // 👉 Add background image for desktop only
     body.style.backgroundImage = "url('game_0037_foreground_2.png')";
@@ -363,6 +365,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 });
+
+function formatDecimal(num, maxDigits = 3) {
+  if (Math.abs(num - Math.round(num)) < 1e-10) {
+    return `${Math.round(num)}`;  // Show as integer if very close
+  }
+
+  const str = num.toFixed(maxDigits);
+  return str.replace(/\.?0+$/, ''); // Remove trailing .0 or .00 etc.
+}
 
 
 // ==========================
@@ -582,7 +593,7 @@ if (trialScore.perfectTrial && vertexY > 4) {
       console.log("Successful landing!");
       setTimeout(() => {
         resetGame();
-      }, 1500);
+      }, 2500);
 
     }
   }
@@ -693,6 +704,15 @@ function generateNewEquation() {
 
   if (root1 > root2) [root1, root2] = [root2, root1];
 
+
+
+  goingRight = Math.random() < 0.5;
+  A = possibleA[Math.floor(Math.random() * possibleA.length)];
+
+  vertexX = (root1 + root2) / 2;
+  vertexY = evaluateQuadratic(vertexX, A, root1, root2);
+
+
   if (goingRight) {
     ramp1 = root1; // launch point
     const maxX = world.maxX - 1; // give some buffer
@@ -704,13 +724,6 @@ function generateNewEquation() {
     const maxX = root1 - 2;
     ramp1 = Math.random() * (maxX - minX) + minX;
   }
-
-
-  goingRight = Math.random() < 0.5;
-  A = possibleA[Math.floor(Math.random() * possibleA.length)];
-
-  vertexX = (root1 + root2) / 2;
-  vertexY = evaluateQuadratic(vertexX, A, root1, root2);
 
   if (Math.abs(vertexY) > 9) {
     generateNewEquation();
@@ -759,26 +772,44 @@ function generateNewEquation() {
 function updateEquationDisplay() {
   const launchButton = document.getElementById("launchButton");
 
-  const A_str = A.toFixed(1);
-  const root1_str = root1.toFixed(1);
-  const root2_str = root2.toFixed(1);
-  const vertexX_str = vertexX.toFixed(1);
-  const vertexY_str = vertexY.toFixed(1);
-  const b = (-A * (root1 + root2)).toFixed(1);
-  const c = (A * root1 * root2).toFixed(1);
+  const A_str = formatDecimal(A);
+  const root1_str = formatDecimal(root1);
+  const root2_str = formatDecimal(root2);
+  const vertexX_str = formatDecimal(vertexX);
+  const vertexY_str = formatDecimal(vertexY);
+  const b = formatDecimal(-A * (root1 + root2));
+  const c = formatDecimal(A * root1 * root2);
 
   if (displayForm === "factored") {
-    launchButton.innerHTML = `\\( y = ${A_str}(x ${-root1 >= 0 ? '+' : ''}${-root1_str})(x ${-root2 >= 0 ? '+' : ''}${-root2_str}) \\)`;
+    const r1_term = root1 === 0 ? "x" : `(x ${-root1 >= 0 ? '+' : ''}${formatDecimal(-root1)})`;
+    const r2_term = root2 === 0 ? "x" : `(x ${-root2 >= 0 ? '+' : ''}${formatDecimal(-root2)})`;
+
+    if (root1 === 0) {
+      launchButton.innerHTML = `\\( y = ${A_str}${r2_term}x \\)`;
+    } else if (root2 === 0) {
+      launchButton.innerHTML = `\\( y = ${A_str}${r1_term}x \\)`;
+    } else {
+      launchButton.innerHTML = `\\( y = ${A_str}${r1_term}${r2_term} \\)`;
+    }
+
   } else if (displayForm === "vertex") {
-    launchButton.innerHTML = `\\( y = ${A_str}(x ${-vertexX >= 0 ? '+' : ''}${-vertexX_str})^2 ${vertexY >= 0 ? '+' : ''}${vertexY_str} \\)`;
+    const h = -vertexX;
+    const h_str = `${h >= 0 ? '+' : ''}${formatDecimal(h)}`;
+    const k_str = `${vertexY >= 0 ? '+' : ''}${vertexY_str}`;
+    launchButton.innerHTML = `\\( y = ${A_str}(x ${h_str})^2 ${k_str} \\)`;
+
   } else if (displayForm === "standard") {
-    launchButton.innerHTML = `\\( y = ${A_str}x^2 ${b >= 0 ? '+' : ''}${b}x ${c >= 0 ? '+' : ''}${c} \\)`;
+    const A_show = A === 1 ? "" : A === -1 ? "-" : A_str;
+    const b_show = b === "0" ? "" : `${parseFloat(b) >= 0 ? '+' : ''}${b}x`;
+    const c_show = c === "0" ? "" : `${parseFloat(c) >= 0 ? '+' : ''}${c}`;
+    launchButton.innerHTML = `\\( y = ${A_show}x^2 ${b_show} ${c_show} \\)`;
   }
 
   if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
     MathJax.typesetPromise([launchButton]);
   }
 }
+
 
 
 
