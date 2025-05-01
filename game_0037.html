@@ -107,15 +107,16 @@
     }
 
     #end-card {
-      background-color: #222;
-      border: 2px solid gold;
+      background-color: #1f1a14;  /* rich coffee brown */
+      border: 2px solid #ddcab2;  /* warm parchment border */
       border-radius: 16px;
       padding: 40px;
       text-align: center;
-      color: gold;
+      color: #ffeccc;  /* creamy font */
       font-family: 'Georgia', serif;
-      box-shadow: 0 0 20px gold;
+      box-shadow: 0 0 20px rgba(0,0,0,0.4);
     }
+
 
     #end-card h2 {
       font-size: 36px;
@@ -126,12 +127,14 @@
       margin-top: 30px;
       font-size: 20px;
       padding: 10px 24px;
-      background-color: gold;
-      color: black;
+      background-color: #ffeccc;
+      color: #3a2b1e;
       border: none;
       border-radius: 8px;
       cursor: pointer;
+      font-family: 'Georgia', serif;
     }
+
 
   </style>
   <script>
@@ -159,7 +162,7 @@
   <canvas id="gameCanvas" width="1080" height="600" style="position: absolute; top: 0; left: 0; z-index: 1;"></canvas>
   <div id="end-screen" style="display: none;">
     <div id="end-card">
-      <h2>🎯 Score</h2>
+      <h2>🎿 Score</h2>
       <div id="final-score" style="font-size: 32px; margin: 20px 0;"></div>
       <button id="play-again">Play Again</button>
     </div>
@@ -320,27 +323,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const body = document.body;
 
-  if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-    // Touch device
-    canvas.style.marginTop = '0px';
-    launchButton.style.top = '610px';
-    settingsContainer.style.top = '617px';
-    menuContainer.style.top = '618px'; // for touch
-  } else {
-    // Desktop
-    canvas.style.marginTop = '40px';
-    launchButton.style.top = '670px';
-    settingsContainer.style.top = '677px';
-    menuContainer.style.top = '678px'; // for desktop
+if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+  // Touch device
+  canvas.style.marginTop = '0px';
+  launchButton.style.top = '610px';
+  settingsContainer.style.top = '617px';
+  menuContainer.style.top = '618px';
+} else {
+  // Desktop
+  canvas.style.marginTop = '40px';
+  launchButton.style.top = '670px';
+  settingsContainer.style.top = '677px';
+  menuContainer.style.top = '678px';
 
+  // 👉 Move score screen down slightly
+  document.getElementById("end-card").style.marginTop = "60px";
 
-    // 👉 Add background image for desktop only
-    body.style.backgroundImage = "url('game_0037_foreground_2.png')";
-    body.style.backgroundRepeat = 'no-repeat';
-    body.style.backgroundPosition = 'center bottom';
-    body.style.backgroundSize = 'cover';
-    body.style.backgroundAttachment = 'fixed';
-  }
+  // Background image
+  body.style.backgroundImage = "url('game_0037_foreground_2.png')";
+  body.style.backgroundRepeat = 'no-repeat';
+  body.style.backgroundPosition = 'center bottom';
+  body.style.backgroundSize = 'cover';
+  body.style.backgroundAttachment = 'fixed';
+}
+
 
 
 
