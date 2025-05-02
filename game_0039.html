@@ -27,6 +27,7 @@
       aspect-ratio: 16 / 9;
       margin: 0 auto;
       margin-top: 40px;
+      overflow: hidden;
     }
     #background-image {
       position: absolute;
@@ -34,7 +35,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: fill;  /* <-- key fix */
       z-index: 0;
       pointer-events: none;
     }
@@ -173,23 +174,24 @@
   <div id="game-container" class="hidden">
     <img id="background-image" src="game_0039_01.jpg" alt="Zelda background" />
     <div class="grid" id="grid"></div>
-    <div id="final-buttons" class="hidden" style="margin-top: 20px; display: flex; justify-content: center; gap: 20px;">
-      <button class="submit-btn" onclick="location.reload()">Play Again</button>
-      <button class="submit-btn" onclick="showTurnIn()">Send to Chuck</button>
-    </div>
   </div>
-
+  <div id="final-buttons" class="hidden">
+    <button class="submit-btn" onclick="location.reload()">Play Again</button>
+    <button class="submit-btn" onclick="showTurnIn()">Send to Chuck</button>
+  </div>
   <div id="end-screen" class="hidden">
-    <h2>Well done!</h2>
+    <h2>Well Done!</h2>
     <p>Enter your initials:</p>
-    <input type="text" maxlength="3" id="initials" placeholder="ABC" style="font-size: 24px; text-transform: uppercase;">
-    <br>
-    <textarea id="student-comments" placeholder="Comments (optional)" style="width: 300px; height: 80px;"></textarea>
-    <br>
-    <button id="play-again-btn" onclick="location.reload()">Play Again</button>
-    <button class="submit-btn" onclick="submitResults()">Submit</button>
+    <div id="initials-boxes">
+      <input class="initial-box" id="initial-0" maxlength="1" type="text"/>
+      <input class="initial-box" id="initial-1" maxlength="1" type="text"/>
+      <input class="initial-box" id="initial-2" maxlength="1" type="text"/>
+    </div>
+    <textarea id="student-comments" placeholder="Comments (optional)"></textarea>
+    <button class="submit-btn" onclick="handleSubmission()">Send</button>
     <p id="submit-status"></p>
   </div>
+
 
   <script>
     const ROWS = 9;
@@ -359,9 +361,30 @@
     }
 
 
-    function endGame() {
-      document.getElementById('final-buttons').classList.remove('hidden');
+    function handleSubmission() {
+      const initials = [...Array(3)].map((_, i) => document.getElementById(`initial-${i}`).value.toUpperCase()).join('');
+      const comments = document.getElementById("student-comments").value;
+
+      const payload = {
+        game: "game_0039",
+        score: "complete",
+        initials,
+        comments
+      };
+
+      const status = document.getElementById('submit-status');
+      status.textContent = 'Sending...';
+
+      fetch('https://script.google.com/macros/s/AKfycbwsvj0ijlKGeWOIu80EobVDJks24Dw0ziwl9aY_AVJImmhRJ0MQnAJwmuBpe1NYmPzr/exec', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: { 'Content-Type': 'text/plain' }
+      })
+        .then(res => res.text())
+        .then(res => status.textContent = 'Submitted successfully! 🎉')
+        .catch(err => status.textContent = 'Error: ' + err);
     }
+
 
     function submitResults() {
       const initials = document.getElementById('initials').value.toUpperCase();
@@ -385,6 +408,21 @@
         .then(res => status.textContent = 'Submitted successfully! 🎉')
         .catch(err => status.textContent = 'Error: ' + err);
     }
+
+
+    window.addEventListener('load', () => {
+      for (let i = 0; i < 3; i++) {
+        const box = document.getElementById(`initial-${i}`);
+        box.addEventListener('input', () => {
+          if (box.value.trim() !== "") {
+            box.style.backgroundColor = "#00ff88";
+          } else {
+            box.style.backgroundColor = "#fff";
+          }
+        });
+      }
+    });
+
   </script>
 </body>
 </html>
