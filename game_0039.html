@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Zelda Math Match</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: black;
+      color: white;
+      text-align: center;
+    }
+    .hidden {
+      display: none;
+    }
+    #start-screen, #game-container, #end-screen {
+      margin-top: 20px;
+    }
+    #game-container {
+      position: relative;
+      width: 90vw;
+      max-width: 1280px;
+      aspect-ratio: 16 / 9;
+      margin: 0 auto;
+      margin-top: 40px;
+    }
+    #background-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .grid {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(16, 1fr);
+      grid-template-rows: repeat(9, 1fr);
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+    .tile {
+      position: relative;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: #444;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.2vw;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .tile > span {
+      z-index: 1;
+    }
+    .tile.glow {
+      box-shadow: 0 0 15px 5px gold;
+      transform: translateY(-2px);
+      z-index: 2;
+    }
+
+    .tile.revealed {
+      background: transparent;
+      color: transparent;
+      pointer-events: none;
+    }
+    .tile.revealed span {
+      color: transparent;
+    }
+    .initial-box {
+      width: 60px;
+      height: 70px;
+      font-size: 32px;
+      text-align: center;
+      margin: 5px;
+      border: 2px solid #333;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+    .initial-box.correct {
+      background-color: lightgreen;
+      border-color: green;
+    }
+    .submit-btn {
+      font-size: 20px;
+      padding: 10px 20px;
+      background-color: #444;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    #student-comments {
+      width: 90%;
+      max-width: 400px;
+      font-size: 18px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 2px solid #333;
+      background-color: #222;
+      color: white;
+      margin: 10px auto;
+      display: block;
+    }
+
+    button {
+        font-size: 24px;
+        padding: 12px 24px;
+        margin: 10px 0;
+        cursor: pointer;
+    }
+
+
+    #level-select {
+      background-color: lightgrey;
+      color: black;
+      font-size: 18px;
+      width: 240px;
+      font-family: 'Georgia', serif;
+      border: none;
+      border-radius: 12px;
+      padding: 8px 12px;
+      box-shadow: 1px 1px 6px rgba(0,0,0,0.3);
+      appearance: none; /* Remove default arrow styling */
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      cursor: pointer;
+      z-index: 3;
+    }
+    #play-again-btn {
+      display: none;
+      font-size: 20px;
+      padding: 10px 20px;
+      background-color: #444;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+
+  </style>
+</head>
+<body>
+  <div id="start-screen">
+    <h1>Zelda Math Match</h1>
+    <p>Choose your skill level:</p>
+    <select id="level-select">
+      <option value="1">🌿 Kokiri Kid</option>
+      <option value="2">🗡️ Hylian Apprentice</option>
+      <option value="3">🛡️ Hero of Time</option>
+      <option value="4">🌪️ Sage of Hyrule</option>
+      <option value="5">🔺 Wielder of the Triforce</option>
+      <option value="6">🦉 Keeper of Secrets</option>
+      <option value="7">🔥 Guardian of the Forge</option>
+      <option value="8">💫 Spirit of the Wild</option>
+      <option value="9">⚔️ Champion of Light</option>
+      <option value="10">👑 Legend of Zelda</option>
+    </select>
+    <button onclick="startGame()">Start</button>
+  </div>
+
+  <div id="game-container" class="hidden">
+    <img id="background-image" src="game_0039_01.jpg" alt="Zelda background" />
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div id="end-screen" class="hidden">
+    <h2>Well done!</h2>
+    <p>Enter your initials:</p>
+    <input type="text" maxlength="3" id="initials" placeholder="ABC" style="font-size: 24px; text-transform: uppercase;">
+    <br>
+    <textarea id="student-comments" placeholder="Comments (optional)" style="width: 300px; height: 80px;"></textarea>
+    <br>
+    <button id="play-again-btn" onclick="location.reload()">Play Again</button>
+    <button class="submit-btn" onclick="submitResults()">Submit</button>
+    <p id="submit-status"></p>
+  </div>
+
+  <script>
+    const ROWS = 9;
+    const COLS = 16;
+    const TOTAL_TILES = ROWS * COLS;
+    const NUM_PAIRS = TOTAL_TILES / 2;
+
+    let tiles = [], revealed = new Set();
+    let gridEl = document.getElementById('grid');
+    let clickable = true, matchCount = 0;
+
+    function startGame() {
+      document.getElementById('start-screen').classList.add('hidden');
+      document.getElementById('game-container').classList.remove('hidden');
+      const level = parseInt(document.getElementById('level-select').value);
+      document.getElementById('background-image').src = `game_0039_${String(level).padStart(2, '0')}.jpg`;
+      createTilePairs(level);
+      renderGrid();
+    }
+
+
+    function generateFixedProblems(level) {
+      const problems = [];
+
+      for (let answer = 0; answer < NUM_PAIRS; answer++) {
+        let b;
+        // Choose difficulty: equal chance among [1, ..., level]
+        b = Math.floor(Math.random() * level) + 1;
+
+        // Randomly decide to do addition or subtraction
+        if (Math.random() < 0.5) {
+          const a = answer - b;
+          if (a >= 0) {
+            problems.push({ problem: `${a} + ${b}`, answer });
+            continue;
+          }
+        }
+
+        const a = answer + b;
+        problems.push({ problem: `${a} - ${b}`, answer });
+      }
+
+      return problems;
+    }
+
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+
+    function createTilePairs(level) {
+      const problems = generateFixedProblems(level);
+      tiles = [];
+      problems.forEach(({ problem, answer }) => {
+        tiles.push({ type: 'problem', content: problem, id: answer });
+        tiles.push({ type: 'answer', content: answer, id: answer });
+      });
+      shuffle(tiles);
+    }
+
+
+    function renderGrid() {
+      gridEl.innerHTML = '';
+      tiles.forEach((tile, index) => {
+        const div = document.createElement('div');
+        div.classList.add('tile');
+        div.dataset.index = index;
+        const span = document.createElement('span');
+        span.textContent = '';
+        div.appendChild(span);
+        div.addEventListener('click', () => handleClick(index));
+        gridEl.appendChild(div);
+      });
+    }
+
+    function handleClick(index) {
+      if (!clickable || revealed.has(index)) return;
+
+      Array.from(gridEl.children).forEach(tile => {
+        tile.classList.remove('glow');
+        if (!tile.classList.contains('revealed')) {
+          tile.querySelector('span').textContent = '';
+        }
+      });
+
+      const tile = tiles[index];
+      const span = gridEl.children[index].querySelector('span');
+      span.textContent = tile.content;
+
+      const options = getAnswerOptions(tile);
+      if (options.length === 0) return;
+
+      highlightMatches(index, tile, options);
+    }
+
+    function getAnswerOptions(tile) {
+      const matchType = tile.type === 'problem' ? 'answer' : 'problem';
+      const allMatches = tiles.map((t, i) => ({ ...t, index: i }))
+        .filter(t => t.type === matchType && t.id !== tile.id && !revealed.has(t.index));
+      const options = [...new Set([tile.id, ...allMatches.map(t => t.id)])].slice(0, 4);
+      shuffle(options);
+      return options;
+    }
+
+    function highlightMatches(originIndex, originTile, answerVals) {
+      clickable = false;
+      const matchType = originTile.type === 'problem' ? 'answer' : 'problem';
+      const candidates = tiles.map((t, i) => ({ ...t, index: i }))
+        .filter(t => t.type === matchType && answerVals.includes(t.id) && !revealed.has(t.index));
+
+      candidates.forEach(({ index }) => {
+        const el = gridEl.children[index];
+        el.classList.add('glow');
+        el.querySelector('span').textContent = tiles[index].content;
+        el.onclick = () => {
+          candidates.forEach(({ index }) => {
+            const el = gridEl.children[index];
+            if (!revealed.has(index)) {
+              el.querySelector('span').textContent = '';
+              el.classList.remove('glow');
+            }
+            el.onclick = () => handleClick(index);
+          });
+
+          if (tiles[index].id === tiles[originIndex].id) {
+            gridEl.children[index].classList.add('revealed');
+            gridEl.children[originIndex].classList.add('revealed');
+            revealed.add(index);
+            revealed.add(originIndex);
+            matchCount++;
+            if (matchCount === NUM_PAIRS) endGame();
+          } else {
+            gridEl.children[index].querySelector('span').textContent = '';
+            gridEl.children[originIndex].querySelector('span').textContent = '';
+          }
+
+          clickable = true;
+        };
+      });
+    }
+
+    function endGame() {
+      document.getElementById('game-container').classList.add('hidden');
+      document.getElementById('end-screen').classList.remove('hidden');
+      document.getElementById('play-again-btn').style.display = 'inline-block';
+    }
+
+    function submitResults() {
+      const initials = document.getElementById('initials').value.toUpperCase();
+      const comments = document.getElementById('student-comments').value.trim();
+      if (initials.length !== 3) return alert('Please enter 3 initials.');
+      const payload = {
+        initials,
+        game: 'zelda_math_match',
+        score: 'complete',
+        comments
+      };
+      const status = document.getElementById('submit-status');
+      status.textContent = 'Sending...';
+
+      fetch('https://script.google.com/macros/s/AKfycbwsvj0ijlKGeWOIu80EobVDJks24Dw0ziwl9aY_AVJImmhRJ0MQnAJwmuBpe1NYmPzr/exec', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: { 'Content-Type': 'text/plain' }
+      })
+        .then(res => res.text())
+        .then(res => status.textContent = 'Submitted successfully! 🎉')
+        .catch(err => status.textContent = 'Error: ' + err);
+    }
+  </script>
+</body>
+</html>
