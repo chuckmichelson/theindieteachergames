@@ -188,7 +188,7 @@
       <input class="initial-box" id="initial-2" maxlength="1" type="text"/>
     </div>
     <textarea id="student-comments" placeholder="Comments (optional)"></textarea>
-    <button class="submit-btn" onclick="handleSubmission()">Send</button>
+    <button class="submit-btn" onclick="submitResults()">Send</button>
     <p id="submit-status"></p>
   </div>
 
@@ -210,6 +210,12 @@
       document.getElementById('background-image').src = `game_0039_${String(level).padStart(2, '0')}.jpg`;
       createTilePairs(level);
       renderGrid();
+    }
+
+
+    function showTurnIn() {
+      document.getElementById("end-screen").style.display = "block";
+      document.getElementById("initial-0").focus();
     }
 
 
@@ -361,29 +367,7 @@
     }
 
 
-    function handleSubmission() {
-      const initials = [...Array(3)].map((_, i) => document.getElementById(`initial-${i}`).value.toUpperCase()).join('');
-      const comments = document.getElementById("student-comments").value;
 
-      const payload = {
-        game: "game_0039",
-        score: "complete",
-        initials,
-        comments
-      };
-
-      const status = document.getElementById('submit-status');
-      status.textContent = 'Sending...';
-
-      fetch('https://script.google.com/macros/s/AKfycbwsvj0ijlKGeWOIu80EobVDJks24Dw0ziwl9aY_AVJImmhRJ0MQnAJwmuBpe1NYmPzr/exec', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-        headers: { 'Content-Type': 'text/plain' }
-      })
-        .then(res => res.text())
-        .then(res => status.textContent = 'Submitted successfully! 🎉')
-        .catch(err => status.textContent = 'Error: ' + err);
-    }
 
 
     function submitResults() {
