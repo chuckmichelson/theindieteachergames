@@ -1,8 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="favicon.png">
+  <link rel="shortcut icon" href="favicon.ico">
   <meta charset="UTF-8">
-  <title>Zelda Math Match</title>
+  <title>Picture Arithmetic</title>
   <style>
     body {
       margin: 0;
@@ -150,7 +153,7 @@
 </head>
 <body>
   <div id="start-screen">
-    <h1>Zelda Math Match</h1>
+    <h1>Picture Arithmetic</h1>
     <p>Choose your skill level:</p>
     <select id="level-select">
       <option value="1">🌿 Kokiri Kid</option>
@@ -208,25 +211,26 @@
       const problems = [];
 
       for (let answer = 0; answer < NUM_PAIRS; answer++) {
-        let b;
-        // Choose difficulty: equal chance among [1, ..., level]
-        b = Math.floor(Math.random() * level) + 1;
+        let b = Math.floor(Math.random() * level) + 1;
+        let useAddition = Math.random() < 0.5;
+        let a;
 
-        // Randomly decide to do addition or subtraction
-        if (Math.random() < 0.5) {
-          const a = answer - b;
+        if (useAddition) {
+          a = answer - b;
           if (a >= 0) {
             problems.push({ problem: `${a} + ${b}`, answer });
             continue;
           }
+          // fallback to subtraction if addition fails
         }
 
-        const a = answer + b;
+        a = answer + b;
         problems.push({ problem: `${a} - ${b}`, answer });
       }
 
       return problems;
     }
+
 
 
     function shuffle(array) {
@@ -239,12 +243,18 @@
     function createTilePairs(level) {
       const problems = generateFixedProblems(level);
       tiles = [];
+
+      // Build the full tile list first
       problems.forEach(({ problem, answer }) => {
         tiles.push({ type: 'problem', content: problem, id: answer });
         tiles.push({ type: 'answer', content: answer, id: answer });
       });
+
+      // Thorough shuffle
       shuffle(tiles);
+      shuffle(tiles); // optional second shuffle for paranoia
     }
+
 
 
     function renderGrid() {
@@ -285,16 +295,28 @@
       const matchType = tile.type === 'problem' ? 'answer' : 'problem';
       const allMatches = tiles.map((t, i) => ({ ...t, index: i }))
         .filter(t => t.type === matchType && t.id !== tile.id && !revealed.has(t.index));
-      const options = [...new Set([tile.id, ...allMatches.map(t => t.id)])].slice(0, 4);
+
+      // Get unique IDs of incorrect answers
+      const incorrectIDs = [...new Set(allMatches.map(t => t.id))];
+      shuffle(incorrectIDs);
+
+      // Slice after shuffle to avoid bias
+      const selectedIncorrect = incorrectIDs.slice(0, 3);
+
+      const options = [tile.id, ...selectedIncorrect];
       shuffle(options);
+
       return options;
     }
+
 
     function highlightMatches(originIndex, originTile, answerVals) {
       clickable = false;
       const matchType = originTile.type === 'problem' ? 'answer' : 'problem';
-      const candidates = tiles.map((t, i) => ({ ...t, index: i }))
+      let candidates = tiles.map((t, i) => ({ ...t, index: i }))
         .filter(t => t.type === matchType && answerVals.includes(t.id) && !revealed.has(t.index));
+
+      shuffle(candidates); // 👈 Randomize display order
 
       candidates.forEach(({ index }) => {
         const el = gridEl.children[index];
@@ -327,6 +349,7 @@
       });
     }
 
+
     function endGame() {
       document.getElementById('game-container').classList.add('hidden');
       document.getElementById('end-screen').classList.remove('hidden');
@@ -339,7 +362,7 @@
       if (initials.length !== 3) return alert('Please enter 3 initials.');
       const payload = {
         initials,
-        game: 'zelda_math_match',
+        game: 'game_0039',
         score: 'complete',
         comments
       };
