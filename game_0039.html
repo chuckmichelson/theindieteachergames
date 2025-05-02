@@ -173,6 +173,10 @@
   <div id="game-container" class="hidden">
     <img id="background-image" src="game_0039_01.jpg" alt="Zelda background" />
     <div class="grid" id="grid"></div>
+    <div id="final-buttons" class="hidden" style="margin-top: 20px; display: flex; justify-content: center; gap: 20px;">
+      <button class="submit-btn" onclick="location.reload()">Play Again</button>
+      <button class="submit-btn" onclick="showTurnIn()">Send to Chuck</button>
+    </div>
   </div>
 
   <div id="end-screen" class="hidden">
@@ -351,9 +355,12 @@
 
 
     function endGame() {
-      document.getElementById('game-container').classList.add('hidden');
-      document.getElementById('end-screen').classList.remove('hidden');
-      document.getElementById('play-again-btn').style.display = 'inline-block';
+      document.getElementById('final-buttons').classList.remove('hidden');
+    }
+
+
+    function endGame() {
+      document.getElementById('final-buttons').classList.remove('hidden');
     }
 
     function submitResults() {
