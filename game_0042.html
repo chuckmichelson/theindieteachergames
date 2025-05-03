@@ -9,7 +9,7 @@
       padding: 0;
       background-color: #121212;
       font-family: Arial, sans-serif;
-      overflow: hidden;
+      overflow-x: hidden;
     }
     canvas {
       display: block;
@@ -17,28 +17,38 @@
       width: 1024px;
       height: 548px;
     }
-    #controls {
+    #scoreboard {
       position: absolute;
       top: 10px;
-      left: 10px;
-      background: rgba(255, 255, 255, 0.9);
-      padding: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 10px 15px;
       border-radius: 8px;
-      font-family: sans-serif;
-      z-index: 1;
-    }
-    label {
-      display: block;
-      margin-bottom: 5px;
+      font-size: 16px;
+      z-index: 2;
+      font-family: Arial, sans-serif;
     }
     #game-interface {
-      position: absolute;
-      top: 150px;
-      left: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       background: rgba(255, 255, 255, 0.9);
       padding: 10px;
       border-radius: 8px;
-      z-index: 1;
+      margin: 20px auto 0 auto;
+      width: fit-content;
+    }
+    #question {
+      margin-bottom: 10px;
+      font-weight: bold;
+      font-size: 18px;
+    }
+    #game-interface button {
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 16px;
     }
   </style>
 </head>
@@ -46,21 +56,16 @@
 
 <canvas id="helmetCanvas" width="1024" height="548"></canvas>
 
-<div id="controls">
-  <label>Ball Position (0–100 yards): <input type="number" id="ballInput" value="50" min="0" max="100"></label>
-  <label>Home Helmet (row, col): <input type="number" id="homeRow" value="1" min="0" max="3">
-                                   <input type="number" id="homeCol" value="6" min="0" max="7"></label>
-  <label>Away Helmet (row, col): <input type="number" id="awayRow" value="1" min="0" max="3">
-                                   <input type="number" id="awayCol" value="0" min="0" max="7"></label>
-  <button onclick="drawScene()">Update</button>
+<div id="scoreboard">
+  <p id="gameState"></p>
 </div>
 
 <div id="game-interface">
-  <p id="gameState"></p>
   <p id="question"></p>
   <button id="choiceA" onclick="makeChoice('A')"></button>
   <button id="choiceB" onclick="makeChoice('B')"></button>
 </div>
+
 
 <script>
   const canvas = document.getElementById('helmetCanvas');
@@ -228,9 +233,9 @@
       }
     }
 
+    currentProblem = generateProblem();
     updateGameUI();
     drawScene();
-    currentProblem = generateProblem();
   }
 
 
