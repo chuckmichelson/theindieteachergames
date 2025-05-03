@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Helmet Showdown</title>
+  <style>
+    body {
+      background-color: #121212;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      margin: 0 auto;
+      max-width: 100vw;
+      height: auto;
+    }
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 10px;
+      border-radius: 8px;
+      font-family: sans-serif;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    #game-interface {
+      position: absolute;
+      top: 150px;
+      left: 10px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 10px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="helmetCanvas"></canvas>
+
+<div id="controls">
+  <label>Ball Position (0–100 yards): <input type="number" id="ballInput" value="50" min="0" max="100"></label>
+  <label>Home Helmet (row, col): <input type="number" id="homeRow" value="1" min="0" max="3">
+                                   <input type="number" id="homeCol" value="6" min="0" max="7"></label>
+  <label>Away Helmet (row, col): <input type="number" id="awayRow" value="1" min="0" max="3">
+                                   <input type="number" id="awayCol" value="0" min="0" max="7"></label>
+  <button onclick="drawScene()">Update</button>
+</div>
+
+<div id="game-interface">
+  <p id="gameState"></p>
+  <p id="question"></p>
+  <button id="choiceA" onclick="makeChoice('A')"></button>
+  <button id="choiceB" onclick="makeChoice('B')"></button>
+</div>
+
+<script>
+  const canvas = document.getElementById('helmetCanvas');
+  const ctx = canvas.getContext('2d');
+
+  const helmetImg = new Image();
+  const backgroundImg = new Image();
+  const ballImg = new Image();
+
+  helmetImg.src = 'game_0042_helmets.png';
+  backgroundImg.src = 'game_0042_background.jpg';
+  ballImg.src = 'game_0042_ball.png';
+
+  const ROWS = 4;
+  const COLS = 8;
+
+  const topY = 280;
+  const topXStart = 487;
+  const topXEnd = 1048;
+  const bottomY = 480;
+  const bottomXStart = 327;
+  const bottomXEnd = 1209;
+
+  const fieldY = 360;
+  const fieldXStart = 415;
+  const fieldXEnd = 1120;
+  const fieldWidth = fieldXEnd - fieldXStart;
+
+  const helmetDisplayWidth = 70;
+  const ballDisplayWidth = 30;
+
+  const gameState = {
+    possession: "home",
+    ballPosition: 50,
+    down: 1,
+    yardsToFirstDown: 10,
+    firstDownMarker: 60,
+    score: { home: 0, away: 0 },
+    isGameOver: false
+  };
+
+  function yardToPixel(yards) {
+    return fieldXStart + (yards / 100) * fieldWidth;
+  }
+
+  function getXatYard(yard, xStart, xEnd) {
+    return xStart + (yard / 100) * (xEnd - xStart);
+  }
+
+  function drawMarkerLine(yard, color) {
+    const topX = getXatYard(yard, topXStart, topXEnd);
+    const bottomX = getXatYard(yard, bottomXStart, bottomXEnd);
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(topX, topY);
+    ctx.lineTo(bottomX, bottomY);
+    ctx.stroke();
+  }
+
+  function drawHelmet(row, col, x, y, mirror = false) {
+    const frameWidth = helmetImg.width / COLS;
+    const frameHeight = helmetImg.height / ROWS;
+    const displayHeight = helmetDisplayWidth * (frameHeight / frameWidth);
+
+    ctx.save();
+    if (mirror) {
+      ctx.translate(x, 0);
+      ctx.scale(-1, 1);
+      x = -helmetDisplayWidth / 2 + 20;
+    } else {
+      x = x - helmetDisplayWidth / 2 + 20;
+    }
+
+    ctx.drawImage(
+      helmetImg,
+      col * frameWidth,
+      row * frameHeight,
+      frameWidth,
+      frameHeight,
+      x,
+      y - displayHeight / 2,
+      helmetDisplayWidth,
+      displayHeight
+    );
+    ctx.restore();
+  }
+
+  function drawBall(x, y) {
+    const displayHeight = ballDisplayWidth;
+    ctx.drawImage(
+      ballImg,
+      x - ballDisplayWidth / 2,
+      y - displayHeight / 2,
+      ballDisplayWidth,
+      displayHeight
+    );
+  }
+
+  function drawScene() {
+    resizeCanvasToFitBackground();
+    ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
+    drawMarkerLine(gameState.ballPosition, 'red');
+    drawMarkerLine(gameState.firstDownMarker, 'yellow');
+
+    const ballX = yardToPixel(gameState.ballPosition);
+    drawHelmet(1, 6, ballX - 80, fieldY, false);
+    drawHelmet(1, 0, ballX + 80, fieldY, true);
+    drawBall(ballX, fieldY);
+
+    document.getElementById('ballInput').value = gameState.ballPosition;
+  }
+
+  function updateGameUI() {
+    const stateText = `Down: ${gameState.down}, Ball at: ${gameState.ballPosition} yd\nPossession: ${gameState.possession.toUpperCase()} | Score: HOME ${gameState.score.home} - AWAY ${gameState.score.away}`;
+    document.getElementById('gameState').textContent = stateText;
+  }
+
+  function generateProblem() {
+    const a = Math.floor(Math.random() * 100);
+    const b = Math.floor(Math.random() * 100);
+    document.getElementById('question').textContent = `Which is larger?`;
+    document.getElementById('choiceA').textContent = a;
+    document.getElementById('choiceB').textContent = b;
+    return { a, b };
+  }
+
+  let currentProblem = generateProblem();
+
+  function makeChoice(choice) {
+    const correct = Math.max(currentProblem.a, currentProblem.b);
+    const selected = (choice === 'A') ? currentProblem.a : currentProblem.b;
+
+    gameState.ballPosition = selected;
+
+    if (gameState.ballPosition >= 100) {
+      gameState.score.home += 7;
+      alert("Touchdown!");
+      gameState.ballPosition = 50;
+      gameState.firstDownMarker = 60;
+      gameState.down = 1;
+    } else if (gameState.ballPosition <= 0) {
+      gameState.score.away += 2;
+      alert("Safety!");
+      gameState.ballPosition = 50;
+      gameState.firstDownMarker = 60;
+      gameState.down = 1;
+    } else {
+      if (gameState.ballPosition >= gameState.firstDownMarker) {
+        gameState.down = 1;
+        gameState.firstDownMarker = gameState.ballPosition + 10;
+        if (gameState.firstDownMarker > 100) gameState.firstDownMarker = 100;
+      } else {
+        gameState.down++;
+        if (gameState.down > 4) {
+          alert("Turnover on downs!");
+          gameState.possession = (gameState.possession === 'home') ? 'away' : 'home';
+          gameState.down = 1;
+          gameState.firstDownMarker = gameState.ballPosition + 10;
+          if (gameState.firstDownMarker > 100) gameState.firstDownMarker = 100;
+        }
+      }
+    }
+
+    updateGameUI();
+    drawScene();
+    currentProblem = generateProblem();
+  }
+
+  function resizeCanvasToFitBackground() {
+    canvas.width = Math.min(window.innerWidth, backgroundImg.width);
+    canvas.height = backgroundImg.height * (canvas.width / backgroundImg.width);
+  }
+
+  backgroundImg.onload = helmetImg.onload = ballImg.onload = () => {
+    drawScene();
+    updateGameUI();
+  };
+</script>
+
+</body>
+</html>
