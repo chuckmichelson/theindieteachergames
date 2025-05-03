@@ -15,7 +15,7 @@
       display: block;
       margin: 0 auto;
       width: 1024px;
-      height: 341;
+      height: 548px;
     }
     #controls {
       position: absolute;
@@ -44,7 +44,7 @@
 </head>
 <body>
 
-<canvas id="helmetCanvas" width="1024" height="341"></canvas>
+<canvas id="helmetCanvas" width="1024" height="548"></canvas>
 
 <div id="controls">
   <label>Ball Position (0–100 yards): <input type="number" id="ballInput" value="50" min="0" max="100"></label>
@@ -71,22 +71,22 @@
   const ballImg = new Image();
 
   helmetImg.src = 'game_0042_helmets.png';
-  backgroundImg.src = 'game_0042_background.jpg';
+  backgroundImg.src = 'game_0042_background.png';
   ballImg.src = 'game_0042_ball.png';
 
   const ROWS = 4;
   const COLS = 8;
 
-  const topY = 208;
-  const topXStart = 370;
-  const topXEnd = 696;
-  const bottomY = 341;
-  const bottomXStart = 297;
-  const bottomXEnd = 773;
+  const topY = 368;
+  const topXStart = 299;
+  const topXEnd = 720;
+  const bottomY = 491;
+  const bottomXStart = 193;
+  const bottomXEnd = 843;
 
-  const fieldY = 252;
-  const fieldXStart = 283;
-  const fieldXEnd = 763;
+  const fieldY = 416;
+  const fieldXStart = 257;
+  const fieldXEnd = 771;
   const fieldWidth = fieldXEnd - fieldXStart;
 
   const helmetDisplayWidth = 40;
@@ -110,33 +110,6 @@
     return xStart + (yard / 100) * (xEnd - xStart);
   }
 
-  function drawEndZones() {
-    ctx.fillStyle = 'red';
-
-    // Home end zone - adjust based on top/bottom width ratio
-    const homeTopX = topXStart - (topXEnd - topXStart) * 0.12;
-    const homeBottomX = bottomXStart - (bottomXEnd - bottomXStart) * 0.12;
-
-    ctx.beginPath();
-    ctx.moveTo(homeTopX, topY);
-    ctx.lineTo(topXStart, topY);
-    ctx.lineTo(bottomXStart, 341);
-    ctx.lineTo(homeBottomX, 341);
-    ctx.closePath();
-    ctx.fill();
-
-    // Away end zone - adjust based on top/bottom width ratio
-    const awayTopX = topXEnd + (topXEnd - topXStart) * 0.12;
-    const awayBottomX = bottomXEnd + (bottomXEnd - bottomXStart) * 0.12;
-
-    ctx.beginPath();
-    ctx.moveTo(topXEnd, topY);
-    ctx.lineTo(awayTopX, topY);
-    ctx.lineTo(awayBottomX, 341);
-    ctx.lineTo(bottomXEnd, 341);
-    ctx.closePath();
-    ctx.fill();
-  }
 
   function drawMarkerLine(yard, color) {
     const topX = getXatYard(yard, topXStart, topXEnd);
@@ -192,7 +165,7 @@
   function drawScene() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
-    drawEndZones();
+    drawField();
     drawMarkerLine(gameState.ballPosition, 'red');
     drawMarkerLine(gameState.firstDownMarker, 'yellow');
 
@@ -258,6 +231,55 @@
     updateGameUI();
     drawScene();
     currentProblem = generateProblem();
+  }
+
+
+  function drawField() {
+    const yardStep = 5;
+    const labelHeight = 20;
+
+    // Draw top label bar background
+    ctx.fillStyle = '#e27b47';
+    ctx.fillRect(topXStart, topY - labelHeight, topXEnd - topXStart, labelHeight);
+
+    for (let yard = 0; yard < 100; yard += yardStep) {
+      const topX = getXatYard(yard, topXStart, topXEnd);
+      const bottomX = getXatYard(yard, bottomXStart, bottomXEnd);
+
+      // Alternate shading every 5 yards
+      if ((yard / yardStep) % 2 === 0) {
+        ctx.fillStyle = '#006400'; // dark green
+      } else {
+        ctx.fillStyle = '#228B22'; // lighter green
+      }
+
+      const nextTopX = getXatYard(yard + yardStep, topXStart, topXEnd);
+      const nextBottomX = getXatYard(yard + yardStep, bottomXStart, bottomXEnd);
+
+      ctx.beginPath();
+      ctx.moveTo(topX, topY);
+      ctx.lineTo(nextTopX, topY);
+      ctx.lineTo(nextBottomX, bottomY);
+      ctx.lineTo(bottomX, bottomY);
+      ctx.closePath();
+      ctx.fill();
+
+      // Draw yard lines
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(topX, topY);
+      ctx.lineTo(bottomX, bottomY);
+      ctx.stroke();
+
+      // Draw numbers every 10 yards (top only)
+      if (yard % 10 === 0 && yard > 0 && yard < 100) {
+        ctx.fillStyle = 'black';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${yard}`, topX, topY - 4);
+      }
+    }
   }
 
   backgroundImg.onload = helmetImg.onload = ballImg.onload = () => {
