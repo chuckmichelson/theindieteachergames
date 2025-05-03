@@ -4,18 +4,18 @@
   <meta charset="UTF-8">
   <title>Helmet Showdown</title>
   <style>
-    body {
+    html, body {
+      margin: 0;
+      padding: 0;
       background-color: #121212;
       font-family: Arial, sans-serif;
-      text-align: center;
-      margin: 0;
       overflow: hidden;
     }
     canvas {
       display: block;
       margin: 0 auto;
-      max-width: 100vw;
-      height: auto;
+      width: 1024px;
+      height: 341px;
     }
     #controls {
       position: absolute;
@@ -25,6 +25,7 @@
       padding: 10px;
       border-radius: 8px;
       font-family: sans-serif;
+      z-index: 1;
     }
     label {
       display: block;
@@ -37,12 +38,13 @@
       background: rgba(255, 255, 255, 0.9);
       padding: 10px;
       border-radius: 8px;
+      z-index: 1;
     }
   </style>
 </head>
 <body>
 
-<canvas id="helmetCanvas"></canvas>
+<canvas id="helmetCanvas" width="1024" height="341"></canvas>
 
 <div id="controls">
   <label>Ball Position (0–100 yards): <input type="number" id="ballInput" value="50" min="0" max="100"></label>
@@ -75,20 +77,20 @@
   const ROWS = 4;
   const COLS = 8;
 
-  const topY = 280;
-  const topXStart = 487;
-  const topXEnd = 1048;
-  const bottomY = 480;
-  const bottomXStart = 327;
-  const bottomXEnd = 1209;
+  const topY = 93;
+  const topXStart = 162;
+  const topXEnd = 349;
+  const bottomY = 160;
+  const bottomXStart = 109;
+  const bottomXEnd = 403;
 
-  const fieldY = 360;
-  const fieldXStart = 415;
-  const fieldXEnd = 1120;
+  const fieldY = 160;
+  const fieldXStart = 138;
+  const fieldXEnd = 373;
   const fieldWidth = fieldXEnd - fieldXStart;
 
-  const helmetDisplayWidth = 70;
-  const ballDisplayWidth = 30;
+  const helmetDisplayWidth = 23;
+  const ballDisplayWidth = 10;
 
   const gameState = {
     possession: "home",
@@ -160,7 +162,7 @@
   }
 
   function drawScene() {
-    resizeCanvasToFitBackground();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
     drawMarkerLine(gameState.ballPosition, 'red');
     drawMarkerLine(gameState.firstDownMarker, 'yellow');
@@ -227,11 +229,6 @@
     updateGameUI();
     drawScene();
     currentProblem = generateProblem();
-  }
-
-  function resizeCanvasToFitBackground() {
-    canvas.width = Math.min(window.innerWidth, backgroundImg.width);
-    canvas.height = backgroundImg.height * (canvas.width / backgroundImg.width);
   }
 
   backgroundImg.onload = helmetImg.onload = ballImg.onload = () => {
