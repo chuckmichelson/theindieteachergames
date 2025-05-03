@@ -15,7 +15,7 @@
       display: block;
       margin: 0 auto;
       width: 1024px;
-      height: 341px;
+      height: 341;
     }
     #controls {
       position: absolute;
@@ -77,20 +77,20 @@
   const ROWS = 4;
   const COLS = 8;
 
-  const topY = 191;
-  const topXStart = 329;
-  const topXEnd = 720;
-  const bottomY = 327;
-  const bottomXStart = 218;
-  const bottomXEnd = 829;
+  const topY = 208;
+  const topXStart = 370;
+  const topXEnd = 696;
+  const bottomY = 341;
+  const bottomXStart = 297;
+  const bottomXEnd = 773;
 
   const fieldY = 252;
   const fieldXStart = 283;
   const fieldXEnd = 763;
   const fieldWidth = fieldXEnd - fieldXStart;
 
-  const helmetDisplayWidth = 50;
-  const ballDisplayWidth = 30;
+  const helmetDisplayWidth = 40;
+  const ballDisplayWidth = 20;
 
   const gameState = {
     possession: "home",
@@ -108,6 +108,34 @@
 
   function getXatYard(yard, xStart, xEnd) {
     return xStart + (yard / 100) * (xEnd - xStart);
+  }
+
+  function drawEndZones() {
+    ctx.fillStyle = 'red';
+
+    // Home end zone - adjust based on top/bottom width ratio
+    const homeTopX = topXStart - (topXEnd - topXStart) * 0.12;
+    const homeBottomX = bottomXStart - (bottomXEnd - bottomXStart) * 0.12;
+
+    ctx.beginPath();
+    ctx.moveTo(homeTopX, topY);
+    ctx.lineTo(topXStart, topY);
+    ctx.lineTo(bottomXStart, 341);
+    ctx.lineTo(homeBottomX, 341);
+    ctx.closePath();
+    ctx.fill();
+
+    // Away end zone - adjust based on top/bottom width ratio
+    const awayTopX = topXEnd + (topXEnd - topXStart) * 0.12;
+    const awayBottomX = bottomXEnd + (bottomXEnd - bottomXStart) * 0.12;
+
+    ctx.beginPath();
+    ctx.moveTo(topXEnd, topY);
+    ctx.lineTo(awayTopX, topY);
+    ctx.lineTo(awayBottomX, 341);
+    ctx.lineTo(bottomXEnd, 341);
+    ctx.closePath();
+    ctx.fill();
   }
 
   function drawMarkerLine(yard, color) {
@@ -131,9 +159,9 @@
     if (mirror) {
       ctx.translate(x, 0);
       ctx.scale(-1, 1);
-      x = -helmetDisplayWidth / 2 + 20;
+      x = -helmetDisplayWidth / 2 + 40;
     } else {
-      x = x - helmetDisplayWidth / 2 + 20;
+      x = x - helmetDisplayWidth / 2 + 40;
     }
 
     ctx.drawImage(
@@ -164,6 +192,7 @@
   function drawScene() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
+    drawEndZones();
     drawMarkerLine(gameState.ballPosition, 'red');
     drawMarkerLine(gameState.firstDownMarker, 'yellow');
 
