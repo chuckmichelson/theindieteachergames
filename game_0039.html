@@ -4,7 +4,6 @@
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="favicon.png">
   <link rel="shortcut icon" href="favicon.ico">
-  <script src="end-screen.js"></script>
   <link rel="stylesheet" href="end-screen.css">
   <meta charset="UTF-8">
   <title>Picture Arithmetic</title>
@@ -190,7 +189,7 @@
       <input class="initial-box" id="initial-2" maxlength="1" type="text"/>
     </div>
     <textarea id="student-comments" placeholder="Comments (optional)"></textarea>
-    <button class="submit-btn" onclick="submitResults()">Send</button>
+    <button class="submit-btn" onclick="handleSubmission()">Send</button>
     <p id="submit-status"></p>
   </div>
 
@@ -200,6 +199,7 @@
     const COLS = 16;
     const TOTAL_TILES = ROWS * COLS;
     const NUM_PAIRS = TOTAL_TILES / 2;
+    const level = 1;
 
     let tiles = [], revealed = new Set();
     let gridEl = document.getElementById('grid');
@@ -212,6 +212,7 @@
       document.getElementById('background-image').src = `game_0039_${String(level).padStart(2, '0')}.jpg`;
       createTilePairs(level);
       renderGrid();
+      endGame()
     }
 
 
@@ -369,30 +370,20 @@
     }
 
 
+    function handleSubmission() {
+      const initials = [...Array(3)].map((_, i) => document.getElementById(`initial-${i}`).value.toUpperCase()).join('');
+      const comments = document.getElementById("student-comments").value;
 
-
-
-    function submitResults() {
-      const initials = document.getElementById('initials').value.toUpperCase();
-      const comments = document.getElementById('student-comments').value.trim();
-      if (initials.length !== 3) return alert('Please enter 3 initials.');
       const payload = {
+        game: "game_0039",
+        settings: `${level}`,
+        score: `🗡️`,
+        elapsed: "N/A",
         initials,
-        game: 'game_0039',
-        score: 'complete',
         comments
       };
-      const status = document.getElementById('submit-status');
-      status.textContent = 'Sending...';
 
-      fetch('https://script.google.com/macros/s/AKfycbwsvj0ijlKGeWOIu80EobVDJks24Dw0ziwl9aY_AVJImmhRJ0MQnAJwmuBpe1NYmPzr/exec', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-        headers: { 'Content-Type': 'text/plain' }
-      })
-        .then(res => res.text())
-        .then(res => status.textContent = 'Submitted successfully! 🎉')
-        .catch(err => status.textContent = 'Error: ' + err);
+      submitResults(payload);
     }
 
 
@@ -408,6 +399,75 @@
         });
       }
     });
+
+
+function getInitialsFromBoxes() {
+  const chars = [];
+  let allFilled = true;
+  for (let i = 0; i < 3; i++) {
+    const box = document.getElementById(`initial-${i}`);
+    const char = box.value.toUpperCase();
+    if (char.length === 1 && /^[A-Z]$/.test(char)) {
+      box.classList.add("correct");
+      chars.push(char);
+    } else {
+      box.classList.remove("correct");
+      allFilled = false;
+    }
+  }
+  return allFilled ? chars.join('') : null;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  for (let i = 0; i < 3; i++) {
+    const box = document.getElementById(`initial-${i}`);
+    box.addEventListener("input", () => {
+      if (box.value.trim().length === 1) {
+        box.classList.add("correct");
+        if (i < 2) {
+          document.getElementById(`initial-${i + 1}`).focus();
+        } else {
+          document.getElementById("student-comments").focus();
+        }
+      } else {
+        box.classList.remove("correct");
+      }
+    });
+  }
+});
+
+function submitResults(payload) {
+  const sendBtn = document.querySelector('#end-screen .submit-btn');
+  const statusEl = document.getElementById("submit-status");
+
+  sendBtn.style.display = "none";
+  statusEl.textContent = "Sending...";
+
+  const initials = getInitialsFromBoxes();
+  if (!initials) {
+    statusEl.textContent = "";
+    sendBtn.style.display = "inline-block"; // restore if invalid
+    return alert("Please enter 3 letters.");
+  }
+
+  payload.initials = initials;
+  payload.comments = document.getElementById("student-comments").value.trim();
+
+  fetch("https://script.google.com/macros/s/AKfycbwsvj0ijlKGeWOIu80EobVDJks24Dw0ziwl9aY_AVJImmhRJ0MQnAJwmuBpe1NYmPzr/exec", {
+    method: "POST",
+    body: JSON.stringify(payload),
+    headers: { "Content-Type": "text/plain" }
+  })
+    .then(res => res.text())
+    .then(res => {
+      statusEl.textContent = "Submitted successfully! 🎉";
+    })
+    .catch(err => {
+      statusEl.textContent = "Error: " + err;
+      sendBtn.style.display = "inline-block"; // allow retry
+    });
+}
+
 
   </script>
 </body>
