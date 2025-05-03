@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="favicon.png">
+  <link rel="shortcut icon" href="favicon.ico">
+  <link rel="stylesheet" href="end-screen.css">
+  <meta charset="UTF-8">
+  <title>Picture Arithmetic</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: black;
+      color: white;
+      text-align: center;
+    }
+    .hidden {
+      display: none;
+    }
+    #start-screen, #game-container, #end-screen {
+      margin-top: 20px;
+    }
+    #game-container {
+      position: relative;
+      width: 90vw;
+      max-width: 1280px;
+      aspect-ratio: 16 / 9;
+      margin: 0 auto;
+      margin-top: 40px;
+      overflow: hidden;
+    }
+    #background-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: fill;  /* <-- key fix */
+      z-index: 0;
+      pointer-events: none;
+    }
+    .grid {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(16, 1fr);
+      grid-template-rows: repeat(9, 1fr);
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+    .tile {
+      position: relative;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: #444;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.2vw;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .tile > span {
+      z-index: 1;
+    }
+    .tile.glow {
+      box-shadow: 0 0 15px 5px gold;
+      transform: translateY(-2px);
+      z-index: 2;
+    }
+
+    .tile.revealed {
+      background: transparent;
+      color: transparent;
+      pointer-events: none;
+    }
+    .tile.revealed span {
+      color: transparent;
+    }
+    .initial-box {
+      width: 60px;
+      height: 70px;
+      font-size: 32px;
+      text-align: center;
+      margin: 5px;
+      border: 2px solid #333;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+    .initial-box.correct {
+      background-color: lightgreen;
+      border-color: green;
+    }
+    .submit-btn {
+      font-size: 20px;
+      padding: 10px 20px;
+      background-color: #444;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    #student-comments {
+      width: 90%;
+      max-width: 400px;
+      font-size: 18px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 2px solid #333;
+      background-color: #222;
+      color: white;
+      margin: 10px auto;
+      display: block;
+    }
+
+    button {
+        font-size: 24px;
+        padding: 12px 24px;
+        margin: 10px 0;
+        cursor: pointer;
+    }
+
+
+    #level-select {
+      background-color: lightgrey;
+      color: black;
+      font-size: 18px;
+      width: 120px;
+      font-family: 'Georgia', serif;
+      border: none;
+      border-radius: 12px;
+      padding: 8px 12px;
+      box-shadow: 1px 1px 6px rgba(0,0,0,0.3);
+      appearance: none; /* Remove default arrow styling */
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      cursor: pointer;
+      z-index: 3;
+    }
+    #play-again-btn {
+      display: none;
+      font-size: 20px;
+      padding: 10px 20px;
+      background-color: #444;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+
+  </style>
+</head>
+<body>
+  <div id="start-screen">
+    <h1>Picture Arithmetic</h1>
+    <p>Choose your skill level:</p>
+    <select id="level-select">
+      <option value="1">#91</option>
+      <option value="2">#5</option>
+      <option value="3">#55</option>
+      <option value="4">#9</option>
+      <option value="5">#1</option>
+    </select>
+    <button onclick="startGame()">Start</button>
+  </div>
+
+  <div id="game-container" class="hidden">
+    <img id="background-image" src="game_0040_01.jpg" />
+    <div class="grid" id="grid"></div>
+  </div>
+  <div id="final-buttons" class="hidden">
+    <button class="submit-btn" onclick="location.reload()">Play Again</button>
+    <button class="submit-btn" onclick="showTurnIn()">Send to Chuck</button>
+  </div>
+  <div id="end-screen" class="hidden">
+    <h2>Well Done!</h2>
+    <p>Enter your initials:</p>
+    <div id="initials-boxes">
+      <input class="initial-box" id="initial-0" maxlength="1" type="text"/>
+      <input class="initial-box" id="initial-1" maxlength="1" type="text"/>
+      <input class="initial-box" id="initial-2" maxlength="1" type="text"/>
+    </div>
+    <textarea id="student-comments" placeholder="Comments (optional)"></textarea>
+    <button class="submit-btn" onclick="handleSubmission()">Send</button>
+    <p id="submit-status"></p>
+  </div>
+
+
+  <script>
+    const ROWS = 9;
+    const COLS = 16;
+    const TOTAL_TILES = ROWS * COLS;
+    const NUM_PAIRS = TOTAL_TILES / 2;
+    const level = 1;
+
+    let tiles = [], revealed = new Set();
+    let gridEl = document.getElementById('grid');
+    let clickable = true, matchCount = 0;
+
+    function startGame() {
+      document.getElementById('start-screen').classList.add('hidden');
+      document.getElementById('game-container').classList.remove('hidden');
+      const level = parseInt(document.getElementById('level-select').value);
+      document.getElementById('background-image').src = `game_0040_${String(level).padStart(2, '0')}.jpg`;
+      createTilePairs(level);
+      renderGrid();
+    }
+
+
+    function showTurnIn() {
+      document.getElementById("end-screen").style.display = "block";
+      document.getElementById("initial-0").focus();
+    }
+
+
+    function generateFixedProblems(level) {
+      const problems = [];
+
+      for (let answer = 0; answer < NUM_PAIRS; answer++) {
+        let b = Math.floor(Math.random() * level) + 1;
+        let useAddition = Math.random() < 0.5;
+        let a;
+
+        if (useAddition) {
+          a = answer - b;
+          if (a >= 0) {
+            problems.push({ problem: `${a} + ${b}`, answer });
+            continue;
+          }
+          // fallback to subtraction if addition fails
+        }
+
+        a = answer + b;
+        problems.push({ problem: `${a} - ${b}`, answer });
+      }
+
+      return problems;
+    }
+
+
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+
+    function createTilePairs(level) {
+      const problems = generateFixedProblems(level);
+      tiles = [];
+
+      // Build the full tile list first
+      problems.forEach(({ problem, answer }) => {
+        tiles.push({ type: 'problem', content: problem, id: answer });
+        tiles.push({ type: 'answer', content: answer, id: answer });
+      });
+
+      // Thorough shuffle
+      shuffle(tiles);
+      shuffle(tiles); // optional second shuffle for paranoia
+    }
+
+
+
+    function renderGrid() {
+      gridEl.innerHTML = '';
+      tiles.forEach((tile, index) => {
+        const div = document.createElement('div');
+        div.classList.add('tile');
+        div.dataset.index = index;
+        const span = document.createElement('span');
+        span.textContent = '';
+        div.appendChild(span);
+        div.addEventListener('click', () => handleClick(index));
+        gridEl.appendChild(div);
+      });
+    }
+
+    function handleClick(index) {
+      if (!clickable || revealed.has(index)) return;
+
+      Array.from(gridEl.children).forEach(tile => {
+        tile.classList.remove('glow');
+        if (!tile.classList.contains('revealed')) {
+          tile.querySelector('span').textContent = '';
+        }
+      });
+
+      const tile = tiles[index];
+      const span = gridEl.children[index].querySelector('span');
+      span.textContent = tile.content;
+
+      const options = getAnswerOptions(tile);
+      if (options.length === 0) return;
+
+      highlightMatches(index, tile, options);
+    }
+
+    function getAnswerOptions(tile) {
+      const matchType = tile.type === 'problem' ? 'answer' : 'problem';
+      const allMatches = tiles.map((t, i) => ({ ...t, index: i }))
+        .filter(t => t.type === matchType && t.id !== tile.id && !revealed.has(t.index));
+
+      // Get unique IDs of incorrect answers
+      const incorrectIDs = [...new Set(allMatches.map(t => t.id))];
+      shuffle(incorrectIDs);
+
+      // Slice after shuffle to avoid bias
+      const selectedIncorrect = incorrectIDs.slice(0, 3);
+
+      const options = [tile.id, ...selectedIncorrect];
+      shuffle(options);
+
+      return options;
+    }
+
+
+    function highlightMatches(originIndex, originTile, answerVals) {
+      clickable = false;
+      const matchType = originTile.type === 'problem' ? 'answer' : 'problem';
+      let candidates = tiles.map((t, i) => ({ ...t, index: i }))
+        .filter(t => t.type === matchType && answerVals.includes(t.id) && !revealed.has(t.index));
+
+      shuffle(candidates); // 👈 Randomize display order
+
+      candidates.forEach(({ index }) => {
+        const el = gridEl.children[index];
+        el.classList.add('glow');
+        el.querySelector('span').textContent = tiles[index].content;
+        el.onclick = () => {
+          candidates.forEach(({ index }) => {
+            const el = gridEl.children[index];
+            if (!revealed.has(index)) {
+              el.querySelector('span').textContent = '';
+              el.classList.remove('glow');
+            }
+            el.onclick = () => handleClick(index);
+          });
+
+          if (tiles[index].id === tiles[originIndex].id) {
+            gridEl.children[index].classList.add('revealed');
+            gridEl.children[originIndex].classList.add('revealed');
+            revealed.add(index);
+            revealed.add(originIndex);
+            matchCount++;
+            if (matchCount === NUM_PAIRS) endGame();
+          } else {
+            gridEl.children[index].querySelector('span').textContent = '';
+            gridEl.children[originIndex].querySelector('span').textContent = '';
+          }
+
+          clickable = true;
+        };
+      });
+    }
+
+
+    function endGame() {
+      document.getElementById('final-buttons').classList.remove('hidden');
+    }
+
+
+    function handleSubmission() {
+      const initials = [...Array(3)].map((_, i) => document.getElementById(`initial-${i}`).value.toUpperCase()).join('');
+      const comments = document.getElementById("student-comments").value;
+
+      const payload = {
+        game: "game_0040",
+        settings: `${level}`,
+        score: `🏈`,
+        elapsed: "N/A",
+        initials,
+        comments
+      };
+
+      submitResults(payload);
+    }
+
+
+    window.addEventListener('load', () => {
+      for (let i = 0; i < 3; i++) {
+        const box = document.getElementById(`initial-${i}`);
+        box.addEventListener('input', () => {
+          if (box.value.trim() !== "") {
+            box.style.backgroundColor = "#00ff88";
+          } else {
+            box.style.backgroundColor = "#fff";
+          }
+        });
+      }
+    });
+
+
+function getInitialsFromBoxes() {
+  const chars = [];
+  let allFilled = true;
+  for (let i = 0; i < 3; i++) {
+    const box = document.getElementById(`initial-${i}`);
+    const char = box.value.toUpperCase();
+    if (char.length === 1 && /^[A-Z]$/.test(char)) {
+      box.classList.add("correct");
+      chars.push(char);
+    } else {
+      box.classList.remove("correct");
+      allFilled = false;
+    }
+  }
+  return allFilled ? chars.join('') : null;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  for (let i = 0; i < 3; i++) {
+    const box = document.getElementById(`initial-${i}`);
+    box.addEventListener("input", () => {
+      if (box.value.trim().length === 1) {
+        box.classList.add("correct");
+        if (i < 2) {
+          document.getElementById(`initial-${i + 1}`).focus();
+        } else {
+          document.getElementById("student-comments").focus();
+        }
+      } else {
+        box.classList.remove("correct");
+      }
+    });
+  }
+});
+
+function submitResults(payload) {
+  const sendBtn = document.querySelector('#end-screen .submit-btn');
+  const statusEl = document.getElementById("submit-status");
+
+  sendBtn.style.display = "none";
+  statusEl.textContent = "Sending...";
+
+  const initials = getInitialsFromBoxes();
+  if (!initials) {
+    statusEl.textContent = "";
+    sendBtn.style.display = "inline-block"; // restore if invalid
+    return alert("Please enter 3 letters.");
+  }
+
+  payload.initials = initials;
+  payload.comments = document.getElementById("student-comments").value.trim();
+
+  fetch("https://script.google.com/macros/s/AKfycbwsvj0ijlKGeWOIu80EobVDJks24Dw0ziwl9aY_AVJImmhRJ0MQnAJwmuBpe1NYmPzr/exec", {
+    method: "POST",
+    body: JSON.stringify(payload),
+    headers: { "Content-Type": "text/plain" }
+  })
+    .then(res => res.text())
+    .then(res => {
+      statusEl.textContent = "Submitted successfully! 🎉";
+    })
+    .catch(err => {
+      statusEl.textContent = "Error: " + err;
+      sendBtn.style.display = "inline-block"; // allow retry
+    });
+}
+
+
+  </script>
+</body>
+</html>
