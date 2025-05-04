@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Helmet Showdown</title>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
   <style>
     html, body {
       margin: 0;
@@ -10,6 +11,7 @@
       background-color: #121212;
       font-family: Arial, sans-serif;
       overflow-x: hidden;
+      color: white;
     }
     canvas {
       display: block;
@@ -17,54 +19,374 @@
       width: 1024px;
       height: 548px;
     }
+    #announcer-box {
+      z-index: 1;
+      position: absolute;
+      top: 570px;
+      right: 0;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-family: Arial, sans-serif;
+      white-space: pre-line;
+      width: 220px;
+      min-height: 100px;
+      display: flex;
+      align-items: flex-start;
+    }
+
     #scoreboard {
       position: absolute;
       top: 10px;
       right: 10px;
-      background: rgba(0, 0, 0, 0.7);
-      color: white;
-      padding: 10px 15px;
-      border-radius: 8px;
-      font-size: 16px;
       z-index: 2;
-      font-family: Arial, sans-serif;
-    }
-    #game-interface {
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      background: rgba(255, 255, 255, 0.9);
-      padding: 10px;
+      gap: 6px;
+      font-family: 'Courier New', monospace;
+      background: #111;
+      border: 3px solid #999;
       border-radius: 8px;
-      margin: 20px auto 0 auto;
-      width: fit-content;
+      padding: 8px 12px;
     }
+
+
     #question {
-      margin-bottom: 10px;
-      font-weight: bold;
-      font-size: 18px;
+      color: white;
+      font-size: 20px;
+      text-align: center;
     }
     #game-interface button {
-      margin: 5px;
+      left: 362px;
+      margin: 5px 10px;
       padding: 10px 20px;
-      font-size: 16px;
+      font-size: 20px;
+      border: 2px solid #333;
+      border-radius: 12px;
+      cursor: pointer;
+      min-width: 100px;
+      transition: background-color 0.2s;
+      background: whitesmoke;
+      color: black;
+      width: 250px;
     }
+    #game-interface button:hover {
+      background-color: lightgrey;
+    }
+    #game-interface {
+      z-index: 1;
+      position: absolute;
+      top: 560px;
+      left: 362px;
+      width: 300px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0px;
+      border-radius: 8px;
+      height: 100px;
+    }
+    #button-container {
+      display: flex;
+      gap: 10px;
+      margin-top: 5px;
+      width: 300px;
+    }
+    button {
+        font-size: 24px;
+        padding: 12px 24px;
+        margin: 10px 0;
+        cursor: pointer;
+    }
+
+    #play-buttons {
+      position: absolute;
+      top: 560px;
+      left: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      width: 200px;
+      height: 54px; /* was 60px */
+
+      align-content: space-between; /* pack rows evenly */
+    }
+
+    #play-buttons button {
+      padding: 14px;
+      font-size: 18px;
+      height: 60px;
+      background-color: #E36B2B;
+      border: 2px solid #333;
+      border-radius: 10px;
+      cursor: pointer;
+      color: white;
+    }
+
+    #defense-buttons {
+      position: absolute;
+      top: 560px;
+      left: 0;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      width: 200px;
+      height: 54px; /* was 60px */
+
+      align-content: space-between; /* pack rows evenly */
+    }
+
+    #defense-buttons button {
+      padding: 14px;
+      font-size: 18px;
+      height: 60px;
+      background-color: #E36B2B;
+      border: 2px solid #333;
+      border-radius: 10px;
+      cursor: pointer;
+      color: white;
+    }
+    .scoreboard {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      display: flex;
+      gap: 12px;
+      z-index: 2;
+    }
+
+
+    .score-digit {
+      position: relative;
+      width: 20px;
+      height: 35px;
+      background: #000;
+      border: 2px solid #444; /* optional for debugging */
+    }
+
+    .segment-x, .segment-y {
+      position: absolute;
+      background: #000;
+      opacity: 0.1;
+      border-radius: 4px; /* add this line */
+    }
+
+
+    .segment-a { top: 3; left: 3px; width: 14px; height: 1px}
+    .segment-d { top: 31px; left: 3px; width: 14px;  height: 1px}
+    .segment-g { top: 17px; left: 3px; width: 14px;  height: 1px}
+
+    .segment-b { top: 4px; left: 16px; height: 12px; }
+    .segment-c { top: 18px; left: 16px; height: 12px; }
+    .segment-e { top: 18px; left: 1px; height: 12px; }
+    .segment-f { top: 4px; left: 1px; height: 12px; }
+
+    .active {
+      opacity: 1;
+      background: #ffcc00; /* bright amber-yellow */
+      box-shadow: 0 0 3px #ffcc00; /* glowing effect */
+    }
+
+
+
+    #scoreboard-classic {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: #111;
+      border: 3px solid #999;
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: white;
+      font-family: 'Courier New', monospace;
+      z-index: 5;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .score-top, .score-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .score-mid {
+      display: flex;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+.score-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#scoreboard-classic {
+  max-width: 600px;
+  margin: auto;
+}
+
+
+.score-box label {
+  margin-bottom: 4px;
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
+/* NEW: Wrap digits in a row */
+.score-box .digit-row {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  justify-content: center;
+  align-items: center;
+}
+
+    .text-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 70px;
+    }
+
+    .text-box label {
+      font-size: 12px;
+      margin-bottom: 2px;
+    }
+
+    .colon {
+      font-size: 28px;
+      padding: 0 4px;
+      color: #ffcc00;
+      align-self: center;
+    }
+
+    .segment-x, .segment-y {
+      position: absolute;
+      background: #000;
+      opacity: 0.1;
+      border-radius: 4px;
+    }
+
+    .active {
+      opacity: 1;
+      background: #ffcc00;
+      box-shadow: 0 0 8px #ffcc00;
+    }
+
+.score-top {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  gap: 32px;
+}
+
+.score-bottom {
+  display: flex;
+  justify-content: space-around;
+  text-align: center;
+}
+
+#clock-box {
+  border: 2px solid white;
+  border-radius: 12px;
+  padding: 4px 8px;  /* optional: adds space inside the box */
+  display: flex;     /* re-declare if needed */
+  gap: 4px;          /* keeps spacing clean */
+  align-items: center;
+  justify-content: center;
+}
+
+.hidden {
+  display: none;
+}
+
+
   </style>
 </head>
 <body>
 
-<canvas id="helmetCanvas" width="1024" height="548"></canvas>
+<div id="game-area" style="position: relative; width: 1024px; margin: 0 auto; height: 900px;">
+  <canvas id="helmetCanvas" width="1024" height="548"></canvas>
 
-<div id="scoreboard">
-  <p id="gameState"></p>
+  <div id="play-buttons" hidden>
+    <button onclick="selectPlay('rush')">Rush</button>
+    <button onclick="selectPlay('pass')">Pass</button>
+    <button disabled>Kick</button>
+    <button disabled>Punt</button>
+  </div>
+
+  <div id="defense-buttons" hidden>
+    <button onclick="selectPlay('base')">Base</button>
+    <button onclick="selectPlay('blitz')">Blitz</button>
+  </div>
+
+  <div id="game-interface">
+    <p id="question"></p>
+    <div id="button-container">
+      <button id="choiceA" onclick="makeChoice('A')"></button>
+      <button id="choiceB" onclick="makeChoice('B')"></button>
+    </div>
+  </div>
+
+  <div id="announcer-box">
+    <p id="gameState"></p>
+  </div>
+
+
+  <div id="scoreboard-classic">
+    <div class="score-top">
+      <div class="score-box">
+        <label>HOME</label>
+        <div class="digit-row">
+          <div class="score-digit" id="home-tens"></div>
+          <div class="score-digit" id="home-ones"></div>
+        </div>
+      </div>
+
+      <div class="score-box">
+        <label>CLOCK</label>
+        <div class="digit-row" id="clock-box">
+          <div class="score-digit" id="clock-mins-tens"></div>
+          <div class="score-digit" id="clock-mins-ones"></div>
+          <div class="colon">:</div>
+          <div class="score-digit" id="clock-secs-tens"></div>
+          <div class="score-digit" id="clock-secs-ones"></div>
+        </div>
+      </div>
+
+      <div class="score-box">
+        <label>AWAY</label>
+        <div class="digit-row">
+          <div class="score-digit" id="away-tens"></div>
+          <div class="score-digit" id="away-ones"></div>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="score-mid">
+    </div>
+
+    <div class="score-bottom">
+      <div class="text-box"><label>QTR</label><div id="quarter">1</div></div>
+      <div class="text-box"><label>BALL ON</label><div id="ballOn">50</div></div>
+      <div class="text-box"><label>TO GO</label><div id="toGo">10</div></div>
+      <div class="text-box"><label>DOWN</label><div id="down">1</div></div>
+    </div>
+  </div>
+
+
+
 </div>
 
-<div id="game-interface">
-  <p id="question"></p>
-  <button id="choiceA" onclick="makeChoice('A')"></button>
-  <button id="choiceB" onclick="makeChoice('B')"></button>
-</div>
+
 
 
 <script>
@@ -74,10 +396,12 @@
   const helmetImg = new Image();
   const backgroundImg = new Image();
   const ballImg = new Image();
+  const logoImg = new Image();
 
   helmetImg.src = 'game_0042_helmets.png';
   backgroundImg.src = 'game_0042_background.png';
   ballImg.src = 'game_0042_ball.png';
+  logoImg.src = 'game_0042_fieldlogo.png';
 
   const ROWS = 4;
   const COLS = 8;
@@ -96,6 +420,8 @@
 
   const helmetDisplayWidth = 40;
   const ballDisplayWidth = 20;
+  const fieldlogoDisplayHeight = 30;
+  const fieldlogoDisplayWidth = 90;
 
   const gameState = {
     possession: "home",
@@ -114,6 +440,42 @@
   function getXatYard(yard, xStart, xEnd) {
     return xStart + (yard / 100) * (xEnd - xStart);
   }
+
+function setDigit(containerId, digit, thickness = { x: 3, y: 3 }) {
+  const segments = {
+    0: ['a','b','c','d','e','f'],
+    1: ['b','c'],
+    2: ['a','b','g','e','d'],
+    3: ['a','b','g','c','d'],
+    4: ['f','g','b','c'],
+    5: ['a','f','g','c','d'],
+    6: ['a','f','g','e','d','c'],
+    7: ['a','b','c'],
+    8: ['a','b','c','d','e','f','g'],
+    9: ['a','b','c','d','f','g']
+  };
+
+  const container = document.getElementById(containerId);
+  container.innerHTML = ''; // clear
+  const activeSegments = segments[digit] || [];
+
+  ['a','b','c','d','e','f','g'].forEach(seg => {
+    const isX = ['a','d','g'].includes(seg);
+    const div = document.createElement('div');
+    div.classList.add(`segment-${isX ? 'x' : 'y'}`, `segment-${seg}`);
+
+    // Apply thickness inline
+    if (isX) {
+      div.style.height = `${thickness.x}px`;
+    } else {
+      div.style.width = `${thickness.y}px`;
+    }
+
+    if (activeSegments.includes(seg)) div.classList.add('active');
+    container.appendChild(div);
+  });
+}
+
 
 
   function drawMarkerLine(yard, color) {
@@ -167,6 +529,17 @@
     );
   }
 
+  function drawFieldLogo(x, y) {
+    const displayHeight = fieldlogoDisplayWidth;
+    ctx.drawImage(
+      logoImg,
+      getXatYard(50, fieldXStart, fieldXEnd) - fieldlogoDisplayWidth/2,
+      fieldY - fieldlogoDisplayHeight/2,
+      fieldlogoDisplayWidth,
+      fieldlogoDisplayHeight
+    );
+  }
+
   function drawScene() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
@@ -179,28 +552,216 @@
     drawHelmet(1, 0, ballX + 80, fieldY, true);
     drawBall(ballX, fieldY);
 
-    document.getElementById('ballInput').value = gameState.ballPosition;
   }
 
   function updateGameUI() {
-    const stateText = `Down: ${gameState.down}, Ball at: ${gameState.ballPosition} yd\nPossession: ${gameState.possession.toUpperCase()} | Score: HOME ${gameState.score.home} - AWAY ${gameState.score.away}`;
+    const { down, yardsToFirstDown, ballPosition, possession, score } = gameState;
+
+    const downNames = ['1st', '2nd', '3rd', '4th'];
+    const downLabel = downNames[down - 1] || `${down}th`;
+
+    const stateText =
+      `${downLabel} and ${yardsToFirstDown} from the ${ballPosition} yard line\n` +
+      `Possession: ${possession.toUpperCase()}\n` +
+      `Score: HOME ${score.home} - AWAY ${score.away}`;
+
     document.getElementById('gameState').textContent = stateText;
+
+    // Show play buttons only for home possession
+    const playButtons = document.getElementById('play-buttons');
+    const defenseButtons = document.getElementById('defense-buttons');
+
+    if (possession === 'home') {
+      playButtons.style.display = 'grid';
+      defenseButtons.style.display = 'none';
+    } else {
+      playButtons.style.display = 'none';
+      defenseButtons.style.display = 'grid';
+    }
+
+
+    gameState.score.home = 32;
+
+    const home = gameState.score.home.toString().padStart(2, '0');
+    const away = gameState.score.away.toString().padStart(2, '0');
+
+    setDigit('home-tens', parseInt(home[0]));
+    setDigit('home-ones', parseInt(home[1]));
+    setDigit('away-tens', parseInt(away[0]));
+    setDigit('away-ones', parseInt(away[1]));
+    const clock = "13:42"; // or dynamically calculated
+    setDigit("clock-mins-tens", parseInt(clock[0]));
+    setDigit("clock-mins-ones", parseInt(clock[1]));
+    setDigit("clock-secs-tens", parseInt(clock[3]));
+    setDigit("clock-secs-ones", parseInt(clock[4]));
+
+    document.getElementById('quarter').textContent = gameState.quarter || 1;
+    document.getElementById('ballOn').textContent = gameState.ballPosition;
+    document.getElementById('toGo').textContent = gameState.yardsToFirstDown;
+    document.getElementById('down').textContent = gameState.down;
+
+
   }
 
-  function generateProblem() {
-    const a = Math.floor(Math.random() * 100);
-    const b = Math.floor(Math.random() * 100);
-    document.getElementById('question').textContent = `Which is larger?`;
-    document.getElementById('choiceA').textContent = a;
-    document.getElementById('choiceB').textContent = b;
-    return { a, b };
+
+function selectPlay(type) {
+  if (type === 'rush') {
+    currentProblem = generateRushProblem(gameState.ballPosition);
+  } else if (type === 'base') {
+    currentProblem = generateBaseDefenseProblem(gameState.ballPosition);
   }
 
-  let currentProblem = generateProblem();
+  // Set LaTeX-renderable math in prompt and buttons
+  document.getElementById("question").innerHTML = "Which is greater?";
+  document.getElementById("choiceA").innerHTML = `\\(${currentProblem.choices[0]}\\)`;
+  document.getElementById("choiceB").innerHTML = `\\(${currentProblem.choices[1]}\\)`;
+
+  // Display the button container
+  document.getElementById('button-container').style.display = 'flex';
+
+  // Trigger MathJax rendering
+  if (window.MathJax && MathJax.typesetPromise) {
+    MathJax.typesetPromise();
+  }
+}
+
+
+
+
+function generateBaseDefenseProblem(currentYard) {
+  const mean = 5;
+  let delta1 = Math.round(sampleYardage(mean));
+  let delta2 = Math.round(sampleYardage(mean));
+
+  console.log(`[generateBaseDefenseProblem] delta1: ${delta1}, delta2: ${delta2}`);
+
+  let deltaCorrect, deltaIncorrect;
+  if (Math.random() < 0.5) {
+    deltaCorrect = delta1;
+    deltaIncorrect = -delta2;
+  } else {
+    deltaCorrect = delta2;
+    deltaIncorrect = -delta1;
+  }
+
+  const yardageCorrect = currentYard + deltaCorrect;
+  const yardageIncorrect = currentYard + deltaIncorrect;
+
+  const correctProblem = buildSubtractionProblem(yardageCorrect, currentYard);
+  const incorrectProblem = buildSubtractionProblem(yardageIncorrect, currentYard);
+
+  const problems = Math.random() < 0.5
+    ? [correctProblem, incorrectProblem]
+    : [incorrectProblem, correctProblem];
+
+  const yardageOptions = problems[0] === correctProblem
+    ? [yardageCorrect, yardageIncorrect]
+    : [yardageIncorrect, yardageCorrect];
+
+  return {
+    problemText: "Choose the correct result:",
+    choices: problems,
+    yardageOptions,
+    correctIndex: problems.indexOf(correctProblem)
+  };
+}
+
+
+
+
+function generateRushProblem(currentYard) {
+  const mean = 5;
+  let delta1 = Math.round(sampleYardage(mean));
+  let delta2 = Math.round(sampleYardage(mean));
+
+  console.log(`[generateRushProblem] delta1: ${delta1}, delta2: ${delta2}`);
+
+  let deltaCorrect, deltaIncorrect;
+  if (Math.random() < 0.5) {
+    deltaCorrect = delta1;
+    deltaIncorrect = -delta2;
+  } else {
+    deltaCorrect = delta2;
+    deltaIncorrect = -delta1;
+  }
+
+  const yardageCorrect = currentYard + deltaCorrect;
+  const yardageIncorrect = currentYard + deltaIncorrect;
+
+  const correctProblem = buildAdditionProblem(yardageCorrect, currentYard);
+  const incorrectProblem = buildAdditionProblem(yardageIncorrect, currentYard);
+
+  const problems = Math.random() < 0.5
+    ? [correctProblem, incorrectProblem]
+    : [incorrectProblem, correctProblem];
+
+  const yardageOptions = problems[0] === correctProblem
+    ? [yardageCorrect, yardageIncorrect]
+    : [yardageIncorrect, yardageCorrect];
+
+  return {
+    problemText: "Choose the correct result:",
+    choices: problems,
+    yardageOptions,
+    correctIndex: problems.indexOf(correctProblem)
+  };
+}
+
+
+
+
+function buildAdditionProblem(target, currentYard) {
+  let x, y;
+  let attempts = 0;
+
+  do {
+    x = Math.floor(Math.random() * 5) + 1;
+    y = target - x;
+    attempts++;
+  } while (x === currentYard || y === currentYard);
+
+  console.log(`[buildAdditionProblem] Target: ${target}, Current Yard: ${currentYard}, Chosen: ${x} + ${y} (after ${attempts} tries)`);
+
+  return `${x} + ${y}`;
+}
+
+
+function buildSubtractionProblem(target, currentYard) {
+  let x, y;
+  let attempts = 0;
+
+  do {
+    x = Math.floor(Math.random() * 5) + target + 1; // ensure x > y
+    y = x - target;
+    attempts++;
+  } while (x === currentYard || y === currentYard);
+
+  console.log(`[buildSubtractionProblem] Target: ${target}, Current Yard: ${currentYard}, Chosen: ${x} - ${y} (after ${attempts} tries)`);
+
+  return `${x} - ${y}`;
+}
+
+
+
+
+
+function sampleYardage(mean) {
+  const lambda = 1 / mean;
+  const rand = Math.random();
+  const sample = -Math.log(1 - rand) / lambda;
+
+  console.log(`[sampleYardage] Mean: ${mean}, Random: ${rand.toFixed(4)}, Sample: ${sample.toFixed(2)}`);
+
+  return sample;
+}
+
+
+
+
 
   function makeChoice(choice) {
-    const correct = Math.max(currentProblem.a, currentProblem.b);
-    const selected = (choice === 'A') ? currentProblem.a : currentProblem.b;
+    const selectedIndex = (choice === 'A') ? 0 : 1;
+    const selected = currentProblem.yardageOptions[selectedIndex];
 
     gameState.ballPosition = selected;
 
@@ -233,9 +794,45 @@
       }
     }
 
-    currentProblem = generateProblem();
     updateGameUI();
     drawScene();
+  }
+
+
+  function getFieldEdgeX(y) {
+    const t = (y - topY) / (bottomY - topY); // 0 at topY, 1 at bottomY
+
+    const xStart = topXStart + t * (bottomXStart - topXStart);
+    const xEnd = topXEnd + t * (bottomXEnd - topXEnd);
+
+    return { xStart, xEnd };
+  }
+
+
+  function drawPossessionArrow(yard, direction) {
+    const arrowY = topY + 18; // just below the top line
+    const { xStart, xEnd } = getFieldEdgeX(arrowY);
+    const centerX = xStart + (yard / 100) * (xEnd - xStart);
+
+    const size = 12; // size of the arrow
+
+    ctx.save();
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+
+    if (direction === 'right') {
+      ctx.moveTo(centerX - size, arrowY - size);
+      ctx.lineTo(centerX - size, arrowY + size);
+      ctx.lineTo(centerX + size, arrowY);
+    } else {
+      ctx.moveTo(centerX + size, arrowY - size);
+      ctx.lineTo(centerX + size, arrowY + size);
+      ctx.lineTo(centerX - size, arrowY);
+    }
+
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
   }
 
 
@@ -245,7 +842,7 @@
 
     // Draw top label bar background
     ctx.fillStyle = '#e27b47';
-    ctx.fillRect(topXStart, topY - labelHeight, topXEnd - topXStart, labelHeight);
+    // ctx.fillRect(topXStart, topY - labelHeight, topXEnd - topXStart, labelHeight);
 
     for (let yard = 0; yard < 100; yard += yardStep) {
       const topX = getXatYard(yard, topXStart, topXEnd);
@@ -277,13 +874,39 @@
       ctx.lineTo(bottomX, bottomY);
       ctx.stroke();
 
-      // Draw numbers every 10 yards (top only)
+      // // Draw numbers every 10 yards (top only)
+      // if (yard % 10 === 0 && yard > 0 && yard < 100) {
+      //   ctx.fillStyle = 'black';
+      //   ctx.font = '16px Arial';
+      //   ctx.textAlign = 'center';
+      //   ctx.fillText(`${yard}`, topX, topY - 4);
+      // }
+
+      drawFieldLogo(50, fieldY);
+
+      // Draw numbers every 10 yards (on-field labels)
       if (yard % 10 === 0 && yard > 0 && yard < 100) {
-        ctx.fillStyle = 'black';
-        ctx.font = '16px Arial';
+        const labelY = (fieldY + bottomY) / 2 + 10;
+        const { xStart, xEnd } = getFieldEdgeX(labelY);
+        const labelX = xStart + (yard / 100) * (xEnd - xStart);
+        const fontSize = 16 + 4 * ((labelY - topY) / (bottomY - topY)); // Ranges from 16 to 20
+
+
+        ctx.save();
+        ctx.fillStyle = 'white';
+        ctx.font = '20px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText(`${yard}`, topX, topY - 4);
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`${yard}`, labelX, labelY);
+        ctx.restore();
       }
+
+      // Draw possession arrows at 25 and 75 yard lines
+      const arrowDirection = gameState.possession === 'home' ? 'right' : 'left';
+      drawPossessionArrow(25, arrowDirection);
+      drawPossessionArrow(75, arrowDirection);
+
+
     }
   }
 
@@ -291,6 +914,18 @@
     drawScene();
     updateGameUI();
   };
+
+  if (window.MathJax) {
+    if (window.MathJax && MathJax.typesetPromise) {
+      MathJax.typesetPromise();
+    }
+
+  } else {
+    document.addEventListener("DOMContentLoaded", () => {
+      MathJax.typeset();
+    });
+  }
+
 </script>
 
 </body>
