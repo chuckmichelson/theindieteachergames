@@ -1,0 +1,919 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Elevator Toy – Video Underlay Rewrite</title>
+  <style>
+    :root{
+      --bg: #0a0d12;
+      --pad: clamp(8px, 1.2vw, 16px);
+      --metal1: #f8e7a1;
+      --metal2: #b98d2f;
+      --metal3: #6f4f12;
+      --ring: #67ff82;
+      --ringOff: rgba(103,255,130,0.12);
+    }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(255,255,255,0.05), transparent 30%),
+        radial-gradient(circle at 80% 10%, rgba(120,160,255,0.05), transparent 26%),
+        linear-gradient(180deg, #0d1118, #06080c 70%);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      overflow: hidden;
+    }
+
+    .wrap{
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: var(--pad);
+      box-sizing: border-box;
+    }
+
+    .stage{
+      position: relative;
+      width: min(100vw - 2*var(--pad), calc((100vh - 2*var(--pad)) * 1.78));
+      height: min(100vh - 2*var(--pad), calc((100vw - 2*var(--pad)) / 1.78));
+      border-radius: 22px;
+      overflow: hidden;
+      box-shadow: 0 24px 70px rgba(0,0,0,0.55);
+      background: #000;
+    }
+
+    .bgVideo{
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: fill;
+      display: block;
+      background: #000;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    canvas{
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: transparent;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .panel{
+      position: absolute;
+      box-sizing: border-box;
+      padding: 10px;
+      border-radius: 24px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.62), rgba(255,255,255,0.08) 20%, rgba(0,0,0,0.18) 21%, rgba(255,255,255,0.08) 100%),
+        linear-gradient(135deg, var(--metal1), var(--metal2) 45%, var(--metal3));
+      border: 1px solid rgba(255,255,255,0.26);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.45),
+        inset 0 -10px 22px rgba(0,0,0,0.18),
+        0 14px 40px rgba(0,0,0,0.38);
+      user-select: none;
+      z-index: 10;
+
+      display: grid;
+      grid-template-rows: auto 1fr auto auto;
+      gap: 10px;
+    }
+
+    .panel::before,
+    .panel::after{
+      content: "";
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #fff6d7, #b89442 65%, #6f5417 100%);
+      box-shadow: inset 0 1px 1px rgba(255,255,255,0.4), 0 1px 2px rgba(0,0,0,0.5);
+    }
+    .panel::before{ top: 10px; left: 10px; }
+    .panel::after{ bottom: 10px; right: 10px; }
+
+    .display{
+      border-radius: 14px;
+      background: linear-gradient(180deg, #10151d, #020406);
+      border: 1px solid rgba(255,255,255,0.18);
+      padding: 10px 8px;
+      text-align: center;
+      color: #d9f3ff;
+      box-shadow: inset 0 0 16px rgba(0,255,255,0.08);
+    }
+
+    .display .floorLabel{
+      font-size: clamp(22px, 2.5vw, 34px);
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: 1px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .display .stateLabel{
+      margin-top: 6px;
+      font-size: 11px;
+      letter-spacing: 0.6px;
+      opacity: 0.9;
+      min-height: 1.2em;
+    }
+
+    .btnCol{
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-auto-rows: 1fr;
+      gap: 8px;
+      align-items: stretch;
+      min-height: 0;
+    }
+
+    button{
+      font: inherit;
+      border: none;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    .floorBtn{
+      position: relative;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #404954, #20262d);
+      color: #f7fbff;
+      font-weight: 800;
+      font-size: clamp(14px, 1.6vw, 24px);
+      letter-spacing: 0.5px;
+      border: 1px solid rgba(255,255,255,0.15);
+      box-shadow:
+        inset 0 1px 1px rgba(255,255,255,0.18),
+        inset 0 -3px 7px rgba(0,0,0,0.28),
+        0 3px 10px rgba(0,0,0,0.18);
+    }
+
+    .floorBtn::after,
+    .doorBtn::after{
+      content: "";
+      position: absolute;
+      inset: 2px;
+      border-radius: inherit;
+      box-shadow: 0 0 0 1px var(--ringOff), inset 0 0 0 1px rgba(255,255,255,0.03);
+      transition: box-shadow 120ms ease, opacity 120ms ease;
+      opacity: 0.95;
+      pointer-events: none;
+    }
+
+    .floorBtn.active::after,
+    .doorBtn.active::after{
+      box-shadow:
+        0 0 0 2px rgba(150,255,170,0.98),
+        0 0 12px rgba(95,255,130,0.98),
+        0 0 24px rgba(40,235,90,0.62),
+        inset 0 0 10px rgba(120,255,145,0.25);
+    }
+
+    .floorBtn:active,
+    .doorBtn:active{
+      transform: translateY(1px);
+    }
+
+    .doorRow{
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .doorBtn{
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 50%;
+      background: linear-gradient(180deg, #3c434c, #1e242b);
+      color: #fff;
+      font-size: clamp(16px, 1.8vw, 24px);
+      font-weight: 900;
+      border: 1px solid rgba(255,255,255,0.16);
+      box-shadow:
+        inset 0 1px 1px rgba(255,255,255,0.18),
+        inset 0 -5px 10px rgba(0,0,0,0.25),
+        0 4px 12px rgba(0,0,0,0.24);
+      line-height: 1;
+    }
+
+    .legend{
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      color: rgba(255,255,255,0.85);
+      text-align: center;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+    }
+
+    @media (max-width: 850px) {
+      .display .stateLabel{ font-size: 10px; }
+      .btnCol{ gap: 6px; }
+      .doorRow{ gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="stage" id="stage">
+      <video
+        id="bgVideo"
+        class="bgVideo"
+        muted
+        playsinline
+        preload="auto"
+      ></video>
+
+      <canvas id="c"></canvas>
+
+      <div class="panel" id="panel" aria-label="Elevator controls">
+        <div class="display">
+          <div class="floorLabel" id="floorNow">1</div>
+          <div class="stateLabel" id="stateNow">Doors open</div>
+        </div>
+
+        <div class="btnCol" id="btnGrid"></div>
+
+        <div class="doorRow">
+          <button class="doorBtn" id="doorOpenBtn" aria-label="Open door">◀▶</button>
+          <button class="doorBtn" id="doorCloseBtn" aria-label="Close door">▶◀</button>
+        </div>
+
+        <div class="legend">
+          <div>OPEN</div>
+          <div>CLOSE</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // ========= CONFIG =========
+  const ELEVATOR_IMG_SRC = "game_0050_elevator.png";
+
+  // Prepare floor videos at full canvas size.
+  // Example files:
+  // game_0050_floor_1.mp4
+  // game_0050_floor_2.mp4
+  const FLOOR_VIDEO_SRC = (n) => `game_0050_floor_${n}.mp4`;
+
+  // Optional fallback if a floor video is missing.
+  const FALLBACK_VIDEO_SRC = "";
+
+  // The visible doorway in 1366x768 design coordinates.
+  const doorRect = { x: 464, y: 132, w: 436, h: 495 };
+
+  // Control panel rect in the same coordinate system.
+  const panelRect = { x: 328, y: 125, w: 110, h: 470 };
+
+  const VIEW_W = 1366;
+  const VIEW_H = 768;
+
+  const FLOOR_COUNT = 12;
+  const SLIT_PX = 12;
+  const OPEN_MS = 700;
+  const CLOSE_MS = 480;
+  const FLOOR_TRAVEL_MS = 1050;
+  const SOFT_LAND_MS = 220;
+  const DOOR_HOLD_MS = 700;
+  const BAR_SPEED_FACTOR = 1.0;
+
+  // If true, the current floor video audio plays when doors are open / idle.
+  // During travel, we mute the room video.
+  const ENABLE_VIDEO_AUDIO = true;
+
+  // ========= STATE =========
+  const canvas = document.getElementById("c");
+  const ctx = canvas.getContext("2d");
+  canvas.width = VIEW_W;
+  canvas.height = VIEW_H;
+
+  const stage = document.getElementById("stage");
+  const panelEl = document.getElementById("panel");
+  const bgVideo = document.getElementById("bgVideo");
+
+  const floorNowEl = document.getElementById("floorNow");
+  const stateNowEl = document.getElementById("stateNow");
+  const btnGrid = document.getElementById("btnGrid");
+  const doorOpenBtn = document.getElementById("doorOpenBtn");
+  const doorCloseBtn = document.getElementById("doorCloseBtn");
+
+  const elevatorImg = new Image();
+  elevatorImg.src = ELEVATOR_IMG_SRC;
+
+  const requests = new Set();
+  const travelTimers = new Set();
+  const floorButtons = new Map();
+  const knownVideoOk = new Map();
+
+  let currentFloor = 1;
+  let direction = 0; // -1 down, +1 up, 0 idle
+  let doorReveal = 1; // 0 = closed/slit, 1 = open
+  let doorAnim = null;
+  let motion = null;
+  let holdOpenUntil = 0;
+  let lastStatus = "Doors open";
+  let useFallbackCab = false;
+  let doorPulseTimer = null;
+  let displayedTravelFloor = null;
+
+  // ========= HELPERS =========
+  function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+  function lerp(a, b, t){ return a + (b - a) * t; }
+  function easeInOutCubic(t){ return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3)/2; }
+
+  function setStateLabel(s){
+    lastStatus = s;
+    stateNowEl.textContent = s;
+  }
+
+  function setFloorLabel(n){
+    floorNowEl.textContent = String(n);
+  }
+
+  function isDoorOpen(){ return doorReveal > 0.99 && !doorAnim; }
+  function isDoorClosed(){ return doorReveal < 0.01 && !doorAnim; }
+  function isMoving(){ return !!motion; }
+
+  function startDoorAnim(to, dur, label, onDone){
+    doorAnim = {
+      from: doorReveal,
+      to,
+      dur,
+      start: performance.now(),
+      label,
+      onDone
+    };
+    setStateLabel(label);
+  }
+
+  function updateDisplayedFloorDuringMotion(now){
+    if (!motion) return;
+
+    const floorsTotal = Math.abs(motion.to - motion.from);
+    if (floorsTotal === 0) return;
+
+    const tRaw = clamp((now - motion.start) / motion.dur, 0, 1);
+
+    // Use the same timing curve as the shaft markers.
+    const EDGE = 0.12;
+
+    function edgeEase(t){
+      if (t < EDGE){
+        const u = t / EDGE;
+        return EDGE * (-u*u*u + 2*u*u);
+      }
+      if (t > 1 - EDGE){
+        const u = (1 - t) / EDGE;
+        return 1 - EDGE * (-u*u*u + 2*u*u);
+      }
+      return t;
+    }
+
+    const t = edgeEase(tRaw);
+
+    // How many floor intervals have been traversed so far.
+    // Example: from 2 to 6:
+    // 0.00 -> 2
+    // 0.26 -> 3
+    // 0.51 -> 4
+    // 0.76 -> 5
+    // 1.00 -> 6
+    const intervalsPassed = Math.floor(t * floorsTotal);
+    const shownFloor = motion.from + intervalsPassed * motion.dir;
+
+    if (shownFloor !== displayedTravelFloor){
+      displayedTravelFloor = shownFloor;
+      setFloorLabel(shownFloor);
+    }
+  }
+
+  function clearCurrentFloorRequest(){
+    if (requests.has(currentFloor)){
+      requests.delete(currentFloor);
+      const btn = floorButtons.get(currentFloor);
+      if (btn) btn.classList.remove("active");
+    }
+  }
+
+  function pulseDoorButton(btn){
+    btn.classList.add("active");
+    clearTimeout(doorPulseTimer);
+    doorPulseTimer = setTimeout(() => btn.classList.remove("active"), 350);
+  }
+
+  function updatePanelPlacement(){
+    panelEl.style.left = `${panelRect.x / VIEW_W * 100}%`;
+    panelEl.style.top = `${panelRect.y / VIEW_H * 100}%`;
+    panelEl.style.width = `${panelRect.w / VIEW_W * 100}%`;
+    panelEl.style.height = `${panelRect.h / VIEW_H * 100}%`;
+  }
+
+  function setVideoAudioMode(){
+    if (!ENABLE_VIDEO_AUDIO) {
+      bgVideo.muted = true;
+      return;
+    }
+
+    // Audio only when not moving.
+    bgVideo.muted = isMoving();
+  }
+
+  function loadFloorVideo(n, { playFromStart = false } = {}){
+    const src = FLOOR_VIDEO_SRC(n);
+    if (bgVideo.dataset.floor == String(n) && bgVideo.src.includes(src)) {
+      setVideoAudioMode();
+      return;
+    }
+
+    bgVideo.dataset.floor = String(n);
+    bgVideo.loop = true;
+    bgVideo.playsInline = true;
+    bgVideo.autoplay = true;
+    bgVideo.preload = "auto";
+    bgVideo.src = src;
+
+    const playAttempt = () => {
+      if (playFromStart) {
+        try { bgVideo.currentTime = 0; } catch (e) {}
+      }
+      setVideoAudioMode();
+      bgVideo.play().catch(() => {});
+    };
+
+    bgVideo.onloadeddata = () => {
+      knownVideoOk.set(n, true);
+      playAttempt();
+    };
+
+    bgVideo.onerror = () => {
+      knownVideoOk.set(n, false);
+      if (FALLBACK_VIDEO_SRC) {
+        bgVideo.src = FALLBACK_VIDEO_SRC;
+        bgVideo.loop = true;
+        bgVideo.muted = true;
+        bgVideo.play().catch(() => {});
+      }
+    };
+  }
+
+  function buildButtons(){
+    for (let rowTop = FLOOR_COUNT; rowTop >= 2; rowTop -= 2){
+      const leftNum = rowTop - 1;
+      const rightNum = rowTop;
+
+      for (const i of [leftNum, rightNum]){
+        const b = document.createElement("button");
+        b.className = "floorBtn";
+        b.textContent = i;
+        b.setAttribute("aria-label", `Floor ${i}`);
+        b.addEventListener("click", () => requestFloor(i));
+        btnGrid.appendChild(b);
+        floorButtons.set(i, b);
+      }
+    }
+
+    // If FLOOR_COUNT were ever odd, add the last bottom-left button.
+    if (FLOOR_COUNT % 2 === 1){
+      const i = 1;
+      const b = document.createElement("button");
+      b.className = "floorBtn";
+      b.textContent = i;
+      b.setAttribute("aria-label", `Floor ${i}`);
+      b.addEventListener("click", () => requestFloor(i));
+      btnGrid.appendChild(b);
+      floorButtons.set(i, b);
+
+      const spacer = document.createElement("div");
+      btnGrid.appendChild(spacer);
+    }
+  }
+
+  // ========= REQUEST / UI =========
+  function requestFloor(n){
+    if (n < 1 || n > FLOOR_COUNT) return;
+
+    if (n === currentFloor && !isMoving()){
+      loadFloorVideo(currentFloor);
+      if (!isDoorOpen()){
+        startDoorAnim(1, OPEN_MS, "Doors opening…", () => {
+          holdOpenUntil = performance.now() + DOOR_HOLD_MS;
+          setVideoAudioMode();
+          setStateLabel("Doors open");
+        });
+      } else {
+        holdOpenUntil = performance.now() + DOOR_HOLD_MS;
+        setVideoAudioMode();
+        setStateLabel("Doors open");
+      }
+      return;
+    }
+
+    requests.add(n);
+    const btn = floorButtons.get(n);
+    if (btn) btn.classList.add("active");
+
+    if (!isMoving() && isDoorOpen()){
+      holdOpenUntil = 0;
+      startDoorAnim(0, CLOSE_MS, "Doors closing…", processController);
+    } else {
+      processController();
+    }
+  }
+
+  doorOpenBtn.addEventListener("click", () => {
+    pulseDoorButton(doorOpenBtn);
+    if (isMoving()) return;
+    holdOpenUntil = performance.now() + DOOR_HOLD_MS;
+
+    if (doorAnim && doorAnim.to === 0){
+      startDoorAnim(1, OPEN_MS, "Doors opening…", () => {
+        loadFloorVideo(currentFloor);
+        setVideoAudioMode();
+        setStateLabel("Doors open");
+      });
+      return;
+    }
+
+    if (!isDoorOpen()){
+      startDoorAnim(1, OPEN_MS, "Doors opening…", () => {
+        loadFloorVideo(currentFloor);
+        setVideoAudioMode();
+        setStateLabel("Doors open");
+      });
+    }
+  });
+
+  doorCloseBtn.addEventListener("click", () => {
+    pulseDoorButton(doorCloseBtn);
+    if (isMoving()) return;
+    holdOpenUntil = 0;
+
+    if (doorAnim && doorAnim.to === 1){
+      startDoorAnim(0, CLOSE_MS, "Doors closing…", processController);
+      return;
+    }
+
+    if (isDoorOpen()){
+      startDoorAnim(0, CLOSE_MS, "Doors closing…", processController);
+    }
+  });
+
+  // ========= CONTROLLER =========
+  function chooseDirection(){
+    if (requests.size === 0) return 0;
+
+    const above = [...requests].some(f => f > currentFloor);
+    const below = [...requests].some(f => f < currentFloor);
+
+    if (direction > 0){
+      if (above) return 1;
+      if (below) return -1;
+    }
+    if (direction < 0){
+      if (below) return -1;
+      if (above) return 1;
+    }
+
+    if (above && !below) return 1;
+    if (below && !above) return -1;
+
+    let best = null;
+    let bestDist = Infinity;
+    for (const f of requests){
+      const d = Math.abs(f - currentFloor);
+      if (d < bestDist){
+        bestDist = d;
+        best = f;
+      }
+    }
+    if (best == null) return 0;
+    return best > currentFloor ? 1 : -1;
+  }
+
+  function getNextStop(dir){
+    const candidates = [...requests]
+      .filter(f => dir > 0 ? f > currentFloor : f < currentFloor)
+      .sort((a, b) => dir > 0 ? a - b : b - a);
+    return candidates.length ? candidates[0] : null;
+  }
+
+  function clearTravelTimers(){
+    for (const id of travelTimers) clearTimeout(id);
+    travelTimers.clear();
+  }
+
+  function scheduleSoftLandingAndOpen(){
+    clearTravelTimers();
+    setStateLabel("Soft landing…");
+
+    const id = setTimeout(() => {
+      travelTimers.delete(id);
+      loadFloorVideo(currentFloor, { playFromStart: true });
+      startDoorAnim(1, OPEN_MS, "Doors opening…", () => {
+        holdOpenUntil = performance.now() + DOOR_HOLD_MS;
+        setVideoAudioMode();
+        setStateLabel("Doors open");
+      });
+    }, SOFT_LAND_MS);
+
+    travelTimers.add(id);
+  }
+
+  function processController(){
+    if (isMoving() || doorAnim) return;
+
+    if (requests.has(currentFloor)){
+      clearCurrentFloorRequest();
+      loadFloorVideo(currentFloor);
+
+      if (!isDoorOpen()){
+        startDoorAnim(1, OPEN_MS, "Doors opening…", () => {
+          holdOpenUntil = performance.now() + DOOR_HOLD_MS;
+          setVideoAudioMode();
+          setStateLabel("Doors open");
+        });
+      } else {
+        holdOpenUntil = performance.now() + DOOR_HOLD_MS;
+        setVideoAudioMode();
+        setStateLabel("Doors open");
+      }
+      return;
+    }
+
+    if (isDoorOpen()){
+      if (requests.size === 0) {
+        direction = 0;
+        loadFloorVideo(currentFloor);
+        setVideoAudioMode();
+        setStateLabel("Doors open");
+        return;
+      }
+      if (performance.now() < holdOpenUntil) return;
+      startDoorAnim(0, CLOSE_MS, "Doors closing…", processController);
+      return;
+    }
+
+    if (!isDoorClosed()) return;
+
+    if (requests.size === 0) {
+      direction = 0;
+      setStateLabel("Doors closed");
+      return;
+    }
+
+    direction = chooseDirection();
+    if (!direction) return;
+
+    const nextStop = getNextStop(direction);
+    if (nextStop == null) return;
+
+    motion = {
+      from: currentFloor,
+      to: nextStop,
+      start: performance.now(),
+      dur: Math.abs(nextStop - currentFloor) * FLOOR_TRAVEL_MS,
+      dir: direction
+    };
+
+    displayedTravelFloor = currentFloor;
+    setFloorLabel(currentFloor);
+    displayedTravelFloor = null;
+
+    setVideoAudioMode();
+    setStateLabel(direction > 0 ? "Going up…" : "Going down…");
+  }
+
+  function finishTravel(){
+    if (!motion) return;
+
+    currentFloor = motion.to;
+    setFloorLabel(currentFloor);
+    motion = null;
+
+    if (requests.has(currentFloor)) clearCurrentFloorRequest();
+
+    scheduleSoftLandingAndOpen();
+  }
+
+  // ========= DRAWING =========
+  function drawFallbackCabBase(){
+    const g = ctx.createLinearGradient(0, 0, 0, VIEW_H);
+    g.addColorStop(0, "#5a6069");
+    g.addColorStop(0.08, "#2d333b");
+    g.addColorStop(0.5, "#7e8892");
+    g.addColorStop(0.92, "#1e242d");
+    g.addColorStop(1, "#59636c");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+
+    ctx.fillStyle = "rgba(0,0,0,0.18)";
+    ctx.fillRect(0, 0, 220, VIEW_H);
+    ctx.fillRect(VIEW_W - 220, 0, 220, VIEW_H);
+  }
+
+  function drawMovingShaft(now){
+    const m = motion;
+    const tRaw = clamp((now - m.start) / m.dur, 0, 1);
+
+    // Use mostly linear motion so the shaft markers feel consistent.
+    // You can still add a tiny ease at the ends later if you want.
+    const travelPx = tRaw * Math.abs(m.to - m.from) * doorRect.h * BAR_SPEED_FACTOR;
+
+    // One marker per floor.
+    const spacing = doorRect.h;
+
+    const bg = ctx.createLinearGradient(doorRect.x, doorRect.y, doorRect.x, doorRect.y + doorRect.h);
+    bg.addColorStop(0, "#111318");
+    bg.addColorStop(0.45, "#06080a");
+    bg.addColorStop(0.55, "#0f1217");
+    bg.addColorStop(1, "#050608");
+    ctx.fillStyle = bg;
+    ctx.fillRect(doorRect.x, doorRect.y, doorRect.w, doorRect.h);
+
+    ctx.fillStyle = "rgba(255,255,255,0.06)";
+    ctx.fillRect(doorRect.x + 28, doorRect.y, 6, doorRect.h);
+    ctx.fillRect(doorRect.x + doorRect.w - 34, doorRect.y, 6, doorRect.h);
+
+    // Move markers opposite the elevator motion, like the shaft sliding by.
+    const signedOffset = (m.dir > 0 ? travelPx : -travelPx) % spacing;
+
+    for (let y = doorRect.y - spacing; y <= doorRect.y + doorRect.h + spacing; y += spacing){
+      const yy = y + signedOffset;
+      if (yy < doorRect.y - 6 || yy > doorRect.y + doorRect.h + 6) continue;
+
+      const alpha = 0.95 - Math.min(0.5, Math.abs(yy - (doorRect.y + doorRect.h / 2)) / doorRect.h);
+      ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(doorRect.x, yy);
+      ctx.lineTo(doorRect.x + doorRect.w, yy);
+      ctx.stroke();
+    }
+
+    const seamX = doorRect.x + doorRect.w / 2;
+    ctx.strokeStyle = "rgba(235,245,255,0.75)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(seamX, doorRect.y);
+    ctx.lineTo(seamX, doorRect.y + doorRect.h);
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(255,255,255,0.14)";
+    ctx.fillRect(doorRect.x + 18, doorRect.y + 18, 90, 44);
+    ctx.strokeStyle = "rgba(255,255,255,0.18)";
+    ctx.strokeRect(doorRect.x + 18, doorRect.y + 18, 90, 44);
+    ctx.fillStyle = "rgba(240,250,255,0.92)";
+    ctx.font = "bold 26px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText(String(m.to), doorRect.x + 63, doorRect.y + 49);
+  }
+
+  function drawDoorLeaves(){
+    const fullW = doorRect.w;
+    const visibleW = Math.max(SLIT_PX, Math.round(SLIT_PX + (fullW - SLIT_PX) * doorReveal));
+    const cx = doorRect.x + fullW / 2;
+    const coverW = Math.max(0, (fullW - visibleW) / 2);
+
+    const metal = ctx.createLinearGradient(0, doorRect.y, 0, doorRect.y + doorRect.h);
+    metal.addColorStop(0, "rgba(205,175,92,1)");
+    metal.addColorStop(0.12, "rgba(138,103,28,1)");
+    metal.addColorStop(0.5, "rgba(240,217,141,1)");
+    metal.addColorStop(0.88, "rgba(118,84,18,1)");
+    metal.addColorStop(1, "rgba(190,155,70,1)");
+
+    ctx.fillStyle = metal;
+    ctx.fillRect(doorRect.x, doorRect.y, coverW, doorRect.h);
+    ctx.fillRect(cx + visibleW/2, doorRect.y, coverW, doorRect.h);
+
+    ctx.fillStyle = "rgba(255,255,255,0.10)";
+    ctx.fillRect(doorRect.x + coverW - 8, doorRect.y, 4, doorRect.h);
+    ctx.fillRect(cx + visibleW/2 + 4, doorRect.y, 4, doorRect.h);
+  }
+
+  function drawForegroundFrame(){
+    if (!useFallbackCab && elevatorImg.complete && elevatorImg.naturalWidth){
+      ctx.drawImage(elevatorImg, 0, 0, VIEW_W, VIEW_H);
+    } else {
+      drawFallbackCabBase();
+
+      ctx.strokeStyle = "rgba(255,255,255,0.16)";
+      ctx.lineWidth = 8;
+      ctx.strokeRect(doorRect.x - 16, doorRect.y - 18, doorRect.w + 32, doorRect.h + 36);
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(255,255,255,0.10)";
+      ctx.strokeRect(doorRect.x, doorRect.y, doorRect.w, doorRect.h);
+    }
+  }
+
+  function drawFrameOverlay(){
+    ctx.strokeStyle = "rgba(255,255,255,0.20)";
+    ctx.lineWidth = 4;
+    ctx.strokeRect(doorRect.x - 2, doorRect.y - 2, doorRect.w + 4, doorRect.h + 4);
+
+    ctx.strokeStyle = "rgba(0,0,0,0.24)";
+    ctx.lineWidth = 12;
+    ctx.strokeRect(doorRect.x - 14, doorRect.y - 14, doorRect.w + 28, doorRect.h + 28);
+  }
+
+  function draw(now){
+    ctx.clearRect(0, 0, VIEW_W, VIEW_H);
+
+    // Draw foreground frame art over the full-stage video.
+    drawForegroundFrame();
+
+    // While moving, cover the doorway with shaft animation.
+    if (isMoving()){
+      drawMovingShaft(now);
+    }
+
+    // Draw animated door leaves on top.
+    drawDoorLeaves();
+
+    // Extra frame details on top of everything.
+    drawFrameOverlay();
+  }
+
+  // ========= MAIN LOOP =========
+  function update(now){
+    if (doorAnim){
+      const t = clamp((now - doorAnim.start) / doorAnim.dur, 0, 1);
+      const e = easeInOutCubic(t);
+      doorReveal = lerp(doorAnim.from, doorAnim.to, e);
+
+      if (t >= 1){
+        doorReveal = doorAnim.to;
+        const done = doorAnim.onDone;
+        doorAnim = null;
+        if (done) done();
+      }
+    }
+
+    if (motion){
+      updateDisplayedFloorDuringMotion(now);
+
+      const t = clamp((now - motion.start) / motion.dur, 0, 1);
+      if (t >= 1) finishTravel();
+    }
+
+    if (!isMoving() && !doorAnim && requests.size > 0) {
+      processController();
+    }
+
+    draw(now);
+    requestAnimationFrame(update);
+  }
+
+  // ========= BOOT =========
+  buildButtons();
+  updatePanelPlacement();
+  setFloorLabel(currentFloor);
+  setStateLabel("Loading…");
+  loadFloorVideo(1, { playFromStart: true });
+
+  elevatorImg.onload = () => {
+    useFallbackCab = false;
+    setStateLabel("Doors open");
+  };
+
+  elevatorImg.onerror = () => {
+    useFallbackCab = true;
+    setStateLabel("Doors open");
+  };
+
+  setTimeout(() => {
+    if (!elevatorImg.complete || !elevatorImg.naturalWidth) {
+      useFallbackCab = true;
+      if (lastStatus === "Loading…") setStateLabel("Doors open");
+    }
+  }, 700);
+
+  window.addEventListener("resize", () => {
+    updatePanelPlacement();
+  });
+
+  holdOpenUntil = performance.now() + 300;
+  requestAnimationFrame(update);
+})();
+</script>
+</body>
+</html>
