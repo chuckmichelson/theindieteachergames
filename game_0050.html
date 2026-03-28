@@ -274,7 +274,7 @@
   // Example files:
   // game_0050_floor_1.mp4
   // game_0050_floor_2.mp4
-  const FLOOR_VIDEO_SRC = (n) => `game_0050_floor_${n}.mp4`;
+  const FLOOR_VIDEO_SRC = (n) => `game_0050_floor_${n}.mov`;
 
   // Optional fallback if a floor video is missing.
   const FALLBACK_VIDEO_SRC = "";
@@ -283,17 +283,17 @@
   const doorRect = { x: 464, y: 132, w: 436, h: 495 };
 
   // Control panel rect in the same coordinate system.
-  const panelRect = { x: 328, y: 125, w: 110, h: 470 };
+  const panelRect = { x: 120, y: 80, w: 180, h: 620 };
 
   const VIEW_W = 1366;
   const VIEW_H = 768;
 
   const FLOOR_COUNT = 12;
   const SLIT_PX = 12;
-  const OPEN_MS = 700;
-  const CLOSE_MS = 480;
+  const OPEN_MS = 1000;
+  const CLOSE_MS = 800;
   const FLOOR_TRAVEL_MS = 1050;
-  const SOFT_LAND_MS = 220;
+  const SOFT_LAND_MS = 500;
   const DOOR_HOLD_MS = 700;
   const BAR_SPEED_FACTOR = 1.0;
 
