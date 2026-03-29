@@ -50,14 +50,11 @@
 
     .bgVideo{
       position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: fill;
       display: block;
       background: #000;
       z-index: 0;
       pointer-events: none;
+      object-fit: fill; /* exact fit for 436x495 doorway videos */
     }
 
     canvas{
@@ -274,7 +271,7 @@
   // Example files:
   // game_0050_floor_1.mp4
   // game_0050_floor_2.mp4
-  const FLOOR_VIDEO_SRC = (n) => `game_0050_floor_${n}.mov`;
+  const FLOOR_VIDEO_SRC = (n) => `game_0050_floor_${n}.mp4`;
 
   // Optional fallback if a floor video is missing.
   const FALLBACK_VIDEO_SRC = "";
@@ -289,7 +286,7 @@
   const VIEW_H = 768;
 
   const FLOOR_COUNT = 12;
-  const SLIT_PX = 12;
+  const SLIT_PX = 3;
   const OPEN_MS = 1000;
   const CLOSE_MS = 800;
   const FLOOR_TRAVEL_MS = 1050;
@@ -507,6 +504,15 @@
       btnGrid.appendChild(spacer);
     }
   }
+
+
+  function updateVideoPlacement(){
+    bgVideo.style.left = `${doorRect.x / VIEW_W * 100}%`;
+    bgVideo.style.top = `${doorRect.y / VIEW_H * 100}%`;
+    bgVideo.style.width = `${doorRect.w / VIEW_W * 100}%`;
+    bgVideo.style.height = `${doorRect.h / VIEW_H * 100}%`;
+  }
+
 
   // ========= REQUEST / UI =========
   function requestFloor(n){
@@ -886,6 +892,7 @@
   // ========= BOOT =========
   buildButtons();
   updatePanelPlacement();
+  updateVideoPlacement();
   setFloorLabel(currentFloor);
   setStateLabel("Loading…");
   loadFloorVideo(1, { playFromStart: true });
@@ -909,6 +916,7 @@
 
   window.addEventListener("resize", () => {
     updatePanelPlacement();
+    updateVideoPlacement();
   });
 
   holdOpenUntil = performance.now() + 300;
