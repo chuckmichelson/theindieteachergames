@@ -291,7 +291,7 @@
   const CLOSE_MS = 800;
   const FLOOR_TRAVEL_MS = 1050;
   const SOFT_LAND_MS = 500;
-  const DOOR_HOLD_MS = 700;
+  const DOOR_HOLD_MS = 2000;
   const BAR_SPEED_FACTOR = 1.0;
 
   // If true, the current floor video audio plays when doors are open / idle.
@@ -323,15 +323,15 @@
   const knownVideoOk = new Map();
 
   let currentFloor = 1;
-  let direction = 0; // -1 down, +1 up, 0 idle
+  let phase = "neutral"; // "neutral" | "up" | "down"
   let doorReveal = 1; // 0 = closed/slit, 1 = open
   let doorAnim = null;
   let motion = null;
-  let holdOpenUntil = 0;
   let lastStatus = "Doors open";
   let useFallbackCab = false;
   let doorPulseTimer = null;
   let displayedTravelFloor = null;
+  let autoCloseTimer = null;
 
   // ========= HELPERS =========
   function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
@@ -408,6 +408,14 @@
     if (requests.has(currentFloor)){
       requests.delete(currentFloor);
       const btn = floorButtons.get(currentFloor);
+      if (btn) btn.classList.remove("active");
+    }
+  }
+
+  function clearFloorRequest(n){
+    if (requests.has(n)){
+      requests.delete(n);
+      const btn = floorButtons.get(n);
       if (btn) btn.classList.remove("active");
     }
   }
@@ -514,118 +522,128 @@
   }
 
 
-  // ========= REQUEST / UI =========
-  function requestFloor(n){
-    if (n < 1 || n > FLOOR_COUNT) return;
-
-    if (n === currentFloor && !isMoving()){
-      loadFloorVideo(currentFloor);
-      if (!isDoorOpen()){
-        startDoorAnim(1, OPEN_MS, "Doors opening…", () => {
-          holdOpenUntil = performance.now() + DOOR_HOLD_MS;
-          setVideoAudioMode();
-          setStateLabel("Doors open");
-        });
-      } else {
-        holdOpenUntil = performance.now() + DOOR_HOLD_MS;
-        setVideoAudioMode();
-        setStateLabel("Doors open");
-      }
-      return;
-    }
-
-    requests.add(n);
-    const btn = floorButtons.get(n);
-    if (btn) btn.classList.add("active");
-
-    if (!isMoving() && isDoorOpen()){
-      holdOpenUntil = 0;
-      startDoorAnim(0, CLOSE_MS, "Doors closing…", processController);
-    } else {
-      processController();
+  function clearAutoCloseTimer(){
+    if (autoCloseTimer){
+      clearTimeout(autoCloseTimer);
+      autoCloseTimer = null;
     }
   }
 
-  doorOpenBtn.addEventListener("click", () => {
-    pulseDoorButton(doorOpenBtn);
-    if (isMoving()) return;
-    holdOpenUntil = performance.now() + DOOR_HOLD_MS;
+  function getRequestsAbove(){
+    return [...requests].filter(f => f > currentFloor).sort((a, b) => a - b);
+  }
 
-    if (doorAnim && doorAnim.to === 0){
-      startDoorAnim(1, OPEN_MS, "Doors opening…", () => {
-        loadFloorVideo(currentFloor);
-        setVideoAudioMode();
-        setStateLabel("Doors open");
-      });
-      return;
+  function getRequestsBelow(){
+    return [...requests].filter(f => f < currentFloor).sort((a, b) => b - a);
+  }
+
+  function nextStopInPhase(){
+    if (phase === "up"){
+      const above = getRequestsAbove();
+      return above.length ? above[0] : null;
     }
-
-    if (!isDoorOpen()){
-      startDoorAnim(1, OPEN_MS, "Doors opening…", () => {
-        loadFloorVideo(currentFloor);
-        setVideoAudioMode();
-        setStateLabel("Doors open");
-      });
+    if (phase === "down"){
+      const below = getRequestsBelow();
+      return below.length ? below[0] : null;
     }
-  });
+    return null;
+  }
 
-  doorCloseBtn.addEventListener("click", () => {
-    pulseDoorButton(doorCloseBtn);
-    if (isMoving()) return;
-    holdOpenUntil = 0;
+  function phaseHasPendingStops(){
+    return nextStopInPhase() != null;
+  }
 
-    if (doorAnim && doorAnim.to === 1){
-      startDoorAnim(0, CLOSE_MS, "Doors closing…", processController);
-      return;
-    }
+  function chooseNearestRequestDirection(){
+    if (requests.size === 0) return "neutral";
 
-    if (isDoorOpen()){
-      startDoorAnim(0, CLOSE_MS, "Doors closing…", processController);
-    }
-  });
-
-  // ========= CONTROLLER =========
-  function chooseDirection(){
-    if (requests.size === 0) return 0;
-
-    const above = [...requests].some(f => f > currentFloor);
-    const below = [...requests].some(f => f < currentFloor);
-
-    if (direction > 0){
-      if (above) return 1;
-      if (below) return -1;
-    }
-    if (direction < 0){
-      if (below) return -1;
-      if (above) return 1;
-    }
-
-    if (above && !below) return 1;
-    if (below && !above) return -1;
-
-    let best = null;
+    let bestFloor = null;
     let bestDist = Infinity;
     for (const f of requests){
       const d = Math.abs(f - currentFloor);
       if (d < bestDist){
         bestDist = d;
-        best = f;
+        bestFloor = f;
       }
     }
-    if (best == null) return 0;
-    return best > currentFloor ? 1 : -1;
+
+    if (bestFloor == null || bestFloor === currentFloor) return "neutral";
+    return bestFloor > currentFloor ? "up" : "down";
   }
 
-  function getNextStop(dir){
-    const candidates = [...requests]
-      .filter(f => dir > 0 ? f > currentFloor : f < currentFloor)
-      .sort((a, b) => dir > 0 ? a - b : b - a);
-    return candidates.length ? candidates[0] : null;
+  function ensureNeutralOpen(){
+    clearAutoCloseTimer();
+    phase = "neutral";
+    loadFloorVideo(currentFloor);
+    setVideoAudioMode();
+
+    if (isDoorOpen()){
+      setStateLabel("Doors open");
+      return;
+    }
+
+    if (doorAnim && doorAnim.to === 1) return;
+    if (isMoving()) return;
+
+    startDoorAnim(1, OPEN_MS, "Doors opening…", () => {
+      setVideoAudioMode();
+      setStateLabel("Doors open");
+    });
+  }
+
+  function scheduleAutoCloseForPhase(){
+    clearAutoCloseTimer();
+
+    if (phase === "neutral") return;
+    if (!phaseHasPendingStops()) return;
+
+    autoCloseTimer = setTimeout(() => {
+      autoCloseTimer = null;
+      if (!isDoorOpen() || doorAnim || isMoving()) return;
+
+      startDoorAnim(0, CLOSE_MS, "Doors closing…", () => {
+        advancePhase();
+      });
+    }, DOOR_HOLD_MS);
+  }
+
+  function beginTravelTo(nextStop){
+    const dir = nextStop > currentFloor ? 1 : -1;
+
+    motion = {
+      from: currentFloor,
+      to: nextStop,
+      start: performance.now(),
+      dur: Math.abs(nextStop - currentFloor) * FLOOR_TRAVEL_MS,
+      dir
+    };
+
+    displayedTravelFloor = currentFloor;
+    setFloorLabel(currentFloor);
+    displayedTravelFloor = null;
+
+    setVideoAudioMode();
+    setStateLabel(dir > 0 ? "Going up…" : "Going down…");
+  }
+
+  function onStopDoorsOpened(){
+    setVideoAudioMode();
+    loadFloorVideo(currentFloor, { playFromStart: true });
+
+    if (phaseHasPendingStops()){
+      setStateLabel("Doors open");
+      scheduleAutoCloseForPhase();
+      return;
+    }
+
+    phase = "neutral";
+    setStateLabel("Doors open");
+    clearAutoCloseTimer();
   }
 
   function clearTravelTimers(){
     for (const id of travelTimers) clearTimeout(id);
     travelTimers.clear();
+    clearAutoCloseTimer();
   }
 
   function scheduleSoftLandingAndOpen(){
@@ -635,78 +653,176 @@
     const id = setTimeout(() => {
       travelTimers.delete(id);
       loadFloorVideo(currentFloor, { playFromStart: true });
+
       startDoorAnim(1, OPEN_MS, "Doors opening…", () => {
-        holdOpenUntil = performance.now() + DOOR_HOLD_MS;
-        setVideoAudioMode();
-        setStateLabel("Doors open");
+        onStopDoorsOpened();
       });
     }, SOFT_LAND_MS);
 
     travelTimers.add(id);
   }
 
-  function processController(){
-    if (isMoving() || doorAnim) return;
+  // ========= REQUEST / UI =========
+  function requestFloor(n){
+    if (n < 1 || n > FLOOR_COUNT) return;
 
-    if (requests.has(currentFloor)){
-      clearCurrentFloorRequest();
+    if (n === currentFloor && !isMoving()){
+      clearFloorRequest(n);
+      clearAutoCloseTimer();
       loadFloorVideo(currentFloor);
 
       if (!isDoorOpen()){
         startDoorAnim(1, OPEN_MS, "Doors opening…", () => {
-          holdOpenUntil = performance.now() + DOOR_HOLD_MS;
           setVideoAudioMode();
-          setStateLabel("Doors open");
+          if (phaseHasPendingStops()) {
+            scheduleAutoCloseForPhase();
+          } else {
+            phase = "neutral";
+            setStateLabel("Doors open");
+          }
         });
       } else {
-        holdOpenUntil = performance.now() + DOOR_HOLD_MS;
         setVideoAudioMode();
-        setStateLabel("Doors open");
+        if (phaseHasPendingStops()) {
+          scheduleAutoCloseForPhase();
+        } else {
+          phase = "neutral";
+          setStateLabel("Doors open");
+        }
       }
+      return;
+    }
+
+    requests.add(n);
+    const btn = floorButtons.get(n);
+    if (btn) btn.classList.add("active");
+
+    if (phase === "neutral" && !isMoving()){
+      phase = n > currentFloor ? "up" : "down";
+    }
+
+    if (!isMoving() && isDoorOpen()){
+      clearAutoCloseTimer();
+
+      if (phase === "neutral") {
+        const chosen = chooseNearestRequestDirection();
+        if (chosen === "neutral") {
+          ensureNeutralOpen();
+          return;
+        }
+        phase = chosen;
+      }
+
+      startDoorAnim(0, CLOSE_MS, "Doors closing…", () => {
+        advancePhase();
+      });
+      return;
+    }
+
+    advancePhase();
+  }
+
+  doorOpenBtn.addEventListener("click", () => {
+    pulseDoorButton(doorOpenBtn);
+    if (isMoving()) return;
+
+    clearAutoCloseTimer();
+
+    if (doorAnim && doorAnim.to === 0){
+      startDoorAnim(1, OPEN_MS, "Doors opening…", () => {
+        loadFloorVideo(currentFloor);
+        setVideoAudioMode();
+        if (phaseHasPendingStops()) {
+          scheduleAutoCloseForPhase();
+        } else {
+          phase = "neutral";
+          setStateLabel("Doors open");
+        }
+      });
+      return;
+    }
+
+    if (isDoorClosed()){
+      startDoorAnim(1, OPEN_MS, "Doors opening…", () => {
+        loadFloorVideo(currentFloor);
+        setVideoAudioMode();
+        if (phaseHasPendingStops()) {
+          scheduleAutoCloseForPhase();
+        } else {
+          phase = "neutral";
+          setStateLabel("Doors open");
+        }
+      });
       return;
     }
 
     if (isDoorOpen()){
-      if (requests.size === 0) {
-        direction = 0;
-        loadFloorVideo(currentFloor);
-        setVideoAudioMode();
+      if (phaseHasPendingStops()) {
+        scheduleAutoCloseForPhase();
+      } else {
+        phase = "neutral";
         setStateLabel("Doors open");
+      }
+    }
+  });
+
+  doorCloseBtn.addEventListener("click", () => {
+    pulseDoorButton(doorCloseBtn);
+    if (isMoving()) return;
+
+    clearAutoCloseTimer();
+
+    if (doorAnim && doorAnim.to === 1){
+      startDoorAnim(0, CLOSE_MS, "Doors closing…", () => {
+        advancePhase();
+      });
+      return;
+    }
+
+    if (isDoorOpen()){
+      startDoorAnim(0, CLOSE_MS, "Doors closing…", () => {
+        advancePhase();
+      });
+      return;
+    }
+
+    if (isDoorClosed()){
+      advancePhase();
+    }
+  });
+
+  // ========= CONTROLLER =========
+  function advancePhase(){
+    if (isMoving() || doorAnim) return;
+
+    if (requests.has(currentFloor) && !isDoorClosed()){
+      clearCurrentFloorRequest();
+    }
+
+    if (phase === "neutral"){
+      const chosen = chooseNearestRequestDirection();
+      if (chosen === "neutral"){
+        ensureNeutralOpen();
         return;
       }
-      if (performance.now() < holdOpenUntil) return;
-      startDoorAnim(0, CLOSE_MS, "Doors closing…", processController);
+      phase = chosen;
+    }
+
+    const nextStop = nextStopInPhase();
+    if (nextStop == null){
+      phase = "neutral";
+      ensureNeutralOpen();
       return;
     }
 
-    if (!isDoorClosed()) return;
-
-    if (requests.size === 0) {
-      direction = 0;
-      setStateLabel("Doors closed");
+    if (!isDoorClosed()){
+      startDoorAnim(0, CLOSE_MS, "Doors closing…", () => {
+        advancePhase();
+      });
       return;
     }
 
-    direction = chooseDirection();
-    if (!direction) return;
-
-    const nextStop = getNextStop(direction);
-    if (nextStop == null) return;
-
-    motion = {
-      from: currentFloor,
-      to: nextStop,
-      start: performance.now(),
-      dur: Math.abs(nextStop - currentFloor) * FLOOR_TRAVEL_MS,
-      dir: direction
-    };
-
-    displayedTravelFloor = currentFloor;
-    setFloorLabel(currentFloor);
-    displayedTravelFloor = null;
-
-    setVideoAudioMode();
-    setStateLabel(direction > 0 ? "Going up…" : "Going down…");
+    beginTravelTo(nextStop);
   }
 
   function finishTravel(){
@@ -881,10 +997,6 @@
       if (t >= 1) finishTravel();
     }
 
-    if (!isMoving() && !doorAnim && requests.size > 0) {
-      processController();
-    }
-
     draw(now);
     requestAnimationFrame(update);
   }
@@ -919,7 +1031,6 @@
     updateVideoPlacement();
   });
 
-  holdOpenUntil = performance.now() + 300;
   requestAnimationFrame(update);
 })();
 </script>
