@@ -1,0 +1,1232 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="apple-touch-icon" href="favicon.png">
+    <link rel="shortcut icon" href="favicon.ico">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solving Triangles</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        h1, h2 {
+            margin: 10px 0;
+        }
+
+        input[type="number"] {
+            font-size: 24px;
+            padding: 10px;
+            width: 50px;
+            text-align: center;
+            appearance: textfield;
+        }
+
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        button {
+            font-size: 24px;
+            padding: 12px 24px;
+            margin: 10px 0;
+            cursor: pointer;
+        }
+
+        #emojiGrid {
+            display: grid;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px auto;
+        }
+
+        .emoji {
+            font-size: 2.5em;
+            text-align: center;
+        }
+
+        #answer {
+            font-size: 32px;
+            padding: 10px;
+            margin: 10px 0;
+            width: 80px;
+            text-align: center;
+            transition: background-color 0.3s ease-in-out;
+        }
+
+        #keypad-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            text-align: center;
+        }
+
+        #keypad button {
+            width: 70px;
+            height: 70px;
+            font-size: 28px;
+            margin: 5px;
+            background-color: #444;
+            color: white;
+            border: none;
+            border-radius: 10px;
+        }
+
+        #emojiGridContainer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        #end-screen.hidden {
+            display: none;
+        }
+
+        #student-comments {
+          width: 90%;
+          max-width: 400px;
+          font-size: 18px;
+          padding: 10px;
+          border-radius: 8px;
+          border: 2px solid #333;
+          background-color: #222;
+          color: white;
+          margin: 10px auto;
+          display: block;
+        }
+
+        .submit-btn {
+          font-size: 20px;
+          padding: 10px 20px;
+          margin-top: 10px;
+          background-color: #444;
+          color: white;
+          border: none;
+          border-radius: 10px;
+          cursor: pointer;
+        }
+
+        .initial-box {
+            width: 60px;
+            height: 70px;
+            font-size: 32px;
+            text-align: center;
+            margin: 5px;
+            border: 2px solid #333;
+            border-radius: 8px;
+            text-transform: uppercase;
+        }
+
+        .initial-box.correct {
+            background-color: lightgreen;
+            border-color: green;
+        }
+        #toggle-keypad-btn {
+          margin-top: 5px;
+          background-color: #222;
+          color: white;
+          border: none;
+          border-radius: 10px;
+          padding: 8px 12px;
+          font-size: 20px;
+          cursor: pointer;
+        }
+        select {
+            font-size: 24px;
+            padding: 10px;
+        }
+        #play-again-btn {
+          display: none;
+          font-size: 20px;
+          padding: 10px 20px;
+          background-color: #444;
+          color: white;
+          border: none;
+          border-radius: 10px;
+          cursor: pointer;
+          margin-top: 20px;
+        }
+.figure-panel {
+    background: #121212;
+    border-radius: 18px;
+    padding: 14px;
+}
+
+.answer-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(140px, 1fr));
+    gap: 14px;
+    width: min(900px, 95vw);
+    margin: 0 auto;
+}
+
+.answer-card {
+    background: #1c1c1c;
+    border: 2px solid #333;
+    border-radius: 14px;
+    padding: 12px;
+    text-align: left;
+}
+
+.answer-card h3 {
+    margin: 0 0 10px 0;
+    font-size: 22px;
+    text-align: center;
+}
+
+.answer-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0;
+    font-size: 20px;
+}
+
+.value-chip,
+.mini-input {
+    min-width: 94px;
+    height: 48px;
+    border-radius: 10px;
+    border: 2px solid #444;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    box-sizing: border-box;
+}
+
+.mini-input {
+    width: 96px;
+    text-align: center;
+    background: white;
+    color: black;
+    appearance: textfield;
+}
+
+.value-chip {
+    background: #111;
+    color: white;
+    padding: 0 10px;
+}
+
+.value-chip.given {
+    background: #111;
+    color: white;
+    border-color: #444;
+}
+
+.mini-input {
+    width: 84px;
+    text-align: center;
+    background: white;
+    color: black;
+    appearance: textfield;
+}
+
+.mini-input::-webkit-inner-spin-button,
+.mini-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.mini-input.correct {
+    background: lightgreen;
+    border-color: green;
+}
+
+.mini-input.wrong {
+    background: orange;
+    border-color: #cc8400;
+}
+
+#problem-shell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+@media (max-width: 760px) {
+    .answer-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 500px) {
+    .answer-grid {
+        grid-template-columns: 1fr;
+    }
+}
+    </style>
+</head>
+<body>
+
+    <div id="start-screen">
+        <h1>Right Triangles</h1>
+        <p>There will be 10 questions. Choose a difficulty:</p>
+        <select id="difficulty-select">
+          <option value="1" selected>Level 1 — right angle always in the bottom right</option>
+          <option value="2">Level 2 — right angle can be any corner</option>
+        </select>
+        <button onclick="startGame()">Start</button>
+    </div>
+
+    <div id="game-screen" class="hidden">
+        <h1 id="prompt">How many emojis are here?</h1>
+        <div id="emojiGridContainer">
+          <div id="problem-row">
+            <div class="problem-block" id="block-0">
+              <!-- emojis go here -->
+              <input class="subtotal-input" data-subtotal-index="0" id="subtotal-0" />
+            </div>
+            <!-- blocks 1–4 are already in the DOM but hidden -->
+          </div>
+        </div>
+
+        <div id="keypad-container">
+            <div id="keypad">
+                <button onclick="appendDigit(1)">1</button>
+                <button onclick="appendDigit(2)">2</button>
+                <button onclick="appendDigit(3)">3</button><br/>
+                <button onclick="appendDigit(4)">4</button>
+                <button onclick="appendDigit(5)">5</button>
+                <button onclick="appendDigit(6)">6</button><br/>
+                <button onclick="appendDigit(7)">7</button>
+                <button onclick="appendDigit(8)">8</button>
+                <button onclick="appendDigit(9)">9</button><br/>
+                <button onclick="clearAnswer()">C</button>
+                <button onclick="appendDigit(0)">0</button>
+                <button onclick="validateAnswer()">↵</button>
+            </div>
+            <button id="toggle-keypad-btn" onclick="toggleKeypad()">🔽</button>
+        </div>
+        <div id="summary" class="hidden"></div>
+    </div>
+
+    <div id="end-screen" class="hidden">
+        <h1>Session Complete!</h1>
+        <p>Score: <span id="score"></span>/<span id="total-questions"></span></p>
+        <p>Time taken: <span id="time"></span> seconds</p>
+        <div id="turn-in-screen">
+            <h2>Turn It In</h2>
+            <div id="initials-boxes">
+                <input class="initial-box" id="initial-0" maxlength="1" type="text"/>
+                <input class="initial-box" id="initial-1" maxlength="1" type="text"/>
+                <input class="initial-box" id="initial-2" maxlength="1" type="text"/>
+            </div>
+            <p>Enter your initials above.</p>
+            <p>Comments (optional):</p>
+            <textarea id="student-comments"></textarea>
+            <p id="submit-status"></p>
+
+            <button onclick="submitResults()">Submit</button>
+            <button id="play-again-btn" onclick="location.reload()">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+
+    // ✅ New structured emoji dictionary
+    const emojiDictionary = {
+
+        // Miscellaneous
+        "🎨": { label: "paint palettes", category: "misc" },
+        "🎤": { label: "microphones", category: "misc" },
+        "🎬": { label: "movie clappers", category: "misc" },
+        "🖌️": { label: "paintbrushes", category: "misc" },
+        "🕯": { label: "candles", category: "misc" },
+        "💡": { label: "light bulbs", category: "misc" },
+        "🔦": { label: "flashlights", category: "misc" },
+        "🏮": { label: "paper lanterns", category: "misc" },
+        "🔑": { label: "keys", category: "misc" },
+        "🧲": { label: "magnets", category: "misc" },
+        "🪃": { label: "boomerangs", category: "misc" },
+
+    };
+
+
+
+    let currentProblem = null;
+    let currentProblemInputs = {};
+    let pendingAdvance = false;
+
+    let currentIndividualInputs = [];  // store inputs for the current problem
+    let currentAnswer = 0, totalQuestions, correctAnswers = 0, startTime, originalQuestionCount;
+
+    function isTouchDevice() {
+        return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    }
+
+
+function startGame() {
+    totalQuestions = 5;
+    originalQuestionCount = totalQuestions;
+    document.getElementById("total-questions").textContent = originalQuestionCount;
+
+    document.getElementById("start-screen").classList.add("hidden");
+    document.getElementById("game-screen").classList.remove("hidden");
+
+    document.getElementById("prompt").textContent = "Solve the triangle.";
+    document.getElementById("keypad-container").classList.add("hidden");
+
+    correctAnswers = 0;
+    startTime = Date.now();
+    nextProblem();
+}
+
+    
+
+
+function pointAlongSegment(p1, p2, dist) {
+    const u = normalize(p2.x - p1.x, p2.y - p1.y);
+    return {
+        x: p1.x + u.x * dist,
+        y: p1.y + u.y * dist
+    };
+}
+
+function getProblemPoints(problem) {
+    const frame = getCornerPoints();
+
+    const rightPoint = frame[problem.right];
+    const fullA = frame[problem.acuteA];
+    const fullB = frame[problem.acuteB];
+
+    const legAKey = edgeKey(problem.right, problem.acuteA);
+    const legBKey = edgeKey(problem.right, problem.acuteB);
+
+    const actualA = problem.exactSideValues[legAKey];
+    const actualB = problem.exactSideValues[legBKey];
+
+    const dominantVisualLen = randInt(150, 235);
+    const scale = dominantVisualLen / Math.max(actualA, actualB);
+
+    const visualA = actualA * scale;
+    const visualB = actualB * scale;
+
+    const pts = { ...frame };
+    pts[problem.right] = rightPoint;
+    pts[problem.acuteA] = pointAlongSegment(rightPoint, fullA, visualA);
+    pts[problem.acuteB] = pointAlongSegment(rightPoint, fullB, visualB);
+
+    return pts;
+}
+
+    function validatePartAnswers() {
+        const allInputs = document.querySelectorAll('#emojiGridContainer input[type="number"]:not(#answer)');
+        allInputs.forEach(input => {
+            const expected = parseFloat(input.dataset.correct);
+            const guess = parseFloat(input.value);
+            if (input.value === "") {
+                input.style.backgroundColor = "white";
+            } else if (guess === expected) {
+                input.style.backgroundColor = "lightgreen";
+            } else {
+                input.style.backgroundColor = "orange";
+            }
+        });
+    }
+
+
+    function validateFinalAnswer(individualAnswers) {
+        const finalInput = document.getElementById("answer");
+        const expected = parseFloat(finalInput.dataset.correct);
+        const guess = parseFloat(finalInput.value);
+        const summary = document.getElementById("summary");
+
+        if (guess === expected && allPartAnswersCorrect(individualAnswers)) {
+            finalInput.style.backgroundColor = "lightgreen";
+            correctAnswers++;
+            summary.classList.remove("hidden");
+            summary.innerHTML = "<h2>Correct!</h2>";
+            setTimeout(nextProblem, 1000);
+        } else {
+            finalInput.style.backgroundColor = finalInput.value === "" ? "white" : "orange";
+        }
+    }
+
+    function allPartAnswersCorrect(inputs) {
+        for (const input of inputs) {
+            if (parseFloat(input.value) !== parseFloat(input.dataset.correct)) return false;
+        }
+        return true;
+    }
+
+
+    function appendDigit(digit) {
+        const inputBox = document.getElementById("answer");
+        inputBox.value += digit;
+        inputBox.focus();
+    }
+
+    function clearAnswer() {
+        const inputBox = document.getElementById("answer");
+        inputBox.value = "";
+        inputBox.focus();
+    }
+
+    function toggleKeypad() {
+        const keypad = document.getElementById("keypad");
+        const toggleBtn = document.getElementById("toggle-keypad-btn");
+        if (keypad.style.display === "none") {
+            keypad.style.display = "block";
+            toggleBtn.textContent = "🔽";
+        } else {
+            keypad.style.display = "none";
+            toggleBtn.textContent = "🔼";
+        }
+    }
+
+    function endGame() {
+        const timeTaken = Math.floor((Date.now() - startTime) / 1000);
+        document.getElementById("game-screen").classList.add("hidden");
+        document.getElementById("end-screen").classList.remove("hidden");
+        document.getElementById("turn-in-screen").classList.remove("hidden");
+        document.getElementById("score").textContent = correctAnswers;
+        document.getElementById("time").textContent = timeTaken;
+        document.getElementById("initial-0").focus();
+    }
+
+    function getInitialsFromBoxes() {
+        const chars = [];
+        let allFilled = true;
+        for (let i = 0; i < 3; i++) {
+            const box = document.getElementById(`initial-${i}`);
+            const char = box.value.toUpperCase();
+            if (char.length === 1 && /^[A-Z]$/.test(char)) {
+                box.classList.add("correct");
+                chars.push(char);
+            } else {
+                box.classList.remove("correct");
+                allFilled = false;
+            }
+        }
+        return allFilled ? chars.join('') : null;
+    }
+
+
+    function submitResults() {
+        const initials = getInitialsFromBoxes();
+        if (!initials) {
+            alert("Please enter 3 letters.");
+            return;
+        }
+
+        const timeString = document.getElementById("time").textContent;
+        const elapsedStr = timeString ? `${timeString} seconds` : "N/A";
+
+        const difficultySelect = document.getElementById("difficulty-select");
+        const difficultyLabel = difficultySelect.options[difficultySelect.selectedIndex].text;
+
+        const payload = {
+            initials: initials,
+            game: "game_0051",
+            settings: `${originalQuestionCount} questions — ${difficultyLabel}`,
+            score: correctAnswers,
+            elapsed: elapsedStr,
+            comments: document.getElementById("student-comments")?.value || ""
+        };
+
+        const submitButton = document.querySelector("#turn-in-screen button");
+        submitButton.style.display = "none";
+        document.getElementById("submit-status").textContent = "Sending...";
+
+        fetch("https://script.google.com/macros/s/AKfycbwsvj0ijlKGeWOIu80EobVDJks24Dw0ziwl9aY_AVJImmhRJ0MQnAJwmuBpe1NYmPzr/exec", {
+            method: "POST",
+            body: JSON.stringify(payload),
+            headers: {
+                "Content-Type": "text/plain"
+            }
+        })
+        .then(res => res.text())
+        .then(res => {
+          document.getElementById("submit-status").textContent = "Submitted successfully! 🎉";
+          document.getElementById("play-again-btn").style.display = "inline-block";
+        })
+        .catch(err => document.getElementById("submit-status").textContent = "Error: " + err);
+    }
+
+
+    document.addEventListener("DOMContentLoaded", () => {
+        for (let i = 0; i < 3; i++) {
+            const box = document.getElementById(`initial-${i}`);
+            box.addEventListener("input", () => {
+                if (box.value.trim().length === 1) {
+                    box.classList.add("correct");
+                    if (i < 2) {
+                        document.getElementById(`initial-${i + 1}`).focus();
+                    } else {
+                        document.getElementById("student-comments").focus();
+                    }
+                } else {
+                    box.classList.remove("correct");
+                }
+            });
+        }
+    });
+
+function randInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function edgeKey(a, b) {
+    return [a, b].sort().join("-");
+}
+
+function pointObj(x, y) {
+    return { x, y };
+}
+
+function getCornerPoints() {
+    return {
+        TL: pointObj(72, 72),
+        TR: pointObj(344, 72),
+        BR: pointObj(344, 344),
+        BL: pointObj(72, 344)
+    };
+}
+
+function getTriangleCorners(rightCorner) {
+    if (rightCorner === "TL") return ["TL", "TR", "BL"];
+    if (rightCorner === "TR") return ["TR", "TL", "BR"];
+    if (rightCorner === "BR") return ["BR", "TR", "BL"];
+    return ["BL", "TL", "BR"];
+}
+
+function buildProblemPoints(problem) {
+    const frame = getCornerPoints();
+
+    const rightPoint = frame[problem.right];
+    const fullA = frame[problem.acuteA];
+    const fullB = frame[problem.acuteB];
+
+    const legAKey = edgeKey(problem.right, problem.acuteA);
+    const legBKey = edgeKey(problem.right, problem.acuteB);
+
+    const actualA = problem.exactSideValues[legAKey];
+    const actualB = problem.exactSideValues[legBKey];
+
+    const dominantVisualLen = randInt(150, 235);
+    const scale = dominantVisualLen / Math.max(actualA, actualB);
+
+    const visualA = actualA * scale;
+    const visualB = actualB * scale;
+
+    return {
+        [problem.right]: rightPoint,
+        [problem.acuteA]: pointAlongSegment(rightPoint, fullA, visualA),
+        [problem.acuteB]: pointAlongSegment(rightPoint, fullB, visualB)
+    };
+}
+
+function buildProblemData(level) {
+    const theta = randInt(25, 55);   // tighter range so angle labels stay readable
+    const givenLeg = randInt(3, 10);
+    const givenMode = Math.random() < 0.5 ? "adjacent" : "opposite";
+
+    const rightCorner = level === 1
+        ? "BR"
+        : ["TL", "TR", "BR", "BL"][randInt(0, 3)];
+
+    const [right, acuteA, acuteB] = getTriangleCorners(rightCorner);
+
+    const givenAngleCorner = Math.random() < 0.5 ? acuteA : acuteB;
+    const otherAngleCorner = givenAngleCorner === acuteA ? acuteB : acuteA;
+
+    const thetaRad = theta * Math.PI / 180;
+
+    const adjacentLen = givenMode === "adjacent"
+        ? givenLeg
+        : givenLeg / Math.tan(thetaRad);
+
+    const oppositeLen = givenMode === "opposite"
+        ? givenLeg
+        : givenLeg * Math.tan(thetaRad);
+
+    const hypLen = adjacentLen / Math.cos(thetaRad);
+    const otherAngle = 90 - theta;
+    const area = 0.5 * adjacentLen * oppositeLen;
+
+    const adjacentLegKey = edgeKey(right, givenAngleCorner);
+    const oppositeLegKey = edgeKey(right, otherAngleCorner);
+    const hypKey = edgeKey(givenAngleCorner, otherAngleCorner);
+
+    const givenSideKey = givenMode === "adjacent" ? adjacentLegKey : oppositeLegKey;
+    const unknownLegKey = givenMode === "adjacent" ? oppositeLegKey : adjacentLegKey;
+
+    const sideValues = {};
+    sideValues[adjacentLegKey] = Number(adjacentLen.toFixed(2));
+    sideValues[oppositeLegKey] = Number(oppositeLen.toFixed(2));
+    sideValues[hypKey] = Number(hypLen.toFixed(2));
+
+    const exactSideValues = {};
+    exactSideValues[adjacentLegKey] = adjacentLen;
+    exactSideValues[oppositeLegKey] = oppositeLen;
+    exactSideValues[hypKey] = hypLen;
+
+    return {
+        theta,
+        otherAngle,
+        area: Number(area.toFixed(2)),
+        rightCorner,
+        right,
+        acuteA,
+        acuteB,
+        givenAngleCorner,
+        otherAngleCorner,
+        givenMode,
+        givenSideKey,
+        unknownLegKey,
+        hypKey,
+        sideValues,
+        exactSideValues,
+        givenLegValue: givenLeg,
+        adjacentLen,
+        oppositeLen
+    };
+}
+
+function createSvgEl(tag, attrs = {}) {
+    const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (const [k, v] of Object.entries(attrs)) {
+        el.setAttribute(k, v);
+    }
+    return el;
+}
+
+function normalize(vx, vy) {
+    const len = Math.hypot(vx, vy) || 1;
+    return { x: vx / len, y: vy / len };
+}
+
+function midpoint(p1, p2) {
+    return { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+}
+
+function centroid(points) {
+    return {
+        x: (points[0].x + points[1].x + points[2].x) / 3,
+        y: (points[0].y + points[1].y + points[2].y) / 3
+    };
+}
+
+function labelPointOutsideEdge(p1, p2, triCenter, offset = 22) {
+    const mid = midpoint(p1, p2);
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    let n1 = normalize(-dy, dx);
+    let n2 = normalize(dy, -dx);
+
+    const c1 = { x: mid.x + n1.x * offset, y: mid.y + n1.y * offset };
+    const c2 = { x: mid.x + n2.x * offset, y: mid.y + n2.y * offset };
+
+    const d1 = Math.hypot(c1.x - triCenter.x, c1.y - triCenter.y);
+    const d2 = Math.hypot(c2.x - triCenter.x, c2.y - triCenter.y);
+
+    return d1 > d2 ? c1 : c2;
+}
+
+function labelPointInsideAngle(vertex, p1, p2, distance = 28) {
+    const v1 = normalize(p1.x - vertex.x, p1.y - vertex.y);
+    const v2 = normalize(p2.x - vertex.x, p2.y - vertex.y);
+    const bis = normalize(v1.x + v2.x, v1.y + v2.y);
+    return { x: vertex.x + bis.x * distance, y: vertex.y + bis.y * distance };
+}
+
+function getInputState(input) {
+    if (!input) return "blank";
+    if (input.value === "") return "blank";
+    return isInputCorrect(input) ? "correct" : "wrong";
+}
+
+function stateColor(state, blankColor = "#9a9a9a") {
+    if (state === "correct") return CORRECT_GREEN;
+    if (state === "wrong") return "orange";
+    return blankColor;
+}
+
+const CORRECT_GREEN = "lightgreen";
+
+function hasRequiredDecimals(input, requiredDecimals) {
+    if (requiredDecimals === null || requiredDecimals === undefined) return true;
+    const raw = input.value.trim();
+    const pattern = new RegExp(`^-?\\d+\\.\\d{${requiredDecimals}}$`);
+    return pattern.test(raw);
+}
+
+function isInputCorrect(input) {
+    const expected = parseFloat(input.dataset.correct);
+    const tolerance = parseFloat(input.dataset.tolerance || "0");
+    const requiredDecimals = input.dataset.requiredDecimals === ""
+        ? null
+        : parseInt(input.dataset.requiredDecimals, 10);
+
+    const guess = parseFloat(input.value);
+    if (Number.isNaN(guess)) return false;
+
+    if (!hasRequiredDecimals(input, requiredDecimals)) return false;
+
+    return Math.abs(guess - expected) <= tolerance;
+}
+
+function makeInput(correctValue, options = {}) {
+    const {
+        tolerance = 0,
+        requiredDecimals = null,
+        width = null
+    } = options;
+
+    const input = document.createElement("input");
+    input.type = "number";
+    input.step = requiredDecimals === 2 ? "0.01" : "any";
+    input.className = "mini-input";
+    input.dataset.correct = correctValue;
+    input.dataset.tolerance = tolerance;
+    input.dataset.requiredDecimals = requiredDecimals ?? "";
+
+    if (width) {
+        input.style.width = width;
+    }
+
+    input.addEventListener("input", () => {
+        styleInput(input);
+        renderTriangleFigure();
+        maybeFinishProblem();
+    });
+
+    return input;
+}
+
+function styleInput(input) {
+    input.classList.remove("correct", "wrong");
+    if (input.value === "") return;
+    if (isInputCorrect(input)) {
+        input.classList.add("correct");
+    } else {
+        input.classList.add("wrong");
+    }
+}
+
+
+function makeGivenChip(text) {
+    const chip = document.createElement("div");
+    chip.className = "value-chip given";
+    chip.textContent = text;
+    return chip;
+}
+
+function describeSideDisplay(sideKey, correctValue, inputRef, isGiven) {
+    if (isGiven) {
+        return { text: String(correctValue), color: "white" };
+    }
+    const state = getInputState(inputRef);
+    if (state === "blank") return { text: "?", color: "#9a9a9a" };
+    return { text: inputRef.value, color: stateColor(state) };
+}
+
+function describeAngleDisplay(isGiven, givenText, inputRef) {
+    if (isGiven) {
+        return { show: true, text: givenText, color: "white" };
+    }
+    const state = getInputState(inputRef);
+    if (state === "blank") return { show: false, text: "", color: "#9a9a9a" };
+    return { show: true, text: `${inputRef.value}°`, color: stateColor(state) };
+}
+
+function sectorPath(vertex, p1, p2, r) {
+    let a1 = Math.atan2(p1.y - vertex.y, p1.x - vertex.x);
+    let a2 = Math.atan2(p2.y - vertex.y, p2.x - vertex.x);
+
+    while (a1 < 0) a1 += Math.PI * 2;
+    while (a2 < 0) a2 += Math.PI * 2;
+
+    let diff = (a2 - a1 + Math.PI * 2) % (Math.PI * 2);
+    if (diff > Math.PI) {
+        [a1, a2] = [a2, a1];
+        diff = (a2 - a1 + Math.PI * 2) % (Math.PI * 2);
+    }
+
+    const sx = vertex.x + r * Math.cos(a1);
+    const sy = vertex.y + r * Math.sin(a1);
+    const ex = vertex.x + r * Math.cos(a2);
+    const ey = vertex.y + r * Math.sin(a2);
+
+    return `M ${vertex.x} ${vertex.y} L ${sx} ${sy} A ${r} ${r} 0 0 1 ${ex} ${ey} Z`;
+}
+
+function renderTriangleFigure() {
+    const figureMount = document.getElementById("triangle-figure");
+    figureMount.innerHTML = "";
+
+    const pts = currentProblem.visualPoints;
+    const pRight = pts[currentProblem.right];
+    const pA = pts[currentProblem.acuteA];
+    const pB = pts[currentProblem.acuteB];
+    const triPoints = [pRight, pA, pB];
+    const triCenter = centroid(triPoints);
+
+    const svg = createSvgEl("svg", {
+        width: "416",
+        height: "416",
+        viewBox: "0 0 416 416"
+    });
+
+    svg.appendChild(createSvgEl("rect", {
+        x: 0, y: 0, width: 416, height: 416, rx: 22,
+        fill: "#121212"
+    }));
+
+
+    const edgeMap = [
+        { key: edgeKey(currentProblem.right, currentProblem.acuteA), p1: pRight, p2: pA },
+        { key: edgeKey(currentProblem.right, currentProblem.acuteB), p1: pRight, p2: pB },
+        { key: edgeKey(currentProblem.acuteA, currentProblem.acuteB), p1: pA, p2: pB }
+    ];
+
+    edgeMap.forEach(edge => {
+        let color = "white";
+
+        if (edge.key === currentProblem.hypKey) {
+            color = stateColor(getInputState(currentProblemInputs.hyp), "white");
+        } else if (edge.key === currentProblem.givenSideKey) {
+            color = "white";
+        } else if (edge.key === currentProblem.unknownLegKey) {
+            color = stateColor(getInputState(currentProblemInputs.leg), "white");
+        }
+
+        svg.appendChild(createSvgEl("line", {
+            x1: edge.p1.x, y1: edge.p1.y,
+            x2: edge.p2.x, y2: edge.p2.y,
+            stroke: color,
+            "stroke-width": 5,
+            "stroke-linecap": "round"
+        }));
+
+        const isGiven = edge.key === currentProblem.givenSideKey;
+        const inputRef = edge.key === currentProblem.hypKey
+            ? currentProblemInputs.hyp
+            : edge.key === currentProblem.unknownLegKey
+                ? currentProblemInputs.leg
+                : null;
+
+        const desc = describeSideDisplay(edge.key, currentProblem.sideValues[edge.key], inputRef, isGiven);
+        const labelPt = labelPointOutsideEdge(edge.p1, edge.p2, triCenter, 24);
+
+        const t = createSvgEl("text", {
+            x: labelPt.x,
+            y: labelPt.y,
+            fill: desc.color,
+            "font-size": 22,
+            "font-weight": "700",
+            "text-anchor": "middle",
+            "dominant-baseline": "middle"
+        });
+        t.textContent = desc.text;
+        svg.appendChild(t);
+    });
+
+    // Right angle square
+    const u1 = normalize(pA.x - pRight.x, pA.y - pRight.y);
+    const u2 = normalize(pB.x - pRight.x, pB.y - pRight.y);
+    const s = 18;
+    const r1 = { x: pRight.x + u1.x * s, y: pRight.y + u1.y * s };
+    const r2 = { x: r1.x + u2.x * s, y: r1.y + u2.y * s };
+    const r3 = { x: pRight.x + u2.x * s, y: pRight.y + u2.y * s };
+    svg.appendChild(createSvgEl("polyline", {
+        points: `${r1.x},${r1.y} ${r2.x},${r2.y} ${r3.x},${r3.y}`,
+        fill: "none",
+        stroke: "white",
+        "stroke-width": 3
+    }));
+
+    // Given angle
+    const givenVertex = pts[currentProblem.givenAngleCorner];
+    const givenOther1 = pts[currentProblem.right];
+    const givenOther2 = pts[currentProblem.otherAngleCorner];
+    const givenAngleDesc = describeAngleDisplay(true, `${currentProblem.theta}°`, null);
+
+    const givenSector = createSvgEl("path", {
+        d: sectorPath(givenVertex, givenOther1, givenOther2, 24),
+        fill: givenAngleDesc.color,
+        "fill-opacity": 0.12,
+        stroke: givenAngleDesc.color,
+        "stroke-width": 2
+    });
+    svg.appendChild(givenSector);
+
+    const givenAngleTextPt = labelPointInsideAngle(givenVertex, givenOther1, givenOther2, 60);
+    const givenText = createSvgEl("text", {
+        x: givenAngleTextPt.x,
+        y: givenAngleTextPt.y,
+        fill: givenAngleDesc.color,
+        "font-size": 18,
+        "font-weight": "700",
+        "text-anchor": "middle",
+        "dominant-baseline": "middle"
+    });
+    givenText.textContent = givenAngleDesc.text;
+    svg.appendChild(givenText);
+
+    // Unknown acute angle
+    const otherVertex = pts[currentProblem.otherAngleCorner];
+    const otherOther1 = pts[currentProblem.right];
+    const otherOther2 = pts[currentProblem.givenAngleCorner];
+    const otherAngleDesc = describeAngleDisplay(false, "", currentProblemInputs.thirdAngle);
+
+    if (otherAngleDesc.show) {
+        const otherSector = createSvgEl("path", {
+            d: sectorPath(otherVertex, otherOther1, otherOther2, 24),
+            fill: otherAngleDesc.color,
+            "fill-opacity": 0.12,
+            stroke: otherAngleDesc.color,
+            "stroke-width": 2
+        });
+        svg.appendChild(otherSector);
+
+        const otherTextPt = labelPointInsideAngle(otherVertex, otherOther1, otherOther2, 60);
+        const otherText = createSvgEl("text", {
+            x: otherTextPt.x,
+            y: otherTextPt.y,
+            fill: otherAngleDesc.color,
+            "font-size": 18,
+            "font-weight": "700",
+            "text-anchor": "middle",
+            "dominant-baseline": "middle"
+        });
+        otherText.textContent = otherAngleDesc.text;
+        svg.appendChild(otherText);
+    }
+
+    // Perimeter animation path
+    const perimeter = createSvgEl("path", {
+        id: "perfect-perimeter",
+        d: `M ${pRight.x} ${pRight.y} L ${pA.x} ${pA.y} L ${pB.x} ${pB.y} Z`,
+        fill: "none",
+        stroke: "#ffd966",
+        "stroke-width": 8,
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round",
+        opacity: "0"
+    });
+    svg.appendChild(perimeter);
+
+    figureMount.appendChild(svg);
+}
+
+function playPerfectAnimation() {
+    const path = document.getElementById("perfect-perimeter");
+    if (!path) return;
+
+    const len = path.getTotalLength();
+    path.style.opacity = "1";
+    path.style.strokeDasharray = `${len}`;
+    path.style.strokeDashoffset = `${len}`;
+    path.style.transition = "none";
+
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            path.style.transition = "stroke-dashoffset 950ms ease-in-out, opacity 200ms ease";
+            path.style.strokeDashoffset = "0";
+        });
+    });
+}
+
+function maybeFinishProblem() {
+    const inputs = Object.values(currentProblemInputs);
+    if (pendingAdvance) return;
+
+    const allCorrect = inputs.every(isInputCorrect);
+    if (!allCorrect) return;
+
+    pendingAdvance = true;
+    correctAnswers++;
+
+    const summary = document.getElementById("summary");
+    summary.classList.remove("hidden");
+    summary.innerHTML = "<h2>Perfect!</h2>";
+
+    playPerfectAnimation();
+
+    setTimeout(() => {
+        pendingAdvance = false;
+        nextProblem();
+    }, 1400);
+}
+
+function nextProblem() {
+    if (totalQuestions <= 0) {
+        endGame();
+        return;
+    }
+
+    totalQuestions--;
+    pendingAdvance = false;
+
+    const summary = document.getElementById("summary");
+    summary.classList.add("hidden");
+    summary.innerHTML = "";
+
+    const container = document.getElementById("emojiGridContainer");
+    container.innerHTML = "";
+
+    const level = parseFloat(document.getElementById("difficulty-select").value, 10);
+    currentProblem = buildProblemData(level);
+    currentProblem.visualPoints = buildProblemPoints(currentProblem);
+    currentProblemInputs = {};
+
+    const shell = document.createElement("div");
+    shell.id = "problem-shell";
+
+    const figurePanel = document.createElement("div");
+    figurePanel.className = "figure-panel";
+
+    const figureMount = document.createElement("div");
+    figureMount.id = "triangle-figure";
+    figurePanel.appendChild(figureMount);
+
+    const grid = document.createElement("div");
+    grid.className = "answer-grid";
+
+    // ANGLES CARD
+    const anglesCard = document.createElement("div");
+    anglesCard.className = "answer-card";
+    anglesCard.innerHTML = `<h3>Angles</h3>`;
+
+    let row = document.createElement("div");
+    row.className = "answer-line";
+    row.innerHTML = `<span>Right angle</span>`;
+    row.appendChild(makeGivenChip("90°"));
+    anglesCard.appendChild(row);
+
+    row = document.createElement("div");
+    row.className = "answer-line";
+    row.innerHTML = `<span>Given angle</span>`;
+    row.appendChild(makeGivenChip(`${currentProblem.theta}°`));
+    anglesCard.appendChild(row);
+
+    row = document.createElement("div");
+    row.className = "answer-line";
+    row.innerHTML = `<span>Third angle</span>`;
+    currentProblemInputs.thirdAngle = makeInput(currentProblem.otherAngle, {
+        tolerance: 1,
+        requiredDecimals: null
+    });
+    row.appendChild(currentProblemInputs.thirdAngle);
+    anglesCard.appendChild(row);
+
+    // HYPOTENUSE CARD
+    const hypCard = document.createElement("div");
+    hypCard.className = "answer-card";
+    hypCard.innerHTML = `<h3>Hypotenuse</h3>`;
+
+    row = document.createElement("div");
+    row.className = "answer-line";
+    row.innerHTML = `<span>Length</span>`;
+    currentProblemInputs.hyp = makeInput(currentProblem.sideValues[currentProblem.hypKey], {
+        tolerance: 0.03,
+        requiredDecimals: 2
+    });
+    row.appendChild(currentProblemInputs.hyp);
+    hypCard.appendChild(row);
+
+    // LEG CARD
+    const legCard = document.createElement("div");
+    legCard.className = "answer-card";
+    legCard.innerHTML = `<h3>Legs</h3>`;
+
+    row = document.createElement("div");
+    row.className = "answer-line";
+    row.innerHTML = `<span>Given leg</span>`;
+    row.appendChild(makeGivenChip(`${currentProblem.givenLegValue}`));
+    legCard.appendChild(row);
+
+    row = document.createElement("div");
+    row.className = "answer-line";
+    row.innerHTML = `<span>Other leg</span>`;
+    currentProblemInputs.leg = makeInput(currentProblem.sideValues[currentProblem.unknownLegKey], {
+        tolerance: 0.03,
+        requiredDecimals: 2
+    });
+    row.appendChild(currentProblemInputs.leg);
+    legCard.appendChild(row);
+
+    // AREA CARD
+    const areaCard = document.createElement("div");
+    areaCard.className = "answer-card";
+    areaCard.innerHTML = `<h3>Area</h3>`;
+
+    row = document.createElement("div");
+    row.className = "answer-line";
+    row.innerHTML = `<span>Square units</span>`;
+    currentProblemInputs.area = makeInput(currentProblem.area, {
+        tolerance: 0.08,
+        requiredDecimals: 2
+    });
+    row.appendChild(currentProblemInputs.area);
+    areaCard.appendChild(row);
+
+    grid.appendChild(anglesCard);
+    grid.appendChild(hypCard);
+    grid.appendChild(legCard);
+    grid.appendChild(areaCard);
+
+    shell.appendChild(figurePanel);
+    shell.appendChild(grid);
+    container.appendChild(shell);
+
+    renderTriangleFigure();
+
+    setTimeout(() => {
+        currentProblemInputs.thirdAngle.focus();
+    }, 50);
+}
+
+
+
+
+function validateFinalAnswer() {
+    const finalInput = document.getElementById("answer");
+    const expected = parseFloat(finalInput.dataset.correct);
+    const guess = parseFloat(finalInput.value);
+    const summary = document.getElementById("summary");
+
+    if (guess === expected && allPartAnswersCorrect(currentIndividualInputs)) {
+        finalInput.style.backgroundColor = "lightgreen";
+        correctAnswers++;
+        summary.classList.remove("hidden");
+        summary.innerHTML = "<h2>Correct!</h2>";
+        setTimeout(nextProblem, 1000);
+    } else {
+        finalInput.style.backgroundColor = finalInput.value === "" ? "white" : "orange";
+    }
+}
+
+
+function allPartAnswersCorrect(inputs) {
+    for (const input of inputs) {
+        if (parseFloat(input.value) !== parseFloat(input.dataset.correct)) return false;
+    }
+    return true;
+}
+
+
+</script>
+
+</body>
+</html>
