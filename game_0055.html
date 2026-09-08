@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Proportion Lab</title>
+  <style>
+    :root {
+      --bg: #0f1220;
+      --panel: #181d31;
+      --panel-2: #202744;
+      --text: #f5f7ff;
+      --muted: #aeb7d8;
+      --accent: #7dd3fc;
+      --accent-2: #c4b5fd;
+      --good: #86efac;
+      --bad: #fda4af;
+      --line: #354063;
+      --shadow: 0 18px 55px rgba(0,0,0,.32);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(125,211,252,.12), transparent 34%),
+        radial-gradient(circle at 100% 20%, rgba(196,181,253,.13), transparent 33%),
+        var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button, input, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .hidden { display: none !important; }
+
+    .shell {
+      width: min(980px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 34px 0 56px;
+    }
+
+    .brand {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(30px, 5vw, 48px);
+      letter-spacing: -.04em;
+    }
+
+    .brand .sub {
+      color: var(--muted);
+      margin-top: 5px;
+      font-size: 16px;
+    }
+
+    .pill {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.035);
+      border-radius: 999px;
+      padding: 8px 13px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .panel {
+      background: linear-gradient(180deg, rgba(32,39,68,.96), rgba(24,29,49,.96));
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: clamp(20px, 4vw, 34px);
+    }
+
+    .setup-copy {
+      text-align: center;
+      max-width: 680px;
+      margin: 0 auto 26px;
+    }
+
+    .setup-copy h2 { margin: 0 0 7px; font-size: 28px; }
+    .setup-copy p { margin: 0; color: var(--muted); line-height: 1.55; }
+
+    .mode-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin: 24px 0;
+    }
+
+    .mode-card {
+      position: relative;
+      min-height: 150px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px 15px;
+      background: rgba(255,255,255,.025);
+      transition: .18s ease;
+      user-select: none;
+    }
+
+    .mode-card:hover { transform: translateY(-2px); border-color: #52618f; }
+    .mode-card.selected {
+      border-color: var(--accent);
+      background: rgba(125,211,252,.09);
+      box-shadow: inset 0 0 0 1px rgba(125,211,252,.2);
+    }
+
+    .mode-card input {
+      position: absolute;
+      right: 14px;
+      top: 14px;
+      width: 20px;
+      height: 20px;
+      accent-color: #38bdf8;
+    }
+
+    .mode-icon { font-size: 32px; margin-bottom: 10px; }
+    .mode-title { font-weight: 800; font-size: 17px; }
+    .mode-desc { margin-top: 6px; color: var(--muted); font-size: 13px; line-height: 1.35; }
+
+    .setup-actions, .game-actions, .turn-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: 1px solid transparent;
+      border-radius: 13px;
+      padding: 12px 18px;
+      color: var(--text);
+      background: #2b3558;
+      font-weight: 800;
+      min-width: 120px;
+    }
+
+    .btn:hover { filter: brightness(1.09); }
+    .btn.primary { background: #38bdf8; color: #07111c; }
+    .btn.secondary { border-color: var(--line); background: transparent; }
+    .btn.good { background: #86efac; color: #092012; }
+    .btn.skip { border-color: #7c849f; background: #202742; color: #d7dcef; }
+    .btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+
+    #setup-error {
+      min-height: 22px;
+      text-align: center;
+      color: var(--bad);
+      font-weight: 700;
+      margin-top: 12px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .progress-wrap { display: flex; align-items: center; gap: 10px; }
+    .progress-track {
+      width: 180px;
+      height: 10px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: #11162a;
+      border: 1px solid var(--line);
+    }
+    #progress-fill { height: 100%; width: 0; background: linear-gradient(90deg, #38bdf8, #c4b5fd); }
+    .scorebox { justify-self: end; color: var(--muted); font-weight: 700; }
+    #round-label { font-weight: 800; }
+
+    .problem-card {
+      position: relative;
+      overflow: hidden;
+      min-height: 450px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+
+    .problem-type {
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    #problem-text {
+      max-width: 760px;
+      font-size: clamp(24px, 4vw, 36px);
+      line-height: 1.28;
+      font-weight: 800;
+      letter-spacing: -.02em;
+    }
+
+    #problem-visual {
+      margin: 24px 0 8px;
+      width: min(620px, 100%);
+    }
+
+    .ratio-table {
+      margin: 0 auto;
+      border-collapse: separate;
+      border-spacing: 8px;
+    }
+    .ratio-table td {
+      min-width: 100px;
+      padding: 13px 16px;
+      border-radius: 12px;
+      background: #11162a;
+      border: 1px solid var(--line);
+      font-size: 22px;
+      font-weight: 800;
+    }
+    .ratio-table td.blank {
+      color: #07111c;
+      background: #7dd3fc;
+      border-color: #7dd3fc;
+    }
+
+    .scale-strip {
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .scale-chip {
+      min-width: 155px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 13px 16px;
+      background: #11162a;
+      color: var(--muted);
+    }
+    .scale-chip b { display: block; color: var(--text); font-size: 21px; margin-top: 3px; }
+
+    .answer-row {
+      margin-top: 26px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    #answer {
+      width: 180px;
+      height: 58px;
+      border-radius: 13px;
+      border: 2px solid #55658f;
+      background: #0f1428;
+      color: var(--text);
+      font-size: 27px;
+      text-align: center;
+      outline: none;
+    }
+    #answer:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(125,211,252,.12); }
+    #answer-unit { min-width: 54px; text-align: left; color: var(--muted); font-weight: 700; }
+
+    #feedback {
+      height: 34px;
+      margin-top: 14px;
+      font-weight: 800;
+      font-size: 18px;
+    }
+    #feedback.good { color: var(--good); }
+    #feedback.bad { color: var(--bad); }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 13px;
+      margin: 24px 0;
+    }
+    .stat {
+      background: #11162a;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px;
+      text-align: center;
+    }
+    .stat .big { font-size: 34px; font-weight: 900; }
+    .stat .label { color: var(--muted); margin-top: 2px; }
+
+    .results-list {
+      display: grid;
+      gap: 8px;
+      max-height: 330px;
+      overflow: auto;
+      padding-right: 3px;
+      margin: 18px 0 26px;
+    }
+    .result-row {
+      display: grid;
+      grid-template-columns: 44px 112px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      padding: 9px 2px;
+      font-size: 14px;
+    }
+    .result-row .badge { color: var(--muted); }
+    .result-row .mark { font-size: 20px; }
+
+    .turn-in {
+      margin-top: 26px;
+      border-top: 1px solid var(--line);
+      padding-top: 24px;
+      text-align: center;
+    }
+    .initials { display: flex; justify-content: center; gap: 8px; margin: 14px 0 6px; }
+    .initial-box {
+      width: 62px;
+      height: 70px;
+      border-radius: 12px;
+      border: 2px solid #55658f;
+      background: #0f1428;
+      color: var(--text);
+      font-size: 32px;
+      text-transform: uppercase;
+      text-align: center;
+    }
+    .initial-box.correct { border-color: #86efac; background: rgba(134,239,172,.08); }
+    #student-comments {
+      display: block;
+      width: min(520px, 100%);
+      min-height: 88px;
+      resize: vertical;
+      margin: 14px auto;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: #0f1428;
+      color: var(--text);
+      padding: 12px;
+    }
+    #submit-status { min-height: 24px; color: var(--muted); font-weight: 700; }
+
+    .tiny { color: var(--muted); font-size: 13px; }
+
+    @media (max-width: 800px) {
+      .mode-grid { grid-template-columns: 1fr 1fr; }
+      .topbar { grid-template-columns: 1fr auto; }
+      .topbar .pill { display: none; }
+      .progress-track { width: 120px; }
+      .summary-grid { grid-template-columns: 1fr; }
+      .result-row { grid-template-columns: 34px 86px 1fr; }
+      .result-row .mark { grid-column: 3; justify-self: end; }
+    }
+
+    @media (max-width: 520px) {
+      .mode-grid { grid-template-columns: 1fr; }
+      .brand .pill { display: none; }
+      .panel { padding: 18px 15px; }
+      .problem-card { min-height: 500px; }
+      .ratio-table td { min-width: 74px; padding: 11px; font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="brand">
+      <div>
+        <h1>Proportion Lab</h1>
+        <div class="sub">Proportional relationships & scale • 10 problems per game</div>
+      </div>
+      <div class="pill">Infinite practice</div>
+    </div>
+
+    <section id="setup-screen" class="panel">
+      <div class="setup-copy">
+        <h2>Choose your problem types</h2>
+        <p>Select one, several, or all five. The game will mix your choices into a 10-problem session.</p>
+      </div>
+
+      <div class="mode-grid" id="mode-grid">
+        <label class="mode-card selected">
+          <input type="checkbox" value="tables" checked />
+          <div class="mode-icon">▦</div>
+          <div class="mode-title">Tables</div>
+          <div class="mode-desc">Fill a missing cell in a proportional table.</div>
+        </label>
+        <label class="mode-card selected">
+          <input type="checkbox" value="recipes" checked />
+          <div class="mode-icon">🥣</div>
+          <div class="mode-title">Recipes</div>
+          <div class="mode-desc">Scale ingredients up or down. No unit conversions.</div>
+        </label>
+        <label class="mode-card selected">
+          <input type="checkbox" value="blueprints" checked />
+          <div class="mode-icon">📐</div>
+          <div class="mode-title">Blueprints</div>
+          <div class="mode-desc">Use a drawing scale between inches and feet.</div>
+        </label>
+        <label class="mode-card selected">
+          <input type="checkbox" value="maps" checked />
+          <div class="mode-icon">🗺️</div>
+          <div class="mode-title">Maps</div>
+          <div class="mode-desc">Use map inches to find real miles — or work backward.</div>
+        </label>
+        <label class="mode-card selected">
+          <input type="checkbox" value="models" checked />
+          <div class="mode-icon">🏎️</div>
+          <div class="mode-title">Model Cars</div>
+          <div class="mode-desc">Reason with scales such as 1:20, 1:24, and 1:32.</div>
+        </label>
+      </div>
+
+      <div class="setup-actions">
+        <button class="btn secondary" id="select-all-btn">Select all</button>
+        <button class="btn secondary" id="clear-btn">Clear</button>
+        <button class="btn primary" id="start-btn">Start 10 Problems</button>
+      </div>
+      <div id="setup-error"></div>
+    </section>
+
+    <section id="game-screen" class="hidden">
+      <div class="topbar">
+        <div class="progress-wrap">
+          <span id="round-label">1 / 10</span>
+          <div class="progress-track"><div id="progress-fill"></div></div>
+        </div>
+        <div class="pill" id="category-pill">Tables</div>
+        <div class="scorebox">First try: <span id="score">0</span></div>
+      </div>
+
+      <div class="panel problem-card">
+        <div class="problem-type" id="problem-type">Tables</div>
+        <div id="problem-text"></div>
+        <div id="problem-visual"></div>
+        <div class="answer-row">
+          <input id="answer" inputmode="decimal" autocomplete="off" aria-label="Answer" />
+          <span id="answer-unit"></span>
+          <button class="btn primary" id="check-btn">Check</button>
+          <button class="btn skip" id="skip-btn">Skip</button>
+        </div>
+        <div id="feedback"></div>
+        <div class="tiny">Press Enter to check your answer.</div>
+      </div>
+    </section>
+
+    <section id="end-screen" class="panel hidden">
+      <div class="setup-copy">
+        <h2>Session Complete!</h2>
+        <p>Here is how this round went.</p>
+      </div>
+
+      <div class="summary-grid">
+        <div class="stat"><div class="big" id="final-score">0/10</div><div class="label">First-try correct</div></div>
+        <div class="stat"><div class="big" id="final-accuracy">0%</div><div class="label">Attempt accuracy</div></div>
+        <div class="stat"><div class="big" id="final-time">0:00</div><div class="label">Total time</div></div>
+      </div>
+
+      <div class="results-list" id="results-list"></div>
+
+      <div class="turn-in">
+        <h2>Turn it In</h2>
+        <p class="tiny">Enter your initials, add an optional comment, and send your results.</p>
+        <div class="initials">
+          <input class="initial-box" id="initial-0" maxlength="1" type="text" />
+          <input class="initial-box" id="initial-1" maxlength="1" type="text" />
+          <input class="initial-box" id="initial-2" maxlength="1" type="text" />
+        </div>
+        <textarea id="student-comments" placeholder="Comments (optional)"></textarea>
+        <div class="turn-actions">
+          <button class="btn good" id="submit-btn">Send to Chuck</button>
+          <button class="btn secondary" id="play-again-btn">Play Again</button>
+        </div>
+        <p id="submit-status"></p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const GAME_ID = "proportion_lab_v1";
+    const SUBMIT_URL = "https://script.google.com/macros/s/AKfycbwsvj0ijlKGeWOIu80EobVDJks24Dw0ziwl9aY_AVJImmhRJ0MQnAJwmuBpe1NYmPzr/exec";
+    const TOTAL_PROBLEMS = 10;
+
+    const categoryNames = {
+      tables: "Tables",
+      recipes: "Recipes",
+      blueprints: "Blueprints",
+      maps: "Maps",
+      models: "Model Cars"
+    };
+
+    let selectedTypes = [];
+    let problems = [];
+    let currentIndex = 0;
+    let firstTryScore = 0;
+    let totalAttempts = 0;
+    let correctAttempts = 0;
+    let sessionStart = 0;
+    let problemStart = 0;
+    let results = [];
+    let attemptsThisProblem = 0;
+    let locked = false;
+
+    const $ = id => document.getElementById(id);
+    const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+    const pick = arr => arr[randInt(0, arr.length - 1)];
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function formatNumber(n) {
+      return Number.isInteger(n) ? String(n) : String(Number(n.toFixed(2)));
+    }
+
+    function closeEnough(a, b) {
+      return Math.abs(a - b) < 0.001;
+    }
+
+    function getSelectedTypes() {
+      return [...document.querySelectorAll('.mode-card input:checked')].map(cb => cb.value);
+    }
+
+    function syncCards() {
+      document.querySelectorAll('.mode-card').forEach(card => {
+        const cb = card.querySelector('input');
+        card.classList.toggle('selected', cb.checked);
+      });
+    }
+
+    document.querySelectorAll('.mode-card input').forEach(cb => cb.addEventListener('change', syncCards));
+    $('select-all-btn').addEventListener('click', () => {
+      document.querySelectorAll('.mode-card input').forEach(cb => cb.checked = true);
+      syncCards();
+    });
+    $('clear-btn').addEventListener('click', () => {
+      document.querySelectorAll('.mode-card input').forEach(cb => cb.checked = false);
+      syncCards();
+    });
+    $('start-btn').addEventListener('click', startGame);
+    $('check-btn').addEventListener('click', checkAnswer);
+    $('skip-btn').addEventListener('click', skipProblem);
+    $('play-again-btn').addEventListener('click', () => location.reload());
+    $('submit-btn').addEventListener('click', submitResults);
+    $('answer').addEventListener('keydown', e => { if (e.key === 'Enter') checkAnswer(); });
+
+    function generateSession(types) {
+      const queue = [];
+      for (let i = 0; i < TOTAL_PROBLEMS; i++) {
+        queue.push(types[i % types.length]);
+      }
+      shuffle(queue);
+      return queue.map(type => makeProblem(type));
+    }
+
+    function makeProblem(type) {
+      if (type === 'tables') return makeTableProblem();
+      if (type === 'recipes') return makeRecipeProblem();
+      if (type === 'blueprints') return makeBlueprintProblem();
+      if (type === 'maps') return makeMapProblem();
+      return makeModelProblem();
+    }
+
+    function makeTableProblem() {
+      const k = randInt(2, 12);
+      const x1 = randInt(2, 9);
+      let x2 = randInt(2, 12);
+      while (x2 === x1) x2 = randInt(2, 12);
+      const direction = Math.random() < .5 ? 'y' : 'x';
+
+      if (direction === 'y') {
+        const answer = x2 * k;
+        return {
+          type: 'tables',
+          answer,
+          unit: '',
+          prompt: 'The table shows a proportional relationship. Fill in the missing value.',
+          visual: `
+            <table class="ratio-table" aria-label="Proportional table">
+              <tr><td>x</td><td>${x1}</td><td>${x2}</td></tr>
+              <tr><td>y</td><td>${x1 * k}</td><td class="blank">?</td></tr>
+            </table>`,
+          short: `${x1} → ${x1*k}; ${x2} → ?`
+        };
+      }
+
+      const y2 = x2 * k;
+      return {
+        type: 'tables',
+        answer: x2,
+        unit: '',
+        prompt: 'The table shows a proportional relationship. Fill in the missing value.',
+        visual: `
+          <table class="ratio-table" aria-label="Proportional table">
+            <tr><td>x</td><td>${x1}</td><td class="blank">?</td></tr>
+            <tr><td>y</td><td>${x1 * k}</td><td>${y2}</td></tr>
+          </table>`,
+        short: `${x1} → ${x1*k}; ? → ${y2}`
+      };
+    }
+
+    function makeRecipeProblem() {
+      const ingredients = [
+        ['flour', 'cups'], ['sugar', 'cups'], ['rice', 'cups'], ['oats', 'cups'],
+        ['oil', 'tablespoons'], ['honey', 'tablespoons'], ['cocoa', 'tablespoons'],
+        ['eggs', 'eggs']
+      ];
+      const [ingredient, unit] = pick(ingredients);
+      const baseServings = pick([2, 3, 4, 5, 6, 8]);
+      const targetFactor = pick([2, 3, 4]);
+      const targetServings = baseServings * targetFactor;
+      let baseAmount = randInt(1, 5);
+      if (ingredient === 'eggs') baseAmount = randInt(1, 4);
+      const answer = baseAmount * targetFactor;
+      return {
+        type: 'recipes', answer, unit,
+        prompt: ingredient === 'eggs'
+          ? `A recipe for ${baseServings} servings uses ${baseAmount} eggs. How many eggs are needed for ${targetServings} servings?`
+          : `A recipe for ${baseServings} servings uses ${baseAmount} ${unit} of ${ingredient}. How many ${unit} are needed for ${targetServings} servings?`,
+        visual: `<div class="scale-strip"><div class="scale-chip">Original recipe<b>${baseServings} servings</b></div><div class="scale-chip">New recipe<b>${targetServings} servings</b></div></div>`,
+        short: `${baseAmount} ${unit} for ${baseServings} servings → ${targetServings} servings`
+      };
+    }
+
+    function makeBlueprintProblem() {
+      const scale = pick([2, 3, 4, 5, 6, 8, 10, 12]); // 1 drawing inch = scale feet
+      const direction = Math.random() < .5 ? 'forward' : 'backward';
+      if (direction === 'forward') {
+        const drawingInches = randInt(2, 12);
+        const answer = drawingInches * scale;
+        return {
+          type: 'blueprints', answer, unit: 'ft',
+          prompt: `A blueprint uses the scale 1 inch = ${scale} feet. A wall is ${drawingInches} inches long on the blueprint. How long is the real wall?`,
+          visual: `<div class="scale-strip"><div class="scale-chip">Blueprint scale<b>1 in = ${scale} ft</b></div><div class="scale-chip">Drawing length<b>${drawingInches} in</b></div></div>`,
+          short: `1 in = ${scale} ft; ${drawingInches} in → ? ft`
+        };
+      }
+      const drawingInches = randInt(2, 12);
+      const realFeet = drawingInches * scale;
+      return {
+        type: 'blueprints', answer: drawingInches, unit: 'in',
+        prompt: `A blueprint uses the scale 1 inch = ${scale} feet. A real wall is ${realFeet} feet long. How long should it be on the blueprint?`,
+        visual: `<div class="scale-strip"><div class="scale-chip">Blueprint scale<b>1 in = ${scale} ft</b></div><div class="scale-chip">Real length<b>${realFeet} ft</b></div></div>`,
+        short: `1 in = ${scale} ft; ${realFeet} ft → ? in`
+      };
+    }
+
+    function makeMapProblem() {
+      const scale = pick([5, 10, 12, 15, 20, 25, 30, 40, 50]);
+      const direction = Math.random() < .5 ? 'forward' : 'backward';
+      if (direction === 'forward') {
+        const mapInches = randInt(2, 10);
+        const answer = mapInches * scale;
+        return {
+          type: 'maps', answer, unit: 'miles',
+          prompt: `A map uses the scale 1 inch = ${scale} miles. Two towns are ${mapInches} inches apart on the map. How far apart are they in real life?`,
+          visual: `<div class="scale-strip"><div class="scale-chip">Map scale<b>1 in = ${scale} mi</b></div><div class="scale-chip">Map distance<b>${mapInches} in</b></div></div>`,
+          short: `1 in = ${scale} mi; ${mapInches} in → ? mi`
+        };
+      }
+      const mapInches = randInt(2, 10);
+      const realMiles = mapInches * scale;
+      return {
+        type: 'maps', answer: mapInches, unit: 'in',
+        prompt: `A map uses the scale 1 inch = ${scale} miles. Two cities are ${realMiles} miles apart. How far apart should they be on the map?`,
+        visual: `<div class="scale-strip"><div class="scale-chip">Map scale<b>1 in = ${scale} mi</b></div><div class="scale-chip">Real distance<b>${realMiles} mi</b></div></div>`,
+        short: `1 in = ${scale} mi; ${realMiles} mi → ? in`
+      };
+    }
+
+    function makeModelProblem() {
+      const scale = pick([12, 18, 20, 24, 25, 32, 36, 43]);
+      const modelRanges = {12:[12,18],18:[8,12],20:[8,11],24:[6,9],25:[6,9],32:[5,7],36:[4,6],43:[4,5]};
+      const [minModel, maxModel] = modelRanges[scale];
+      const direction = Math.random() < .5 ? 'forward' : 'backward';
+      if (direction === 'forward') {
+        const modelInches = randInt(minModel, maxModel);
+        const answer = modelInches * scale;
+        return {
+          type: 'models', answer, unit: 'in',
+          prompt: `A model car is built at a 1:${scale} scale. The model is ${modelInches} inches long. How long is the real car?`,
+          visual: `<div class="scale-strip"><div class="scale-chip">Scale<b>1 : ${scale}</b></div><div class="scale-chip">Model length<b>${modelInches} in</b></div></div>`,
+          short: `1:${scale}; model ${modelInches} in → real ? in`
+        };
+      }
+      const modelInches = randInt(minModel, maxModel);
+      const realInches = modelInches * scale;
+      return {
+        type: 'models', answer: modelInches, unit: 'in',
+        prompt: `A model car is built at a 1:${scale} scale. The real car is ${realInches} inches long. How long should the model be?`,
+        visual: `<div class="scale-strip"><div class="scale-chip">Scale<b>1 : ${scale}</b></div><div class="scale-chip">Real length<b>${realInches} in</b></div></div>`,
+        short: `1:${scale}; real ${realInches} in → model ? in`
+      };
+    }
+
+    function startGame() {
+      selectedTypes = getSelectedTypes();
+      if (!selectedTypes.length) {
+        $('setup-error').textContent = 'Choose at least one problem type.';
+        return;
+      }
+      $('setup-error').textContent = '';
+      problems = generateSession(selectedTypes);
+      currentIndex = 0;
+      firstTryScore = 0;
+      totalAttempts = 0;
+      correctAttempts = 0;
+      results = [];
+      attemptsThisProblem = 0;
+      sessionStart = Date.now();
+      $('setup-screen').classList.add('hidden');
+      $('game-screen').classList.remove('hidden');
+      showProblem();
+    }
+
+    function showProblem() {
+      const p = problems[currentIndex];
+      attemptsThisProblem = 0;
+      locked = false;
+      $('round-label').textContent = `${currentIndex + 1} / ${TOTAL_PROBLEMS}`;
+      $('progress-fill').style.width = `${(currentIndex / TOTAL_PROBLEMS) * 100}%`;
+      $('score').textContent = firstTryScore;
+      $('category-pill').textContent = categoryNames[p.type];
+      $('problem-type').textContent = categoryNames[p.type];
+      $('problem-text').textContent = p.prompt;
+      $('problem-visual').innerHTML = p.visual || '';
+      $('answer-unit').textContent = p.unit || '';
+      $('answer').value = '';
+      $('answer').disabled = false;
+      $('check-btn').disabled = false;
+      $('skip-btn').disabled = false;
+      $('feedback').textContent = '';
+      $('feedback').className = '';
+      problemStart = Date.now();
+      setTimeout(() => $('answer').focus(), 0);
+    }
+
+    function parseAnswer(raw) {
+      const cleaned = raw.trim().replace(/,/g, '');
+      if (!cleaned) return NaN;
+      if (cleaned.includes('/')) {
+        const parts = cleaned.split('/').map(Number);
+        if (parts.length === 2 && Number.isFinite(parts[0]) && Number.isFinite(parts[1]) && parts[1] !== 0) return parts[0] / parts[1];
+      }
+      return Number(cleaned);
+    }
+
+    function checkAnswer() {
+      if (locked) return;
+      const p = problems[currentIndex];
+      const answer = parseAnswer($('answer').value);
+      if (!Number.isFinite(answer)) {
+        $('feedback').textContent = 'Enter a number first.';
+        $('feedback').className = 'bad';
+        return;
+      }
+
+      attemptsThisProblem++;
+      totalAttempts++;
+      const correct = closeEnough(answer, p.answer);
+
+      if (!correct) {
+        $('feedback').textContent = 'Not quite — try again.';
+        $('feedback').className = 'bad';
+        $('answer').select();
+        return;
+      }
+
+      correctAttempts++;
+      if (attemptsThisProblem === 1) firstTryScore++;
+      locked = true;
+      $('answer').disabled = true;
+      $('check-btn').disabled = true;
+      $('skip-btn').disabled = true;
+      $('feedback').textContent = attemptsThisProblem === 1 ? 'Correct! ✓' : `Correct — the answer is ${formatNumber(p.answer)} ${p.unit}.`;
+      $('feedback').className = 'good';
+
+      const elapsed = (Date.now() - problemStart) / 1000;
+      results.push({
+        number: currentIndex + 1,
+        type: p.type,
+        prompt: p.short,
+        correctAnswer: p.answer,
+        unit: p.unit,
+        attempts: attemptsThisProblem,
+        firstTry: attemptsThisProblem === 1,
+        seconds: Number(elapsed.toFixed(1))
+      });
+      $('score').textContent = firstTryScore;
+
+      setTimeout(() => {
+        currentIndex++;
+        if (currentIndex >= TOTAL_PROBLEMS) endGame();
+        else showProblem();
+      }, 650);
+    }
+
+    function skipProblem() {
+      if (locked) return;
+      const p = problems[currentIndex];
+
+      // A skip counts as an incorrect response. If the student has not
+      // already made an attempt on this problem, record one incorrect attempt
+      // so session accuracy reflects the skipped item.
+      if (attemptsThisProblem === 0) {
+        totalAttempts++;
+      }
+
+      locked = true;
+      $('answer').disabled = true;
+      $('check-btn').disabled = true;
+      $('skip-btn').disabled = true;
+      $('feedback').textContent = `Skipped — the answer was ${formatNumber(p.answer)}${p.unit ? ' ' + p.unit : ''}.`;
+      $('feedback').className = 'bad';
+
+      const elapsed = (Date.now() - problemStart) / 1000;
+      results.push({
+        number: currentIndex + 1,
+        type: p.type,
+        prompt: p.short,
+        correctAnswer: p.answer,
+        unit: p.unit,
+        attempts: attemptsThisProblem,
+        firstTry: false,
+        skipped: true,
+        seconds: Number(elapsed.toFixed(1))
+      });
+
+      setTimeout(() => {
+        currentIndex++;
+        if (currentIndex >= TOTAL_PROBLEMS) endGame();
+        else showProblem();
+      }, 500);
+    }
+
+    function formatElapsed(totalSeconds) {
+      const seconds = Math.max(0, Math.round(totalSeconds));
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return `${m}:${String(s).padStart(2, '0')}`;
+    }
+
+    function endGame() {
+      const elapsed = (Date.now() - sessionStart) / 1000;
+      window.sessionElapsedSeconds = elapsed;
+      window.elapsedStr = formatElapsed(elapsed);
+      const accuracy = totalAttempts ? Math.round((correctAttempts / totalAttempts) * 100) : 0;
+
+      $('game-screen').classList.add('hidden');
+      $('end-screen').classList.remove('hidden');
+      $('progress-fill').style.width = '100%';
+      $('final-score').textContent = `${firstTryScore}/10`;
+      $('final-accuracy').textContent = `${accuracy}%`;
+      $('final-time').textContent = window.elapsedStr;
+
+      $('results-list').innerHTML = results.map(r => `
+        <div class="result-row">
+          <div>#${r.number}</div>
+          <div class="badge">${categoryNames[r.type]}</div>
+          <div>${escapeHtml(r.prompt)} <span class="tiny">${r.skipped ? `(skipped${r.attempts ? ` after ${r.attempts} ${r.attempts === 1 ? 'try' : 'tries'}` : ''})` : `(${r.attempts} ${r.attempts === 1 ? 'try' : 'tries'})`}</span></div>
+          <div class="mark">${r.skipped ? '—' : (r.firstTry ? '✓' : '↺')}</div>
+        </div>`).join('');
+
+      $('initial-0').focus();
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+    }
+
+    function getInitialsFromBoxes() {
+      const chars = [];
+      let allFilled = true;
+      for (let i = 0; i < 3; i++) {
+        const box = $(`initial-${i}`);
+        const char = box.value.toUpperCase();
+        if (char.length === 1 && /^[A-Z]$/.test(char)) {
+          box.classList.add('correct');
+          chars.push(char);
+        } else {
+          box.classList.remove('correct');
+          allFilled = false;
+        }
+      }
+      return allFilled ? chars.join('') : null;
+    }
+
+    for (let i = 0; i < 3; i++) {
+      $(`initial-${i}`).addEventListener('input', e => {
+        e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0,1);
+        if (e.target.value) {
+          e.target.classList.add('correct');
+          if (i < 2) $(`initial-${i + 1}`).focus();
+          else $('student-comments').focus();
+        } else e.target.classList.remove('correct');
+      });
+    }
+
+    async function submitResults() {
+      const initials = getInitialsFromBoxes();
+      if (!initials) {
+        alert('Please enter 3 letters.');
+        return;
+      }
+
+      const comments = $('student-comments').value.trim();
+      const accuracy = totalAttempts ? Math.round((correctAttempts / totalAttempts) * 100) : 0;
+      const payload = {
+        initials,
+        game: GAME_ID,
+        settings: selectedTypes.map(t => categoryNames[t]).join(', '),
+        score: `${firstTryScore}/10 (${accuracy}% attempt accuracy)`,
+        elapsed: window.elapsedStr || 'unknown',
+        comments,
+        details: JSON.stringify(results)
+      };
+
+      $('submit-btn').disabled = true;
+      $('submit-status').textContent = 'Sending...';
+
+      try {
+        const res = await fetch(SUBMIT_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload),
+          headers: { 'Content-Type': 'text/plain' }
+        });
+        const text = await res.text();
+        $('submit-status').textContent = 'Submitted successfully! 🎉';
+        $('submit-btn').style.display = 'none';
+        console.log(text);
+      } catch (err) {
+        $('submit-status').textContent = `Error: ${err}`;
+        $('submit-btn').disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
