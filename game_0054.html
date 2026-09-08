@@ -1,0 +1,1324 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Panorama Racer Prototype 09 — Optional Turn In</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --panel: rgba(8, 12, 20, .72);
+    --line: rgba(255,255,255,.18);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #08101a; overflow: hidden; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  #game { display: block; width: 100vw; height: 100vh; image-rendering: pixelated; }
+  #help {
+    position: fixed; left: 14px; bottom: 12px; padding: 8px 10px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    color: #e9eef7; font-size: 12px; line-height: 1.4; pointer-events: none;
+  }
+  #title {
+    position: fixed; right: 14px; bottom: 12px; padding: 8px 10px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    color: #e9eef7; font-size: 12px; pointer-events: none;
+  }
+  #results {
+    position: fixed; inset: 0; display: none; place-items: center;
+    background: rgba(3,7,13,.72); backdrop-filter: blur(3px);
+    z-index: 20;
+  }
+  #results.show { display: grid; }
+  #resultsCard {
+    width: min(620px, calc(100vw - 32px));
+    max-height: 92vh;
+    overflow-y: auto;
+    padding: 26px 28px;
+    background: rgba(10,16,27,.96);
+    border: 1px solid rgba(255,255,255,.22);
+    border-radius: 12px;
+    color: #f4f7fb;
+    box-shadow: 0 18px 70px rgba(0,0,0,.45);
+  }
+  #resultsCard h1 { margin: 0 0 5px; font-size: 28px; letter-spacing: .04em; }
+  #placement { color: #f4e8b1; font-weight: 800; margin-bottom: 20px; }
+  .resultBig {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    margin: 14px 0 20px;
+  }
+  .stat {
+    padding: 14px; border: 1px solid rgba(255,255,255,.14);
+    border-radius: 8px; background: rgba(255,255,255,.035);
+  }
+  .stat small { display: block; opacity: .67; margin-bottom: 4px; }
+  .stat strong { font-size: 26px; }
+  #leaderboard { width: 100%; border-collapse: collapse; margin: 8px 0 20px; }
+  #leaderboard td, #leaderboard th {
+    padding: 7px 8px; border-bottom: 1px solid rgba(255,255,255,.10); text-align: left;
+  }
+  #leaderboard th:nth-child(2), #leaderboard td:nth-child(2),
+  #leaderboard th:nth-child(3), #leaderboard td:nth-child(3) { text-align: right; }
+  #turnIn {
+    position: relative;
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(255,255,255,.14);
+    text-align: center;
+  }
+  #turnIn h2 { margin: 0 0 12px; }
+  #closeTurnIn {
+    position: absolute;
+    top: 10px;
+    right: 0;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(255,255,255,.09);
+    color: white;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  #closeTurnIn:hover { background: rgba(255,255,255,.16); }
+  #initialsBoxes {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 10px 0;
+  }
+  .initial-box {
+    width: 58px;
+    height: 64px;
+    font-size: 30px;
+    text-align: center;
+    text-transform: uppercase;
+    border: 2px solid rgba(255,255,255,.22);
+    border-radius: 8px;
+    background: #fff;
+    color: #111;
+  }
+  .initial-box.correct {
+    background: lightgreen;
+    border-color: green;
+  }
+  #studentComments {
+    width: 100%;
+    min-height: 76px;
+    resize: vertical;
+    padding: 10px;
+    font: inherit;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,.20);
+    background: #171d27;
+    color: white;
+  }
+  #submitStatus {
+    min-height: 22px;
+    margin: 10px 0 4px;
+    color: #f4e8b1;
+  }
+  #submitButton, #playAgainButton, #raceAgainButton {
+    width: 100%;
+    padding: 12px;
+    margin-top: 8px;
+    border: 0;
+    border-radius: 8px;
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  #submitButton {
+    background: #f4e8b1;
+    color: #15191f;
+  }
+  #playAgainButton {
+    display: none;
+    background: #79d6a3;
+    color: #102018;
+  }
+  #raceAgainButton {
+    background: rgba(255,255,255,.10);
+    color: #f4f7fb;
+    border: 1px solid rgba(255,255,255,.16);
+    margin-top: 14px;
+  }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="help">↑ accelerate · ↓ brake · ← → steer · SPACE turbo · R reset</div>
+<div id="title">PANORAMA RACER · BALANCED PRIME RUN · prototype 09</div>
+<div id="results">
+  <div id="resultsCard">
+    <h1>PRIME RUN COMPLETE</h1>
+    <div id="placement"></div>
+    <div class="resultBig">
+      <div class="stat"><small>SCORE</small><strong id="finalScore">0</strong></div>
+      <div class="stat"><small>TIME</small><strong id="finalTime">0:00.00</strong></div>
+    </div>
+    <div style="font-weight:800;margin-bottom:6px;">LOCAL TOP 3</div>
+    <table id="leaderboard">
+      <thead><tr><th>PLACE</th><th>SCORE</th><th>TIME</th></tr></thead>
+      <tbody id="leaderboardBody"></tbody>
+    </table>
+
+    <div id="turnIn">
+      <button id="closeTurnIn" type="button" aria-label="Close Turn It In">×</button>
+      <h2>Turn It In</h2>
+      <div id="initialsBoxes">
+        <input class="initial-box" id="initial-0" maxlength="1" type="text" autocomplete="off"/>
+        <input class="initial-box" id="initial-1" maxlength="1" type="text" autocomplete="off"/>
+        <input class="initial-box" id="initial-2" maxlength="1" type="text" autocomplete="off"/>
+      </div>
+      <p style="margin:6px 0 12px;">Enter your initials above.</p>
+      <label for="studentComments">Comments (optional):</label>
+      <textarea id="studentComments"></textarea>
+      <div id="submitStatus"></div>
+      <button id="submitButton">SUBMIT</button>
+      <button id="playAgainButton">PLAY AGAIN</button>
+    </div>
+
+    <button id="raceAgainButton">RACE AGAIN WITHOUT SUBMITTING</button>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+let W = 1280, H = 720, DPR = 1;
+function resize() {
+  DPR = Math.max(1, Math.min(2, devicePixelRatio || 1));
+  W = innerWidth; H = innerHeight;
+  canvas.width = Math.floor(W * DPR);
+  canvas.height = Math.floor(H * DPR);
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+}
+addEventListener('resize', resize);
+resize();
+
+// ------------------------------------------------------------
+// TUNING
+// ------------------------------------------------------------
+const SEGMENT_LENGTH = 200;
+const ROAD_WIDTH = 2000;
+const CAMERA_HEIGHT = 950;
+const FOV = 90;
+const CAMERA_DEPTH = 1 / Math.tan((FOV / 2) * Math.PI / 180);
+const DRAW_DISTANCE = 280;
+const LANES = 2;
+
+const MAX_SPEED = 7200;
+const ACCEL = 4300;
+const BRAKE = 7200;
+const COAST = 1100;
+const OFFROAD_DRAG = 5000;
+const STEER_RATE = 1.75;
+
+// Global gameplay density for collectible/classification items.
+// 1.0 = original density, 0.1 = about one-tenth as many.
+const ITEM_DENSITY = 0.1;
+
+// Traffic gameplay knobs.
+const TRAFFIC_COUNT = 18;
+const AGGRESSIVE_TRAFFIC_FRACTION = 0.28;
+const TRAFFIC_MIN_SPEED = 0.48; // fraction of player max speed
+const TRAFFIC_MAX_SPEED = 0.86;
+const TRAFFIC_COLLISION_SLOWDOWN = 0.58;
+
+// One complete game is a fixed authored circuit repeated this many times.
+const TOTAL_LAPS = 4;
+const LEADERBOARD_KEY = 'panoramaRacer.primeRun.topScores.v1';
+
+// Same turn-in endpoint/payload family used by the other student games.
+const SUBMIT_URL = 'https://script.google.com/macros/s/AKfycbwsvj0ijlKGeWOIu80EobVDJks24Dw0ziwl9aY_AVJImmhRJ0MQnAJwmuBpe1NYmPzr/exec';
+const GAME_ID = 'panorama_racer_prime_run';
+
+const COLORS = {
+  skyTop: '#6cb6ff',
+  skyBottom: '#e8d79a',
+  grass1: '#356d3d',
+  grass2: '#3d7944',
+  road1: '#4b4d52',
+  road2: '#45474c',
+  rumble1: '#f4eee1',
+  rumble2: '#c94f45',
+  lane: '#eee8cf',
+  mountainFar: '#728394',
+  mountainNear: '#4d6471',
+  number: '#f8e7a0',
+  numberEdge: '#6e5420',
+  boost: '#55e7ff',
+  hud: 'rgba(5,10,18,.70)'
+};
+
+// ------------------------------------------------------------
+// AUTHORED TRACK
+// Each item is deliberately readable/editable.
+// curve: + right, - left
+// hill: total elevation change across the section
+// ------------------------------------------------------------
+const TRACK_PLAN = [
+  { name:'Home Straight', n:70,  curve: 0.00, hill:  0.0 },
+  { name:'Sunset Bend',   n:90,  curve: 0.78, hill:  0.0 },
+  { name:'First Climb',   n:65,  curve: 0.12, hill:  1.3 },
+  { name:'High Straight', n:55,  curve: 0.00, hill:  0.0 },
+  { name:'Long Left',     n:95,  curve:-0.92, hill: -0.3 },
+  { name:'Drop',          n:65,  curve:-0.14, hill: -1.0 },
+  { name:'Ess One',       n:42,  curve: 1.08, hill:  0.0 },
+  { name:'Ess Two',       n:42,  curve:-1.08, hill:  0.0 },
+  { name:'Big Right',     n:100, curve: 1.12, hill:  0.2 },
+  { name:'Back Climb',    n:70,  curve: 0.15, hill:  0.9 },
+  { name:'Cliff Left',    n:78,  curve:-0.88, hill:  0.0 },
+  { name:'Descent',       n:70,  curve:-0.07, hill: -1.1 },
+  { name:'Run Home',      n:95,  curve: 0.00, hill:  0.0 }
+];
+
+const segments = [];
+let currentY = 0;
+
+function easeInOut(a, b, t) {
+  return a + (b - a) * ((-Math.cos(Math.PI * t) / 2) + 0.5);
+}
+
+function addSection(def) {
+  const startY = currentY;
+  const endY = startY + def.hill * 1300;
+  for (let i = 0; i < def.n; i++) {
+    const y1 = easeInOut(startY, endY, i / def.n);
+    const y2 = easeInOut(startY, endY, (i + 1) / def.n);
+    const idx = segments.length;
+    segments.push({
+      index: idx,
+      name: def.name,
+      curve: def.curve,
+      p1: { world: { y:y1, z:idx * SEGMENT_LENGTH } },
+      p2: { world: { y:y2, z:(idx + 1) * SEGMENT_LENGTH } },
+      sprites: [],
+      items: [],
+      startLine: idx < 3
+    });
+  }
+  currentY = endY;
+}
+
+TRACK_PLAN.forEach(addSection);
+
+const TRACK_LENGTH = segments.length * SEGMENT_LENGTH;
+
+function segmentAt(z) {
+  return segments[Math.floor(z / SEGMENT_LENGTH) % segments.length];
+}
+
+// ------------------------------------------------------------
+// SWAPPABLE DRILL MODULE
+// The road engine only knows that a pickup has a label and that
+// collecting it produces a score delta + feedback. Replace this
+// object later for odd/even, vocabulary, signs, categories, etc.
+// ------------------------------------------------------------
+const PRIMES_1_TO_100 = [];
+const COMPOSITES_1_TO_100 = [];
+for (let n = 2; n <= 100; n++) {
+  if (isPrime(n)) PRIMES_1_TO_100.push(n);
+  else COMPOSITES_1_TO_100.push(n);
+}
+
+const DRILL = {
+  id: 'prime-composite',
+  title: 'PRIME RUN',
+  instruction: 'COLLECT PRIMES · DODGE COMPOSITES',
+
+  // These two factories are the only pieces the balanced-set generator
+  // needs to know about. A future odd/even or language drill can replace
+  // them without touching the road/race logic.
+  makeTarget() {
+    const value = PRIMES_1_TO_100[Math.floor(Math.random() * PRIMES_1_TO_100.length)];
+    return { value, label: String(value), role: 'target' };
+  },
+
+  makeDistractor() {
+    const value = COMPOSITES_1_TO_100[Math.floor(Math.random() * COMPOSITES_1_TO_100.length)];
+    return { value, label: String(value), role: 'distractor' };
+  },
+
+  evaluate(pickup) {
+    if (pickup.role === 'target') {
+      return { delta: 1, classification: 'PRIME', good: true };
+    }
+    return { delta: -1, classification: 'COMPOSITE', good: false };
+  }
+};
+
+function isPrime(n) {
+  if (n < 2 || !Number.isInteger(n)) return false;
+  if (n === 2) return true;
+  if (n % 2 === 0) return false;
+  for (let d = 3; d * d <= n; d += 2) {
+    if (n % d === 0) return false;
+  }
+  return true;
+}
+
+// ------------------------------------------------------------
+// CHEAP "BILLBOARD" SCENERY
+// Swap these vector drawings for PNG sprites later without
+// changing track geometry.
+// ------------------------------------------------------------
+function addSprite(segIndex, kind, offset, scale=1) {
+  segments[segIndex % segments.length].sprites.push({ kind, offset, scale });
+}
+function addItem(segIndex, kind, offset, pickup=null) {
+  const item = {
+    kind, offset, collected:false,
+    id: kind + ':' + segIndex + ':' + offset
+  };
+  if (kind === 'drill') item.pickup = pickup;
+  segments[segIndex % segments.length].items.push(item);
+}
+
+// Trees along both sides, sparse enough to keep sight lines clean.
+for (let i = 8; i < segments.length; i += 9) {
+  const wobble = ((i * 37) % 10) / 25;
+  addSprite(i, 'tree', -1.35 - wobble, 0.85 + ((i*13)%5)/10);
+  if (i % 18 === 8) addSprite(i + 3, 'tree', 1.35 + wobble, 0.9 + ((i*7)%4)/10);
+}
+for (let i = 40; i < segments.length; i += 85) {
+  addSprite(i, 'sign', i % 170 ? -1.18 : 1.18, 1);
+}
+
+// A run begins by choosing ONE BALANCED drill set.
+// The same values repeat on all four laps, but each lap gets its own
+// precomputed random segment/lane layout.
+const BASE_ITEM_SPACING = 16;
+const itemSpacing = Math.max(1, Math.round(BASE_ITEM_SPACING / Math.max(0.001, ITEM_DENSITY)));
+const DRILL_LANES = [-0.55, 0, 0.55];
+const DRILL_SAFE_START = 30;
+
+let runDrillSet = [];
+let runLapLayouts = [];
+
+function clearDrillItems() {
+  segments.forEach(seg => {
+    seg.items = seg.items.filter(item => item.kind !== 'drill');
+  });
+}
+
+function shuffledCopy(values) {
+  const out = values.slice();
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+function makeUniqueRoleItems(count, factory, usedValues) {
+  const out = [];
+  let guard = 0;
+  while (out.length < count && guard++ < 10000) {
+    const pickup = factory();
+    if (usedValues.has(pickup.value)) continue;
+    usedValues.add(pickup.value);
+    out.push(pickup);
+  }
+  if (out.length !== count) throw new Error('Could not build balanced drill set.');
+  return out;
+}
+
+function desiredItemsPerLap() {
+  const usableSegments = Math.max(1, segments.length - DRILL_SAFE_START);
+  const approximate = usableSegments / itemSpacing;
+
+  // Nearest even number, with a minimum of 2, so targets/distractors
+  // are always exactly 50/50.
+  return Math.max(2, 2 * Math.round(approximate / 2));
+}
+
+function buildBalancedRunSet() {
+  const total = desiredItemsPerLap();
+  const half = total / 2;
+  const usedValues = new Set();
+
+  const targets = makeUniqueRoleItems(half, () => DRILL.makeTarget(), usedValues);
+  const distractors = makeUniqueRoleItems(half, () => DRILL.makeDistractor(), usedValues);
+
+  return shuffledCopy([...targets, ...distractors]);
+}
+
+function buildLapLayout(drillSet) {
+  const usableSegments = segments.length - DRILL_SAFE_START;
+  const itemOrder = shuffledCopy(drillSet);
+  const layout = [];
+
+  // One item per broad bucket keeps density even around the circuit while
+  // still giving each lap a genuinely different arrangement.
+  for (let i = 0; i < itemOrder.length; i++) {
+    const bucketStart = DRILL_SAFE_START + Math.floor((i * usableSegments) / itemOrder.length);
+    const bucketEnd = DRILL_SAFE_START + Math.floor(((i + 1) * usableSegments) / itemOrder.length);
+    const width = Math.max(1, bucketEnd - bucketStart);
+    const segIndex = bucketStart + Math.floor(Math.random() * width);
+    const lane = DRILL_LANES[Math.floor(Math.random() * DRILL_LANES.length)];
+
+    layout.push({
+      segIndex,
+      lane,
+      pickup: itemOrder[i]
+    });
+  }
+  return layout;
+}
+
+function precomputeRunDrill() {
+  runDrillSet = buildBalancedRunSet();
+  runLapLayouts = Array.from({ length: TOTAL_LAPS }, () => buildLapLayout(runDrillSet));
+}
+
+function loadLapDrillItems(lapIndex) {
+  clearDrillItems();
+  const layout = runLapLayouts[lapIndex] || [];
+  layout.forEach(slot => addItem(slot.segIndex, 'drill', slot.lane, slot.pickup));
+}
+
+// Turbo pickups are fixed track features rather than drill content.
+[245, 535, 830].forEach(i => addItem(i, 'boost', 0));
+
+// ------------------------------------------------------------
+// INPUT + GAME STATE
+// ------------------------------------------------------------
+const keys = new Set();
+addEventListener('keydown', e => {
+  const target = e.target;
+  const typing =
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement ||
+    target?.isContentEditable;
+
+  // Never let driving controls interfere with initials/comments/form typing.
+  if (typing) return;
+
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) {
+    e.preventDefault();
+  }
+
+  keys.add(e.code);
+  if (e.code === 'Space' && !e.repeat) triggerBoost();
+  if (e.code === 'KeyR' && !gameFinished) reset();
+});
+addEventListener('keyup', e => keys.delete(e.code));
+
+let position = SEGMENT_LENGTH * 5;
+let speed = 0;
+let playerX = 0;
+let lap = 1;
+let runStart = performance.now();
+let lapStart = runStart;
+let lastLap = null;
+let lapTimes = [];
+let finishTime = null;
+let gameFinished = false;
+let score = 0;
+let numbersCollected = 0;
+let boosts = 1;
+let boostTimer = 0;
+let heading = 0;
+let pickupFeedback = null;
+let collisionFeedbackUntil = 0;
+
+const resultsEl = document.getElementById('results');
+const finalScoreEl = document.getElementById('finalScore');
+const finalTimeEl = document.getElementById('finalTime');
+const placementEl = document.getElementById('placement');
+const leaderboardBodyEl = document.getElementById('leaderboardBody');
+const submitButtonEl = document.getElementById('submitButton');
+const playAgainButtonEl = document.getElementById('playAgainButton');
+const raceAgainButtonEl = document.getElementById('raceAgainButton');
+const closeTurnInEl = document.getElementById('closeTurnIn');
+const turnInEl = document.getElementById('turnIn');
+const submitStatusEl = document.getElementById('submitStatus');
+const studentCommentsEl = document.getElementById('studentComments');
+
+const traffic = [];
+
+function randomTrafficLane() {
+  return Math.random() < 0.5 ? -0.48 : 0.48;
+}
+
+function createTraffic() {
+  traffic.length = 0;
+  const spacing = TRACK_LENGTH / TRAFFIC_COUNT;
+
+  for (let i = 0; i < TRAFFIC_COUNT; i++) {
+    const lane = randomTrafficLane();
+    const aggressive = Math.random() < AGGRESSIVE_TRAFFIC_FRACTION;
+    const speedFactor = TRAFFIC_MIN_SPEED
+      + Math.random() * (TRAFFIC_MAX_SPEED - TRAFFIC_MIN_SPEED);
+
+    traffic.push({
+      z: (SEGMENT_LENGTH * 30 + i * spacing + Math.random() * spacing * 0.45) % TRACK_LENGTH,
+      offset: lane,
+      homeLane: lane,
+      targetOffset: lane,
+      speed: MAX_SPEED * speedFactor,
+      aggressive,
+      colorIndex: Math.floor(Math.random() * 4),
+      collisionCooldown: 0,
+      weavePhase: Math.random() * Math.PI * 2
+    });
+  }
+}
+
+function reset() {
+  position = SEGMENT_LENGTH * 5;
+  speed = 0;
+  playerX = 0;
+  lap = 1;
+  runStart = performance.now();
+  lapStart = runStart;
+  lastLap = null;
+  lapTimes = [];
+  finishTime = null;
+  gameFinished = false;
+  score = 0;
+  numbersCollected = 0;
+  boosts = 1;
+  boostTimer = 0;
+  heading = 0;
+  pickupFeedback = null;
+  collisionFeedbackUntil = 0;
+
+  precomputeRunDrill();
+  loadLapDrillItems(0);
+  resetLapItems();
+  createTraffic();
+
+  // Reset turn-in UI for a genuinely new run.
+  for (let i = 0; i < 3; i++) {
+    const box = document.getElementById(`initial-${i}`);
+    box.value = '';
+    box.classList.remove('correct');
+  }
+  studentCommentsEl.value = '';
+  submitStatusEl.textContent = '';
+  submitButtonEl.style.display = 'block';
+  submitButtonEl.disabled = false;
+  playAgainButtonEl.style.display = 'none';
+  turnInEl.style.display = 'block';
+
+  resultsEl.classList.remove('show');
+}
+
+function triggerBoost() {
+  if (boosts > 0 && boostTimer <= 0) {
+    boosts--;
+    boostTimer = 1.25;
+  }
+}
+
+function resetLapItems() {
+  segments.forEach(s => s.items.forEach(it => {
+    it.collected = false;
+  }));
+}
+
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function lerp(a,b,t){ return a + (b-a)*t; }
+function percentRemaining(n,total){ return (n % total) / total; }
+
+function formatTime(seconds) {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds - mins * 60;
+  return `${mins}:${secs.toFixed(2).padStart(5,'0')}`;
+}
+
+function loadLeaderboard() {
+  try {
+    const raw = localStorage.getItem(LEADERBOARD_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    return [];
+  }
+}
+
+function saveLeaderboard(entries) {
+  try {
+    localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(entries.slice(0, 20)));
+  } catch (err) {
+    // The game still works if storage is disabled.
+  }
+}
+
+function rankRun(finalScore, totalTime) {
+  const runId = `${Date.now()}-${Math.random()}`;
+  const entries = loadLeaderboard();
+  entries.push({ id: runId, score: finalScore, time: totalTime });
+
+  // Intuitive ranking: score first, race time only breaks ties.
+  entries.sort((a,b) => (b.score - a.score) || (a.time - b.time));
+
+  const place = entries.findIndex(e => e.id === runId) + 1;
+  saveLeaderboard(entries);
+  return { place, top3: entries.slice(0,3) };
+}
+
+function showResults(totalTime) {
+  const ranked = rankRun(score, totalTime);
+
+  finalScoreEl.textContent = String(score);
+  finalTimeEl.textContent = formatTime(totalTime);
+
+  if (ranked.place === 1) placementEl.textContent = 'NEW #1 LOCAL RECORD!';
+  else if (ranked.place <= 3) placementEl.textContent = `TOP 3 FINISH — #${ranked.place}`;
+  else placementEl.textContent = `FINISHED OUTSIDE THE TOP 3`;
+
+  leaderboardBodyEl.innerHTML = '';
+  for (let i = 0; i < 3; i++) {
+    const entry = ranked.top3[i];
+    const tr = document.createElement('tr');
+    if (entry) {
+      tr.innerHTML = `<td>#${i+1}</td><td>${entry.score}</td><td>${formatTime(entry.time)}</td>`;
+    } else {
+      tr.innerHTML = `<td>#${i+1}</td><td>—</td><td>—</td>`;
+    }
+    leaderboardBodyEl.appendChild(tr);
+  }
+
+  resultsEl.classList.add('show');
+  setTimeout(() => document.getElementById('initial-0').focus(), 50);
+}
+
+function finishGame(now) {
+  if (gameFinished) return;
+  gameFinished = true;
+  speed = 0;
+  finishTime = (now - runStart) / 1000;
+  showResults(finishTime);
+}
+
+function getInitialsFromBoxes() {
+  const chars = [];
+  let allFilled = true;
+
+  for (let i = 0; i < 3; i++) {
+    const box = document.getElementById(`initial-${i}`);
+    const char = box.value.toUpperCase();
+
+    if (char.length === 1 && /^[A-Z]$/.test(char)) {
+      box.classList.add('correct');
+      chars.push(char);
+    } else {
+      box.classList.remove('correct');
+      allFilled = false;
+    }
+  }
+  return allFilled ? chars.join('') : null;
+}
+
+async function submitResults() {
+  const initials = getInitialsFromBoxes();
+  if (!initials) {
+    alert('Please enter 3 letters.');
+    return;
+  }
+
+  const payload = {
+    initials,
+    game: GAME_ID,
+    settings: `${TOTAL_LAPS} laps — ${DRILL.title} — numbers 1–100 — ${runDrillSet.length} balanced items/lap`,
+    score,
+    elapsed: finishTime !== null ? `${finishTime.toFixed(2)} seconds` : 'N/A',
+    comments: studentCommentsEl.value || ''
+  };
+
+  submitButtonEl.disabled = true;
+  submitButtonEl.style.display = 'none';
+  submitStatusEl.textContent = 'Sending...';
+
+  try {
+    const res = await fetch(SUBMIT_URL, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: { 'Content-Type': 'text/plain' }
+    });
+    await res.text();
+    submitStatusEl.textContent = 'Submitted successfully! 🎉';
+    playAgainButtonEl.style.display = 'block';
+  } catch (err) {
+    submitStatusEl.textContent = 'Error: ' + err;
+    submitButtonEl.style.display = 'block';
+    submitButtonEl.disabled = false;
+  }
+}
+
+submitButtonEl.addEventListener('click', submitResults);
+playAgainButtonEl.addEventListener('click', reset);
+raceAgainButtonEl.addEventListener('click', reset);
+closeTurnInEl.addEventListener('click', () => {
+  turnInEl.style.display = 'none';
+});
+
+for (let i = 0; i < 3; i++) {
+  const box = document.getElementById(`initial-${i}`);
+  box.addEventListener('input', () => {
+    box.value = box.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 1);
+    if (box.value.length === 1) {
+      box.classList.add('correct');
+      if (i < 2) document.getElementById(`initial-${i + 1}`).focus();
+      else studentCommentsEl.focus();
+    } else {
+      box.classList.remove('correct');
+    }
+  });
+}
+
+function wrappedForwardDistance(fromZ, toZ) {
+  let d = toZ - fromZ;
+  if (d < 0) d += TRACK_LENGTH;
+  return d;
+}
+
+function wrappedSignedDistance(fromZ, toZ) {
+  let d = toZ - fromZ;
+  if (d > TRACK_LENGTH / 2) d -= TRACK_LENGTH;
+  if (d < -TRACK_LENGTH / 2) d += TRACK_LENGTH;
+  return d;
+}
+
+function updateTraffic(dt, now) {
+  for (const car of traffic) {
+    car.z = (car.z + car.speed * dt) % TRACK_LENGTH;
+    car.collisionCooldown = Math.max(0, car.collisionCooldown - dt);
+
+    const ahead = wrappedForwardDistance(position, car.z);
+
+    // Ordinary traffic stays near its lane. Aggressive traffic notices
+    // the player approaching from behind and moves across to block.
+    if (car.aggressive && ahead > 0 && ahead < SEGMENT_LENGTH * 12) {
+      car.targetOffset = clamp(playerX, -0.72, 0.72);
+    } else {
+      car.targetOffset = car.homeLane;
+    }
+
+    const laneMoveRate = car.aggressive ? 0.72 : 0.34;
+    car.offset += clamp(car.targetOffset - car.offset,
+                        -laneMoveRate * dt, laneMoveRate * dt);
+
+    // Very subtle traffic motion keeps the road from feeling mechanical.
+    car.offset += Math.sin(now * 0.0012 + car.weavePhase) * 0.004 * dt * 60;
+    car.offset = clamp(car.offset, -0.82, 0.82);
+
+    // Cars do NOT interact with drill pickups. Only player/car contact matters.
+    const dz = wrappedSignedDistance(position, car.z);
+    if (Math.abs(dz) < SEGMENT_LENGTH * 0.72 &&
+        Math.abs(playerX - car.offset) < 0.27 &&
+        car.collisionCooldown <= 0) {
+
+      speed *= TRAFFIC_COLLISION_SLOWDOWN;
+      car.collisionCooldown = 0.75;
+
+      // Normal impacts nudge the player away from the traffic car.
+      // Aggressive drivers produce a much stronger outward shove.
+      if (car.aggressive) {
+        const outward = playerX >= 0 ? 1 : -1;
+        playerX += outward * 0.34;
+      } else {
+        const away = playerX >= car.offset ? 1 : -1;
+        playerX += away * 0.18;
+      }
+
+      playerX = clamp(playerX, -2.0, 2.0);
+      collisionFeedbackUntil = now + 650;
+    }
+  }
+}
+
+function update(dt, now) {
+  if (gameFinished) return;
+
+  const seg = segmentAt(position);
+
+  if (keys.has('ArrowUp')) speed += ACCEL * dt;
+  else speed -= COAST * dt;
+  if (keys.has('ArrowDown')) speed -= BRAKE * dt;
+
+  if (boostTimer > 0) {
+    boostTimer -= dt;
+    speed += ACCEL * 1.6 * dt;
+  }
+
+  const speedPct = clamp(speed / MAX_SPEED, 0, 1.4);
+  const steer = STEER_RATE * dt * (0.25 + speedPct * 0.9);
+  if (keys.has('ArrowLeft'))  playerX -= steer;
+  if (keys.has('ArrowRight')) playerX += steer;
+
+  // Curves push the car outward a little, creating a reason to steer.
+  playerX -= seg.curve * speedPct * dt * 0.34;
+
+  if (Math.abs(playerX) > 1.05 && speed > MAX_SPEED * 0.28) {
+    speed -= OFFROAD_DRAG * dt * Math.min(1.5, Math.abs(playerX) - 0.9);
+  }
+
+  const localMax = boostTimer > 0 ? MAX_SPEED * 1.52 : MAX_SPEED;
+  speed = clamp(speed, 0, localMax);
+  playerX = clamp(playerX, -2.0, 2.0);
+
+  const oldPos = position;
+  position += speed * dt;
+
+  // Panorama heading follows the road's bend; steering adds a small glance.
+  heading += seg.curve * speed * dt * 0.000022;
+  if (keys.has('ArrowLeft')) heading -= dt * 0.12 * speedPct;
+  if (keys.has('ArrowRight')) heading += dt * 0.12 * speedPct;
+
+  if (position >= TRACK_LENGTH) {
+    position -= TRACK_LENGTH;
+
+    lastLap = (now - lapStart) / 1000;
+    lapTimes.push(lastLap);
+    lapStart = now;
+
+    if (lap >= TOTAL_LAPS) {
+      finishGame(now);
+      return;
+    }
+
+    lap++;
+    // Same balanced VALUE SET, but the next lap's locations/lane assignments
+    // were already precomputed at the beginning of the game.
+    loadLapDrillItems(lap - 1);
+    resetLapItems();
+  }
+
+  updateTraffic(dt, now);
+  collectItems(oldPos, position);
+}
+
+function collectItems(oldPos, newPos) {
+  // Check a small forward window. Works across the lap seam too.
+  const idx = Math.floor(position / SEGMENT_LENGTH);
+  for (let j = -2; j <= 4; j++) {
+    const s = segments[(idx + j + segments.length) % segments.length];
+    for (const item of s.items) {
+      if (item.collected) continue;
+      const itemZ = s.index * SEGMENT_LENGTH + SEGMENT_LENGTH * 0.5;
+      let dz = itemZ - position;
+      if (dz > TRACK_LENGTH/2) dz -= TRACK_LENGTH;
+      if (dz < -TRACK_LENGTH/2) dz += TRACK_LENGTH;
+      if (Math.abs(dz) < SEGMENT_LENGTH * 1.1 && Math.abs(playerX - item.offset) < 0.24) {
+        item.collected = true;
+        if (item.kind === 'drill') {
+          const result = DRILL.evaluate(item.pickup);
+          score += result.delta;
+          numbersCollected++;
+          pickupFeedback = {
+            label: item.pickup.label,
+            delta: result.delta,
+            classification: result.classification,
+            good: result.good,
+            until: performance.now() + 1050
+          };
+        }
+        if (item.kind === 'boost') boosts = Math.min(3, boosts + 1);
+      }
+    }
+  }
+}
+
+// ------------------------------------------------------------
+// PROJECTION + RENDERING
+// ------------------------------------------------------------
+function project(worldY, worldZ, cameraX, cameraY, cameraZ) {
+  const dz = worldZ - cameraZ;
+  const scale = CAMERA_DEPTH / Math.max(1, dz);
+  return {
+    scale,
+    x: W/2 + scale * (-cameraX) * W/2,
+    y: H*0.56 - scale * (worldY - cameraY) * H/2,
+    w: scale * ROAD_WIDTH * W/2
+  };
+}
+
+function polygon(x1,y1,x2,y2,x3,y3,x4,y4,fill) {
+  ctx.fillStyle = fill;
+  ctx.beginPath();
+  ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.lineTo(x3,y3); ctx.lineTo(x4,y4);
+  ctx.closePath(); ctx.fill();
+}
+
+function drawPanorama() {
+  const horizon = H * 0.56;
+  const g = ctx.createLinearGradient(0,0,0,horizon);
+  g.addColorStop(0, COLORS.skyTop);
+  g.addColorStop(1, COLORS.skyBottom);
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,W,horizon);
+
+  // Repeating mountains act as a temporary wraparound panorama.
+  const offset = ((heading * 260) % W + W) % W;
+
+  function ridge(baseY, amp, period, color, phase) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0,horizon);
+    for (let x=-period; x<=W+period; x+=18) {
+      const u = (x + offset*phase) / period;
+      const y = baseY
+        - Math.abs(Math.sin(u*Math.PI*2))*amp
+        - Math.abs(Math.sin(u*Math.PI*5.1))*amp*0.22;
+      ctx.lineTo(x,y);
+    }
+    ctx.lineTo(W,horizon);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ridge(horizon-50, 78, 430, COLORS.mountainFar, 0.35);
+  ridge(horizon-20, 105, 600, COLORS.mountainNear, 0.65);
+
+  // Sun
+  ctx.fillStyle = 'rgba(255,236,159,.92)';
+  ctx.beginPath();
+  ctx.arc(W*0.78 - offset*0.08, horizon*0.28, Math.max(22,H*0.045), 0, Math.PI*2);
+  ctx.fill();
+}
+
+function drawTree(x,y,size) {
+  size = clamp(size, 4, H*0.72);
+  ctx.fillStyle = '#603b27';
+  ctx.fillRect(x-size*0.055, y-size*0.42, size*0.11, size*0.42);
+  ctx.fillStyle = '#1e562e';
+  ctx.beginPath();
+  ctx.arc(x, y-size*0.58, size*0.24, 0, Math.PI*2);
+  ctx.arc(x-size*0.16, y-size*0.47, size*0.20, 0, Math.PI*2);
+  ctx.arc(x+size*0.17, y-size*0.46, size*0.19, 0, Math.PI*2);
+  ctx.fill();
+}
+
+function drawSign(x,y,size,text='↪') {
+  size = clamp(size, 6, H*0.38);
+  ctx.fillStyle = '#d9d6c8';
+  ctx.fillRect(x-size*.035, y-size*.48, size*.07, size*.48);
+  ctx.fillStyle = '#f1b548';
+  ctx.fillRect(x-size*.25, y-size*.72, size*.5, size*.27);
+  ctx.strokeStyle = '#322b22';
+  ctx.lineWidth = Math.max(1,size*.02);
+  ctx.strokeRect(x-size*.25, y-size*.72, size*.5, size*.27);
+  ctx.fillStyle = '#29261f';
+  ctx.font = `bold ${Math.max(8,size*.17)}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x, y-size*.585);
+}
+
+function drawDrillPickup(x,y,r,item) {
+  // Every number uses the same visual treatment; nothing gives away
+  // whether it is prime before the player chooses to collect it.
+  r = clamp(r * 1.75, 7, 34);
+  const label = item.pickup ? item.pickup.label : '?';
+  const width = r * (label.length >= 3 ? 2.55 : label.length === 2 ? 2.05 : 1.65);
+  const height = r * 1.55;
+  const cy = y - r * 2.0;
+
+  ctx.fillStyle = COLORS.number;
+  ctx.strokeStyle = COLORS.numberEdge;
+  ctx.lineWidth = Math.max(1, r * 0.12);
+  ctx.beginPath();
+  ctx.roundRect(x-width/2, cy-height/2, width, height, Math.max(2,r*.25));
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = '#2c2518';
+  ctx.font = `bold ${Math.max(9, r * (label.length >= 3 ? 0.85 : 1.02))}px ui-monospace, monospace`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(label, x, cy + 1);
+}
+
+function drawBoost(x,y,r) {
+  r = clamp(r, 3, 22);
+  ctx.save();
+  ctx.translate(x,y-r*1.2);
+  ctx.rotate(Math.PI/4);
+  ctx.fillStyle = COLORS.boost;
+  ctx.fillRect(-r*.8,-r*.8,r*1.6,r*1.6);
+  ctx.strokeStyle = '#f4ffff';
+  ctx.lineWidth = Math.max(1,r*.12);
+  ctx.strokeRect(-r*.8,-r*.8,r*1.6,r*1.6);
+  ctx.restore();
+}
+
+function drawTrafficCar(x, y, size, car) {
+  size = clamp(size, 7, H * 0.42);
+  const palettes = ['#4d89d8', '#62a76d', '#d8b34d', '#9a72c7'];
+  const body = car.aggressive ? '#d34f45' : palettes[car.colorIndex % palettes.length];
+  const w = size * 0.52;
+  const h = size * 0.34;
+  const top = y - h;
+
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,.22)';
+  ctx.beginPath();
+  ctx.ellipse(x, y + size*.015, w*.58, h*.18, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // body
+  ctx.fillStyle = body;
+  ctx.beginPath();
+  ctx.moveTo(x-w*.48, y);
+  ctx.lineTo(x-w*.42, top+h*.30);
+  ctx.lineTo(x-w*.23, top);
+  ctx.lineTo(x+w*.23, top);
+  ctx.lineTo(x+w*.42, top+h*.30);
+  ctx.lineTo(x+w*.48, y);
+  ctx.closePath();
+  ctx.fill();
+
+  // rear window
+  ctx.fillStyle = '#263341';
+  ctx.beginPath();
+  ctx.moveTo(x-w*.22, top+h*.08);
+  ctx.lineTo(x+w*.22, top+h*.08);
+  ctx.lineTo(x+w*.30, top+h*.34);
+  ctx.lineTo(x-w*.30, top+h*.34);
+  ctx.closePath();
+  ctx.fill();
+
+  // tail lights
+  ctx.fillStyle = '#ffb0a3';
+  ctx.fillRect(x-w*.36, y-h*.20, w*.13, h*.09);
+  ctx.fillRect(x+w*.23, y-h*.20, w*.13, h*.09);
+
+  // Aggressive drivers are readable at speed without needing labels.
+  if (car.aggressive && size > 18) {
+    ctx.fillStyle = '#fff0d6';
+    ctx.fillRect(x-w*.04, top+h*.02, w*.08, h*.78);
+  }
+}
+
+function render(now) {
+  // Explicit full-frame clear fixes trails/smearing in areas not
+  // overwritten by the projected road on every frame.
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = COLORS.grass1;
+  ctx.fillRect(0, 0, W, H);
+  drawPanorama();
+
+  const baseIndex = Math.floor(position / SEGMENT_LENGTH) % segments.length;
+  const basePercent = percentRemaining(position, SEGMENT_LENGTH);
+  const baseSeg = segments[baseIndex];
+  const playerY = lerp(baseSeg.p1.world.y, baseSeg.p2.world.y, basePercent);
+  const cameraY = playerY + CAMERA_HEIGHT;
+
+  let x = 0;
+  let dx = -(baseSeg.curve * basePercent);
+  const visible = [];
+  let maxY = H;
+
+  for (let n=1; n<DRAW_DISTANCE; n++) {
+    const idx = (baseIndex + n) % segments.length;
+    const seg = segments[idx];
+    const looped = idx < baseIndex;
+    const z1 = seg.p1.world.z + (looped ? TRACK_LENGTH : 0);
+    const z2 = seg.p2.world.z + (looped ? TRACK_LENGTH : 0);
+
+    const p1 = project(seg.p1.world.y, z1, playerX*ROAD_WIDTH - x, cameraY, position);
+    const p2 = project(seg.p2.world.y, z2, playerX*ROAD_WIDTH - x - dx, cameraY, position);
+
+    x += dx;
+    dx += seg.curve;
+
+    // Only the FAR edge determines whether this segment is hidden
+    // behind a nearer crest. Using p1 here makes adjacent road strips
+    // intermittently reject one another and produces visible flicker.
+    if (p2.y >= maxY) continue;
+    visible.push({seg,p1,p2,n,clipY:maxY});
+    maxY = p2.y;
+  }
+
+  // Group moving traffic by track segment for cheap pseudo-3D projection.
+  const trafficBySegment = new Map();
+  for (const car of traffic) {
+    const idx = Math.floor(car.z / SEGMENT_LENGTH) % segments.length;
+    if (!trafficBySegment.has(idx)) trafficBySegment.set(idx, []);
+    trafficBySegment.get(idx).push(car);
+  }
+
+  // Draw from far to near.
+  for (let i=visible.length-1; i>=0; i--) {
+    const {seg,p1,p2} = visible[i];
+    if (p1.w <= 0 || p2.w <= 0) continue;
+
+    const alt = (Math.floor(seg.index/3) % 2) === 0;
+    const grass = alt ? COLORS.grass1 : COLORS.grass2;
+    const road = alt ? COLORS.road1 : COLORS.road2;
+    const rumble = alt ? COLORS.rumble1 : COLORS.rumble2;
+
+    const seam = 0.8;
+    const yTop = clamp(p2.y-seam,0,H);
+    const yBot = clamp(p1.y+seam,0,H);
+    ctx.fillStyle = grass;
+    ctx.fillRect(0,yTop,W,Math.max(1,yBot-yTop+1));
+
+    const r1 = p1.w * 1.10, r2 = p2.w * 1.10;
+    polygon(p1.x-r1,p1.y+seam, p1.x+r1,p1.y+seam,
+            p2.x+r2,p2.y-seam, p2.x-r2,p2.y-seam, rumble);
+    polygon(p1.x-p1.w,p1.y+seam, p1.x+p1.w,p1.y+seam,
+            p2.x+p2.w,p2.y-seam, p2.x-p2.w,p2.y-seam, road);
+
+    if (seg.startLine) {
+      const bands = 10;
+      for (let b=0;b<bands;b++) {
+        const lx1 = lerp(p1.x-p1.w,p1.x+p1.w,b/bands);
+        const lx2 = lerp(p1.x-p1.w,p1.x+p1.w,(b+1)/bands);
+        const tx1 = lerp(p2.x-p2.w,p2.x+p2.w,b/bands);
+        const tx2 = lerp(p2.x-p2.w,p2.x+p2.w,(b+1)/bands);
+        polygon(lx1,p1.y,lx2,p1.y,tx2,p2.y,tx1,p2.y,(b+seg.index)%2?'#eee':'#222');
+      }
+    } else if (seg.index % 6 < 3) {
+      // dashed center line
+      const line1 = p1.w * 0.017, line2 = p2.w * 0.017;
+      polygon(p1.x-line1,p1.y,p1.x+line1,p1.y,p2.x+line2,p2.y,p2.x-line2,p2.y,COLORS.lane);
+    }
+
+    // Roadside scenery attached to segment
+    for (const spr of seg.sprites) {
+      const sx = p1.x + p1.w * spr.offset;
+      const size = p1.w * 0.62 * spr.scale;
+      if (spr.kind === 'tree') drawTree(sx,p1.y,size);
+      if (spr.kind === 'sign') drawSign(sx,p1.y,size, seg.curve >= 0 ? '↪' : '↩');
+    }
+
+    for (const item of seg.items) {
+      if (item.collected) continue;
+      const sx = p1.x + p1.w * item.offset;
+      const r = p1.w * 0.035;
+      if (item.kind === 'drill') drawDrillPickup(sx,p1.y,r,item);
+      if (item.kind === 'boost') drawBoost(sx,p1.y,r*1.2);
+    }
+
+    // Moving traffic is independent of pickups and simply occupies the road.
+    const carsHere = trafficBySegment.get(seg.index);
+    if (carsHere) {
+      for (const car of carsHere) {
+        const t = (car.z % SEGMENT_LENGTH) / SEGMENT_LENGTH;
+        const carXCenter = lerp(p1.x, p2.x, t);
+        const carRoadW = lerp(p1.w, p2.w, t);
+        const carY = lerp(p1.y, p2.y, t);
+        const sx = carXCenter + carRoadW * car.offset;
+        drawTrafficCar(sx, carY, carRoadW * 0.34, car);
+      }
+    }
+  }
+
+  drawCockpit(now);
+  drawHUD(now, baseSeg);
+}
+
+function drawCockpit(now) {
+  // Tiny hood/dashboard for speed feedback while preserving first-person view.
+  const bob = Math.sin(now*0.018) * Math.min(3, speed/MAX_SPEED*3);
+  const cx = W/2 + playerX*8;
+  ctx.fillStyle = '#151b25';
+  ctx.beginPath();
+  ctx.moveTo(cx-W*.13,H+bob);
+  ctx.lineTo(cx-W*.075,H-H*.055+bob);
+  ctx.lineTo(cx+W*.075,H-H*.055+bob);
+  ctx.lineTo(cx+W*.13,H+bob);
+  ctx.closePath(); ctx.fill();
+
+  if (boostTimer > 0) {
+    ctx.fillStyle = 'rgba(85,231,255,.18)';
+    ctx.fillRect(0,0,W,H);
+  }
+}
+
+function drawHUD(now, seg) {
+  const pad = 14;
+  const boxW = Math.min(520, W*.62);
+  ctx.fillStyle = COLORS.hud;
+  ctx.fillRect(pad,pad,boxW,116);
+
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.font = 'bold 18px ui-monospace, monospace';
+  ctx.fillText(`${Math.round(speed/42)} mph`, pad+12,pad+10);
+
+  ctx.font = 'bold 15px ui-monospace, monospace';
+  ctx.fillText(`SCORE ${score}`, pad+135,pad+10);
+
+  ctx.font = '13px ui-monospace, monospace';
+  ctx.fillStyle = '#f4e8b1';
+  ctx.fillText(DRILL.instruction, pad+12,pad+38);
+
+  ctx.fillStyle = '#fff';
+  ctx.fillText(`LAP ${lap}/${TOTAL_LAPS}   HIT ${numbersCollected}   SET ${runDrillSet.length}   TRAFFIC ${TRAFFIC_COUNT}   TURBO ${'◆'.repeat(boosts)}${'◇'.repeat(3-boosts)}`, pad+12,pad+62);
+  ctx.fillText(seg.name.toUpperCase(), pad+12,pad+86);
+
+  const elapsed = gameFinished && finishTime !== null ? finishTime : (now - runStart)/1000;
+  ctx.textAlign = 'right';
+  ctx.fillText(`TOTAL ${formatTime(elapsed)}${lastLap ? `   LAST ${lastLap.toFixed(1)}`:''}`, pad+boxW-12,pad+86);
+
+  if (pickupFeedback && now < pickupFeedback.until) {
+    const life = clamp((pickupFeedback.until - now) / 1050, 0, 1);
+    const sign = pickupFeedback.delta > 0 ? '+' : '';
+    const msg = `${pickupFeedback.label}: ${pickupFeedback.classification}   ${sign}${pickupFeedback.delta}`;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, life * 1.7);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = 'bold 24px ui-monospace, monospace';
+    const tw = ctx.measureText(msg).width + 34;
+    ctx.fillStyle = 'rgba(5,10,18,.78)';
+    ctx.fillRect(W/2-tw/2, H*.18-24, tw, 48);
+    ctx.fillStyle = pickupFeedback.good === true ? '#eaf7b0'
+                  : pickupFeedback.good === false ? '#ffd0c8'
+                  : '#e8e8e8';
+    ctx.fillText(msg, W/2, H*.18);
+    ctx.restore();
+  }
+
+  if (now < collisionFeedbackUntil) {
+    ctx.fillStyle = 'rgba(255,90,70,.13)';
+    ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = '#ffd5cb';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 18px ui-monospace, monospace';
+    ctx.fillText('BUMP!', W/2, H*.27);
+  }
+
+  if (Math.abs(playerX) > 1.05) {
+    ctx.fillStyle = '#fff4c4';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 16px ui-monospace, monospace';
+    ctx.fillText('OFF ROAD', W/2, 18);
+  }
+}
+
+// ------------------------------------------------------------
+// LOOP
+// ------------------------------------------------------------
+reset();
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now-last)/1000);
+  last = now;
+  update(dt, now);
+  render(now);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>
