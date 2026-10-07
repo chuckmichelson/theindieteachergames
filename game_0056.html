@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<link rel="icon" type="image/png" href="favicon.png">
-<link rel="apple-touch-icon" href="favicon.png">
-<link rel="shortcut icon" href="favicon.ico">
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Owner's Box Football</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="favicon.png">
+<link rel="shortcut icon" href="favicon.ico">
 <style>
   :root{
     --bg:#0d1321;
@@ -213,7 +213,7 @@
 
     <div class="card">
       <div class="field" id="field" aria-label="Animated football field"></div><div class="play-outcome" id="resultFlash" aria-live="polite"></div>
-      <div class="play-banner" id="playBanner" aria-live="polite">🏈 Choose a play. Correct answers improve the odds, but football is never guaranteed.</div>
+      <div class="play-banner" id="playBanner" aria-live="polite">🏈 Choose a play. Correct answer = favorable yards. Wrong answer = a small setback.</div>
       <div class="playbar" id="offenseBar">
         <button data-play="run" class="good">🏃 RUN</button>
         <button data-play="short">🎯 SHORT PASS</button>
@@ -265,7 +265,7 @@ const clamp = (x,a,b)=>Math.max(a,Math.min(b,x));
 const rand=(a,b)=>Math.random()*(b-a)+a;
 const rint=(a,b)=>Math.floor(rand(a,b+1));
 
-const SAVE_KEY='ownersBoxFootball.save.v3';
+const SAVE_KEY='ownersBoxFootball.save.v4';
 let animationLock=false;
 function saveState(){
   try{
@@ -276,7 +276,7 @@ function saveState(){
 }
 function loadState(){
   try{
-    let raw=localStorage.getItem(SAVE_KEY); if(!raw){raw=localStorage.getItem('ownersBoxFootball.save.v2');} if(!raw)return false;
+    let raw=localStorage.getItem(SAVE_KEY); if(!raw)raw=localStorage.getItem('ownersBoxFootball.save.v3'); if(!raw)raw=localStorage.getItem('ownersBoxFootball.save.v2'); if(!raw)return false;
     const d=JSON.parse(raw);
     if(!d||typeof d.week!=='number')return false;
     Object.assign(state,{week:d.week,wins:d.wins,losses:d.losses,cash:d.cash,ticket:d.ticket,roster:d.roster,upgrades:d.upgrades,market:d.market});
@@ -392,7 +392,7 @@ function buyUpgrade(key){
 document.querySelectorAll('#ticketBtns button').forEach(b=>b.onclick=()=>{state.ticket=Number(b.dataset.ticket);saveState();renderOwner();});
 document.getElementById('playGameBtn').onclick=startGame;
 document.getElementById('placeValueBtn').onclick=()=>askPlaceValue();
-document.getElementById('newSeasonBtn').onclick=()=>{if(confirm('Start a new season? This will erase the current saved season.')){try{localStorage.removeItem(SAVE_KEY);}catch(e){} location.reload();}};
+document.getElementById('newSeasonBtn').onclick=()=>{if(confirm('Start a new season? This will erase the current saved season.')){try{localStorage.removeItem('ownersBoxFootball.save.v4');localStorage.removeItem('ownersBoxFootball.save.v3');localStorage.removeItem('ownersBoxFootball.save.v2');}catch(e){} location.reload();}};
 
 function askPlaceValue(){
   const pairs=[
@@ -481,10 +481,12 @@ document.querySelectorAll('[data-defense-call]').forEach(b=>b.onclick=()=>choose
 
 function choosePlay(play){
   if(!state.game||state.game.finished||animationLock)return;
-  if(play==='punt'){resolvePunt();return;}
-  if(play==='fg'){resolveFieldGoal();return;}
   const q=makeConcessionQuestion();
-  openQuestion('Concession Stand',q.text,q.answer,(correct)=>resolvePlay(play,correct));
+  openQuestion('Concession Stand',q.text,q.answer,(correct)=>{
+    if(play==='punt')resolvePunt(correct);
+    else if(play==='fg')resolveFieldGoal(correct);
+    else resolvePlay(play,correct);
+  });
 }
 
 function makeConcessionQuestion(){
@@ -547,27 +549,28 @@ function flashResult(text){
   el.textContent=text;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),1200);
 }
 function resolvePlay(play,correct){
-  const bonus=offenseBonus(play);let yards=0,turnover=false,desc='';const r=Math.random();
+  const bonus=offenseBonus(play);
+  let yards=0,desc='';
+  // The math answer controls the SIGN. The football play controls the size range.
+  // Ratings give only a small boost to favorable gains and soften mistakes slightly.
   if(play==='run'){
-    if(correct){yards=Math.round(clamp(rand(1,8)+bonus*2,-2,15));if(r<.06)yards=rint(12,28);if(r<.08)yards=-rint(1,3);}
-    else {yards=Math.round(clamp(rand(-3,3)+bonus,-5,7));if(r<.05)yards=rint(6,12);}
+    if(correct) yards=clamp(rint(2,8)+Math.round(Math.max(0,bonus)),1,12);
+    else yards=-clamp(rint(1,3)-Math.round(Math.max(0,bonus)*.25),1,3);
     desc=`Run play: ${yards>=0?'+':''}${yards} yards.`;
   }
   if(play==='short'){
-    let comp=(correct?.75:.35)+bonus*.08;
-    if(r<comp){yards=rint(4,12)+Math.round(bonus*2);desc=`Short pass complete: +${yards} yards.`;}
-    else if(Math.random()<(correct?.03:.12)){turnover=true;desc='Intercepted!';}
-    else {yards=0;desc='Pass incomplete.';}
+    if(correct) yards=clamp(rint(5,12)+Math.round(Math.max(0,bonus)*1.5),3,16);
+    else yards=-clamp(rint(1,4)-Math.round(Math.max(0,bonus)*.25),1,4);
+    desc=correct?`Short pass complete: +${yards} yards.`:`Short pass breaks down: ${yards} yards.`;
   }
   if(play==='deep'){
-    let comp=(correct?.45:.15)+bonus*.06;
-    if(r<comp){yards=rint(14,34)+Math.round(bonus*3);desc=`Deep pass complete: +${yards} yards!`;}
-    else if(Math.random()<(correct?.08:.22)){turnover=true;desc='Deep ball intercepted!';}
-    else {yards=0;desc='Deep pass incomplete.';}
+    if(correct) yards=clamp(rint(12,30)+Math.round(Math.max(0,bonus)*2),8,36);
+    else yards=-clamp(rint(2,6)-Math.round(Math.max(0,bonus)*.25),1,6);
+    desc=correct?`Deep pass complete: +${yards} yards!`:`Deep play breaks down: ${yards} yards.`;
   }
-  animatePlay(play,yards,turnover,()=>{
-    advanceClock(rint(20,42));flashResult(turnover?'INTERCEPTION':yards>0?`+${yards} YARDS`:yards<0?`${yards} YARDS`:'NO GAIN');
-    if(turnover){document.getElementById('gameLog').textContent=desc;document.getElementById('playBanner').textContent='🛑 '+desc;renderGame();setTimeout(startDefensePossession,1300);return;}
+  animatePlay(play,yards,false,()=>{
+    advanceClock(rint(20,42));
+    flashResult(yards>0?`+${yards} YARDS`:`${yards} YARDS`);
     applyYards(yards,desc);
   });
 }
@@ -585,8 +588,17 @@ function animatePlay(play,yards,turnover,done){
     if(play==='deep'&&wr){wr.style.left=(base+13)+'%';wr.style.top='25%';banner.textContent='🚀 Receiver is going deep...';}
   },650);
   setTimeout(()=>{
-    if((play==='short'||play==='deep')&&ball){const targetX=turnover?base+8:base+clamp(Math.max(yards,play==='deep'?14:6),4,28);ball.style.left=targetX+'%';ball.style.top=turnover?'52%':(play==='deep'?'25%':'38%');ball.style.transform='translate(-50%,-50%) rotate(45deg)';banner.textContent=play==='deep'?'🏈 The ball is flying downfield...':'🏈 Pass is in the air...';}
-    else if(play==='run'&&rb){rb.style.left=(base+clamp(yards*.55,Math.min(yards,0),13))+'%';banner.textContent='💥 Runner meets the defense...';}
+    if((play==='short'||play==='deep')&&yards<0){
+      if(qb)qb.style.left=(base+yards*.7)+'%';
+      if(ball){ball.style.left=(base+yards*.7)+'%';ball.style.top='50%';}
+      banner.textContent='💥 Pressure gets home — the quarterback is driven backward!';
+    } else if((play==='short'||play==='deep')&&ball){
+      const targetX=base+clamp(yards,play==='deep'?10:4,30);
+      ball.style.left=targetX+'%';ball.style.top=play==='deep'?'25%':'38%';ball.style.transform='translate(-50%,-50%) rotate(45deg)';banner.textContent=play==='deep'?'🏈 The ball is flying downfield...':'🏈 Pass is in the air...';
+    } else if(play==='run'&&rb){
+      rb.style.left=(base+clamp(yards*.7,-5,13))+'%';
+      banner.textContent=yards<0?'💥 Defense meets the runner in the backfield!':'💥 Runner meets the defense...';
+    }
   },1500);
   setTimeout(()=>{banner.textContent='📣 The play is finishing...';},2400);
   setTimeout(()=>{f.classList.remove('busy');animationLock=false;setPlayButtons(false);done();},3200);
@@ -602,20 +614,43 @@ function applyYards(yards,desc){
   renderGame();checkGameEnd();
 }
 
-function resolvePunt(){
-  if(animationLock)return;animationLock=true;setPlayButtons(true);document.getElementById('playBanner').textContent='🦶 Punt team runs onto the field...';
+function resolvePunt(correct){
+  if(animationLock)return;
+  animationLock=true;setPlayButtons(true);
+  const g=state.game;
+  const puntYards=correct?rint(38,52):rint(18,30);
+  document.getElementById('playBanner').textContent='🦶 Punt team runs onto the field...';
   setTimeout(()=>document.getElementById('playBanner').textContent='🏈 High punt sailing downfield...',900);
-  setTimeout(()=>{advanceClock(20);flashResult('PUNT');document.getElementById('gameLog').textContent='Punt away. Opponent starts at its 25.';animationLock=false;setPlayButtons(false);startDefensePossession();},2200);
+  setTimeout(()=>{
+    advanceClock(20);
+    flashResult(correct?`${puntYards} YARD PUNT`:'SHORT PUNT');
+    document.getElementById('gameLog').textContent=correct?`Great punt: ${puntYards} yards.`:`Short punt: ${puntYards} yards.`;
+    animationLock=false;setPlayButtons(false);
+    // Convert the punt into the opponent's starting field coordinate. Higher is worse for us;
+    // a longer punt pushes them farther from our end zone.
+    const oppStart=clamp(g.ball+puntYards,55,95);
+    startDefensePossessionAt(oppStart);
+  },2400);
 }
-function resolveFieldGoal(){
-  if(animationLock)return;animationLock=true;setPlayButtons(true);const g=state.game;const distance=100-g.ball+17;const chance=clamp(.92-(distance-25)*.012,.2,.95);
+function resolveFieldGoal(correct){
+  if(animationLock)return;
+  animationLock=true;setPlayButtons(true);
+  const g=state.game;const distance=100-g.ball+17;
   document.getElementById('playBanner').textContent='🥅 Field goal unit lines up...';advanceClock(8);
   setTimeout(()=>document.getElementById('playBanner').textContent='🏈 Kick is up...',900);
-  setTimeout(()=>{if(Math.random()<chance){g.home+=3;flashResult('FIELD GOAL!');document.getElementById('gameLog').textContent=`Field goal GOOD from ${distance} yards.`;}else{flashResult('NO GOOD');document.getElementById('gameLog').textContent=`Field goal missed from ${distance} yards.`;}animationLock=false;setPlayButtons(false);renderGame();setTimeout(startDefensePossession,1300);},2200);
+  setTimeout(()=>{
+    if(correct){
+      g.home+=3;flashResult('FIELD GOAL!');document.getElementById('gameLog').textContent=`Field goal GOOD from ${distance} yards.`;
+    }else{
+      flashResult('NO GOOD');document.getElementById('gameLog').textContent=`Field goal missed from ${distance} yards.`;
+    }
+    animationLock=false;setPlayButtons(false);renderGame();setTimeout(startDefensePossession,1300);
+  },2400);
 }
-function startDefensePossession(){
+function startDefensePossession(){startDefensePossessionAt(75);}
+function startDefensePossessionAt(ball=75){
   const g=state.game;if(!g||g.finished)return;
-  g.phase='defense';g.ball=75;g.down=1;g.toGo=10;g.possessions++;
+  g.phase='defense';g.ball=clamp(ball,5,95);g.down=1;g.toGo=10;g.possessions++;
   document.getElementById('playBanner').textContent=`🛡️ ${g.opp} has the ball. Call the defense.`;
   document.getElementById('gameLog').textContent='Choose Blitz, Man Coverage, Zone, or Prevent.';
   renderGame();checkGameEnd();
@@ -629,19 +664,36 @@ function startOffensePossession(ball=25){
 }
 function chooseDefense(call){
   const g=state.game;if(!g||g.finished||g.phase!=='defense'||animationLock)return;
-  const def=state.roster.DEF.rating+(state.upgrades.training?3:0);const edge=(def-g.oppRating)/20;
+  const q=makeConcessionQuestion();
+  openQuestion('Concession Stand',q.text,q.answer,(correct)=>resolveDefenseCall(call,correct));
+}
+function resolveDefenseCall(call,correct){
+  const g=state.game;if(!g||g.finished)return;
+  const def=state.roster.DEF.rating+(state.upgrades.training?3:0);
+  const edge=(def-g.oppRating)/20;
   const offenseType=Math.random()<.46?'run':(Math.random()<.68?'short':'deep');
-  let stop=.52+edge*.08, turnover=.035+Math.max(0,edge)*.02, bigRisk=.08;
-  if(call==='blitz'){stop+=offenseType==='run'?.16:.06;turnover+=.055;bigRisk=.18;}
-  if(call==='man'){stop+=offenseType==='short'?.12:.02;turnover+=.02;bigRisk=offenseType==='deep'?.14:.08;}
-  if(call==='zone'){stop+=offenseType==='deep'?.10:.05;turnover+=.03;bigRisk=.07;}
-  if(call==='prevent'){stop+=offenseType==='deep'?.20:-.08;turnover-=.01;bigRisk=.03;}
-  stop=clamp(stop,.25,.82);turnover=clamp(turnover,.01,.14);
   let yards=0,takeaway=false;
-  const r=Math.random();
-  if(r<turnover){takeaway=true;yards=0;}
-  else if(r<turnover+stop){yards=offenseType==='run'?rint(-2,3):rint(0,5);}
-  else {yards=offenseType==='deep'?rint(10,24):rint(5,12);if(Math.random()<bigRisk)yards+=rint(8,18);}
+  // On defense, a correct answer always favors Joe: the opponent is stopped or loses yards.
+  // A wrong answer always gives up some yards, with the defensive call changing the range.
+  if(correct){
+    let lossMin=0,lossMax=3;
+    if(call==='blitz'){lossMin=1;lossMax=5;}
+    if(call==='man'){lossMin=0;lossMax=3;}
+    if(call==='zone'){lossMin=0;lossMax=4;}
+    if(call==='prevent'){lossMin=0;lossMax=2;}
+    const ratingHelp=Math.max(0,Math.round(edge));
+    yards=-clamp(rint(lossMin,lossMax)+ratingHelp,0,6);
+    // A small, clearly favorable turnover bonus rewards aggressive/smart defense without making it common.
+    const takeawayChance=call==='blitz'?.10:call==='zone'?.07:call==='man'?.06:.035;
+    takeaway=Math.random()<takeawayChance;
+  }else{
+    let min=2,max=7;
+    if(call==='blitz'){min=3;max=10;}
+    if(call==='man'){min=2;max=8;}
+    if(call==='zone'){min=2;max=7;}
+    if(call==='prevent'){min=1;max=5;}
+    yards=clamp(rint(min,max)-Math.max(0,Math.round(edge*.5)),1,12);
+  }
   animateDefensePlay(call,offenseType,yards,takeaway,()=>resolveDefensePlay(call,offenseType,yards,takeaway));
 }
 function animateDefensePlay(call,type,yards,takeaway,done){
@@ -657,9 +709,19 @@ function animateDefensePlay(call,type,yards,takeaway,done){
     if(type==='deep'&&wr){wr.style.left=(base-13)+'%';wr.style.top='25%';banner.textContent='🚀 Opponent sends a receiver deep...';}
   },700);
   setTimeout(()=>{
-    const wr=f.querySelector('[data-role="WR"]'),rb=f.querySelector('[data-role="RB"]');
-    if((type==='short'||type==='deep')&&ball){ball.style.left=(base-clamp(Math.max(yards,type==='deep'?10:5),4,30))+'%';ball.style.top=takeaway?'52%':(type==='deep'?'25%':'38%');ball.style.transform='translate(-50%,-50%) rotate(-45deg)';banner.textContent=takeaway?'👀 Defender has a chance at the ball...':'🏈 Pass is in the air...';}
-    if(type==='run'&&rb){rb.style.left=(base-clamp(yards*.55,0,15))+'%';banner.textContent='💥 Defense closes on the runner...';}
+    const qb=f.querySelector('[data-role="QB"]'),wr=f.querySelector('[data-role="WR"]'),rb=f.querySelector('[data-role="RB"]');
+    if(takeaway&&ball){
+      ball.style.left=(base-3)+'%';ball.style.top='52%';ball.style.transform='translate(-50%,-50%) rotate(-45deg)';banner.textContent='👀 Defender has a chance at the ball...';
+    } else if((type==='short'||type==='deep')&&yards<0){
+      if(qb)qb.style.left=(base-yards*.7)+'%';
+      if(ball){ball.style.left=(base-yards*.7)+'%';ball.style.top='50%';}
+      banner.textContent='🦂 The Scorpions break through — quarterback driven backward!';
+    } else if((type==='short'||type==='deep')&&ball){
+      ball.style.left=(base-clamp(yards,type==='deep'?8:3,30))+'%';ball.style.top=type==='deep'?'25%':'38%';ball.style.transform='translate(-50%,-50%) rotate(-45deg)';banner.textContent='🏈 Pass is in the air...';
+    }
+    if(type==='run'&&rb){
+      rb.style.left=(base-clamp(yards*.7,-5,15))+'%';banner.textContent=yards<0?'🦂 Scorpions drive the runner backward!':'💥 Defense closes on the runner...';
+    }
   },1600);
   setTimeout(()=>banner.textContent='📣 Defensive play finishing...',2500);
   setTimeout(()=>{f.classList.remove('busy');animationLock=false;setPlayButtons(false);done();},3400);
@@ -670,17 +732,41 @@ function resolveDefensePlay(call,type,yards,takeaway){
   g.ball=clamp(g.ball-yards,0,100);
   if(g.ball<=0){g.away+=7;flashResult('TOUCHDOWN');document.getElementById('playBanner').textContent=`🏈 ${g.opp} scores a touchdown.`;document.getElementById('gameLog').textContent=`${g.opp}: +${yards} yards and a touchdown.`;renderGame();setTimeout(()=>startOffensePossession(25),1400);return;}
   if(yards>=g.toGo){g.down=1;g.toGo=10;}else{g.toGo=Math.max(1,g.toGo-yards);g.down++;}
-  const desc=yards<=0?`Defense holds them to ${yards} yards.`:`${g.opp} gains ${yards} yards.`;
+  const desc=yards<0?`Defense pushes them back ${Math.abs(yards)} yards.`:yards===0?'Defense holds them for no gain.':`${g.opp} gains ${yards} yards.`;
   flashResult(yards<=2?'BIG STOP':`+${yards} YARDS`);document.getElementById('playBanner').textContent='🛡️ '+desc;document.getElementById('gameLog').textContent=desc;
-  if(g.down>4){renderGame();setTimeout(()=>{flashResult('PUNT');document.getElementById('playBanner').textContent=`🦶 ${g.opp} punts. Scorpions ball.`;setTimeout(()=>startOffensePossession(25),1200);},800);return;}
-  // On 4th down, opponent usually punts or attempts a field goal instead of another normal snap.
-  if(g.down===4 && g.toGo>2){renderGame();setTimeout(()=>{
-    if(g.ball<42 && Math.random()<.65){g.away+=3;flashResult('FIELD GOAL');document.getElementById('gameLog').textContent=`${g.opp} kicks a field goal.`;}else{flashResult('PUNT');document.getElementById('gameLog').textContent=`${g.opp} punts.`;}
-    setTimeout(()=>startOffensePossession(25),1200);
-  },1000);return;}
+  if(g.down>4){renderGame();setTimeout(()=>opponentSpecialTeams('punt'),700);return;}
+  // On 4th down, opponent usually punts or attempts a field goal. Joe still gets a money question.
+  if(g.down===4 && g.toGo>2){renderGame();setTimeout(()=>opponentSpecialTeams(g.ball<42?'fg':'punt'),800);return;}
   renderGame();checkGameEnd();
 }
 
+function opponentSpecialTeams(kind){
+  const g=state.game;if(!g||g.finished)return;
+  const q=makeConcessionQuestion();
+  const label=kind==='fg'?'Defend the Field Goal':'Defend the Punt';
+  openQuestion('Concession Stand',q.text,q.answer,(correct)=>{
+    animationLock=true;setPlayButtons(true);
+    if(kind==='fg'){
+      document.getElementById('playBanner').textContent=`🥅 ${g.opp} lines up for the field goal...`;
+      setTimeout(()=>document.getElementById('playBanner').textContent='🏈 Kick is up...',850);
+      setTimeout(()=>{
+        if(correct){flashResult('NO GOOD!');document.getElementById('gameLog').textContent=`${g.opp} misses the field goal.`;}
+        else{g.away+=3;flashResult('FIELD GOAL');document.getElementById('gameLog').textContent=`${g.opp} makes the field goal.`;}
+        animationLock=false;setPlayButtons(false);renderGame();setTimeout(()=>startOffensePossession(25),1200);
+      },2100);
+    }else{
+      const punt=correct?rint(20,30):rint(38,50);
+      document.getElementById('playBanner').textContent=`🦶 ${g.opp} sends out the punt team...`;
+      setTimeout(()=>document.getElementById('playBanner').textContent='🏈 Punt is in the air...',850);
+      setTimeout(()=>{
+        const start=correct?rint(32,45):rint(18,28);
+        flashResult(correct?'GOOD RETURN!':'DEEP PUNT');
+        document.getElementById('gameLog').textContent=correct?`Short punt — Scorpions get good field position.`:`Long punt — Scorpions start deeper.`;
+        animationLock=false;setPlayButtons(false);setTimeout(()=>startOffensePossession(start),900);
+      },2100);
+    }
+  });
+}
 function advanceClock(sec){
   const g=state.game;g.time-=sec;
   while(g.time<=0&&g.quarter<4){g.quarter++;g.time+=480;}
