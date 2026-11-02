@@ -73,7 +73,24 @@
   .save-status{font-size:13px;color:var(--muted);font-weight:700}
   .field-label{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-90deg);font-size:54px;font-weight:900;color:rgba(255,255,255,.08);letter-spacing:6px;pointer-events:none}
   .endzone{position:absolute;top:0;bottom:0;width:7%;background:rgba(15,23,42,.24);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.55);font-size:12px;font-weight:900;letter-spacing:1px;writing-mode:vertical-rl}
-  .endzone.left{left:0}.endzone.right{right:0}
+   .endzone.left{left:0;background:repeating-linear-gradient(135deg,#182b59,#182b59 12px,#20376c 12px,#20376c 24px)}
+  .endzone.right{right:0;background:repeating-linear-gradient(45deg,#5b202a,#5b202a 12px,#722936 12px,#722936 24px)}
+  .endzone{z-index:1;border-inline:2px solid #fff8;font-size:clamp(10px,1.3vw,16px);letter-spacing:3px;text-shadow:0 2px 4px #000}
+  .goal-line{position:absolute;top:0;bottom:0;width:4px;background:white;z-index:2}
+  .field{background:repeating-linear-gradient(90deg,#286e31 0%,#286e31 8.6%,#307a39 8.6%,#307a39 17.2%)}
+  .field::after{content:'';position:absolute;left:7%;right:7%;top:49.5%;border-top:2px dashed #ffffff44;pointer-events:none}
+  .field .player-dot{z-index:4;box-shadow:0 3px 8px #0008}
+  .field .player-dot.off{background:radial-gradient(circle at 32% 25%,#85caff,#245be0 60%,#112c69)}
+  .field .player-dot.def{background:radial-gradient(circle at 32% 25%,#ffb4aa,#ba3037 60%,#67141d)}
+  .field .football{z-index:7;box-shadow:0 2px 8px #000a}
+  .play-tiers{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+  .play-tiers span{font-size:12px;color:#cfdbec;padding:5px 9px;background:#172c44;border:1px solid #345374;border-radius:20px;font-weight:700}
+  .math-tag{display:inline-block;margin-bottom:8px;font-size:12px;font-weight:900;letter-spacing:.5px;color:#ffe49b}
+  .turnin-panel{margin-top:18px;padding:16px;background:#10192a;border:1px solid #3c5577;border-radius:14px}
+  .turnin-panel input{background:#0c1422;border:1px solid #38527f;color:#fff;border-radius:8px;padding:10px;width:100%;margin:6px 0 10px}
+  .report-stats{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0;font-weight:800}
+  .confetti{position:absolute;z-index:10;pointer-events:none;font-size:23px;animation:confettifall 1.4s ease-out forwards}
+  @keyframes confettifall{from{opacity:1;transform:translateY(-20px) rotate(0deg)}to{opacity:0;transform:translateY(140px) rotate(210deg)}}
   .play-banner{margin-top:12px;padding:16px 18px;border-radius:14px;background:#0b1220;border:2px solid #3b5278;font-weight:900;min-height:62px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:clamp(20px,3vw,30px)}
   .player-label{position:absolute;transform:translate(-50%,14px);font-size:10px;font-weight:900;color:white;text-shadow:0 1px 2px #000;pointer-events:none}
   .football{position:absolute;width:19px;height:12px;background:#7a4d21;border:1px solid #f0d0a0;border-radius:60%;transform:translate(-50%,-50%) rotate(-15deg);z-index:5;transition:left .45s ease,top .45s ease,transform .45s ease}
@@ -214,6 +231,7 @@
     <div class="card">
       <div class="field" id="field" aria-label="Animated football field"></div><div class="play-outcome" id="resultFlash" aria-live="polite"></div>
       <div class="play-banner" id="playBanner" aria-live="polite">🏈 Choose a play. Correct answer = favorable yards. Wrong answer = a small setback.</div>
+      <div class="play-tiers"><span>🏃 Run · Rookie</span><span>🎯 Short · Pro</span><span>🚀 Deep · All-Star</span><span>🛡️ Defense calls have their own challenges</span></div>
       <div class="playbar" id="offenseBar">
         <button data-play="run" class="good">🏃 RUN</button>
         <button data-play="short">🎯 SHORT PASS</button>
@@ -241,7 +259,8 @@
         <table id="financeTable"></table>
       </div>
       <div class="section" id="profitPrompt"></div>
-      <div class="btnrow"><button class="primary" id="continueBtn">CONTINUE SEASON</button></div>
+      <div id="turninPanel" class="turnin-panel"></div>
+       <div class="btnrow"><button class="primary" id="continueBtn">CONTINUE SEASON</button></div>
     </div>
   </div>
 </div>
@@ -249,7 +268,7 @@
 <div class="modal-backdrop" id="modalBackdrop">
   <div class="modal">
     <h2 id="modalTitle">Concession Stand</h2>
-    <div class="qbox" id="questionText"></div>
+    <div class="math-tag" id="mathTag"></div><div class="qbox" id="questionText"></div>
     <div class="answer-row">
       <input id="answerInput" inputmode="decimal" autocomplete="off" />
       <button class="primary" id="submitAnswer">SUBMIT</button>
@@ -266,6 +285,19 @@ const rand=(a,b)=>Math.random()*(b-a)+a;
 const rint=(a,b)=>Math.floor(rand(a,b+1));
 
 const SAVE_KEY='ownersBoxFootball.save.v4';
+const REPORT_KEY='ownersBoxFootball.report.v1';
+const fieldX=x=>(7+.86*clamp(x,-7,107))+'%';
+let questionHistory=[];
+let studentName='';
+let teacherEmail='';
+try{questionHistory=JSON.parse(localStorage.getItem(REPORT_KEY)||'[]');if(!Array.isArray(questionHistory))questionHistory=[];studentName=localStorage.getItem('ownersBox.studentName')||'';teacherEmail=localStorage.getItem('ownersBox.teacherEmail')||'';}catch(e){}
+function saveReport(){try{localStorage.setItem(REPORT_KEY,JSON.stringify(questionHistory));}catch(e){}}
+function recordMath(q,raw,correct){
+ const g=state.game;
+ questionHistory.push({date:new Date().toISOString(),student:studentName,week:state.week,opponent:g?.opp||'',play:q.play||'Accounting',type:q.type||'Accounting',difficulty:q.difficulty||'Practice',question:q.text||'',answer:q.answer,studentAnswer:raw,correct});
+ saveReport();
+}
+
 let animationLock=false;
 function saveState(){
   try{
@@ -392,7 +424,7 @@ function buyUpgrade(key){
 document.querySelectorAll('#ticketBtns button').forEach(b=>b.onclick=()=>{state.ticket=Number(b.dataset.ticket);saveState();renderOwner();});
 document.getElementById('playGameBtn').onclick=startGame;
 document.getElementById('placeValueBtn').onclick=()=>askPlaceValue();
-document.getElementById('newSeasonBtn').onclick=()=>{if(confirm('Start a new season? This will erase the current saved season.')){try{localStorage.removeItem('ownersBoxFootball.save.v4');localStorage.removeItem('ownersBoxFootball.save.v3');localStorage.removeItem('ownersBoxFootball.save.v2');}catch(e){} location.reload();}};
+document.getElementById('newSeasonBtn').onclick=()=>{if(confirm('Start a new season? This will erase the current saved season.')){try{localStorage.removeItem('ownersBoxFootball.save.v4');localStorage.removeItem('ownersBoxFootball.save.v3');localStorage.removeItem('ownersBoxFootball.save.v2');}catch(e){} localStorage.removeItem(REPORT_KEY);questionHistory=[];location.reload();}};
 
 function askPlaceValue(){
   const pairs=[
@@ -431,33 +463,34 @@ function renderField(){
   const f=document.getElementById('field');f.innerHTML='';
   const leftEZ=document.createElement('div');leftEZ.className='endzone left';leftEZ.textContent='SCORPIONS';f.appendChild(leftEZ);
   const rightEZ=document.createElement('div');rightEZ.className='endzone right';rightEZ.textContent='VISITORS';f.appendChild(rightEZ);
-  const label=document.createElement('div');label.className='field-label';label.textContent='FOOTBALL';f.appendChild(label);
+  for(const x of [0,100]){const goal=document.createElement('div');goal.className='goal-line';goal.style.left=fieldX(x);f.appendChild(goal);}
+   const label=document.createElement('div');label.className='field-label';label.textContent='FOOTBALL';f.appendChild(label);
   for(let y=10;y<100;y+=10){
-    const line=document.createElement('div');line.className='yardline';line.style.left=y+'%';f.appendChild(line);
-    const n=document.createElement('div');n.className='yardnum';n.style.left=y+'%';n.textContent=y<=50?y:100-y;f.appendChild(n);
+    const line=document.createElement('div');line.className='yardline';line.style.left=fieldX(y);f.appendChild(line);
+    const n=document.createElement('div');n.className='yardnum';n.style.left=fieldX(y);n.textContent=y<=50?y:100-y;f.appendChild(n);
   }
   const g=state.game;
   const direction=g.phase==='offense'?1:-1;
-  const los=document.createElement('div');los.className='los';los.style.left=g.ball+'%';f.appendChild(los);
-  const fd=document.createElement('div');fd.className='firstdown';fd.style.left=clamp(g.ball+direction*g.toGo,0,100)+'%';f.appendChild(fd);
+  const los=document.createElement('div');los.className='los';los.style.left=fieldX(g.ball);f.appendChild(los);
+  const fd=document.createElement('div');fd.className='firstdown';fd.style.left=fieldX(clamp(g.ball+direction*g.toGo,0,100));f.appendChild(fd);
   if(g.phase==='offense'){
     const offense=[
       {role:'WR',top:27,dx:-1.2},{role:'OL',top:42,dx:-.8},{role:'QB',top:52,dx:-2.8},{role:'OL',top:62,dx:-.8},{role:'RB',top:76,dx:-4.3}
     ];
     offense.forEach((pl,j)=>{
-      const o=document.createElement('div');o.className='player-dot off';o.dataset.offense=j;o.dataset.role=pl.role;o.style.left=(g.ball+pl.dx)+'%';o.style.top=pl.top+'%';f.appendChild(o);
-      const lab=document.createElement('div');lab.className='player-label';lab.style.left=(g.ball+pl.dx)+'%';lab.style.top=pl.top+'%';lab.textContent=pl.role;f.appendChild(lab);
+      const o=document.createElement('div');o.className='player-dot off';o.dataset.offense=j;o.dataset.role=pl.role;o.style.left=fieldX(g.ball+pl.dx);o.style.top=pl.top+'%';f.appendChild(o);
+      const lab=document.createElement('div');lab.className='player-label';lab.style.left=fieldX(g.ball+pl.dx);lab.style.top=pl.top+'%';lab.textContent=pl.role;f.appendChild(lab);
     });
-    [27,39,52,65,77].forEach((top,j)=>{const d=document.createElement('div');d.className='player-dot def';d.dataset.defense=j;d.style.left=(g.ball+2.4+(j%2)*.5)+'%';d.style.top=top+'%';f.appendChild(d);});
-    const b=document.createElement('div');b.className='football';b.id='football';b.style.left=(g.ball-1.2)+'%';b.style.top='52%';f.appendChild(b);
+    [27,39,52,65,77].forEach((top,j)=>{const d=document.createElement('div');d.className='player-dot def';d.dataset.defense=j;d.style.left=fieldX(g.ball+2.4+(j%2)*.5);d.style.top=top+'%';f.appendChild(d);});
+    const b=document.createElement('div');b.className='football';b.id='football';b.style.left=fieldX(g.ball-2.8);b.style.top='52%';f.appendChild(b);
   } else {
     // Visiting offense moves toward the Scorpions' left end zone.
     const visitor=[
       {role:'WR',top:27,dx:1.2},{role:'OL',top:42,dx:.8},{role:'QB',top:52,dx:2.8},{role:'OL',top:62,dx:.8},{role:'RB',top:76,dx:4.3}
     ];
-    visitor.forEach((pl,j)=>{const o=document.createElement('div');o.className='player-dot def';o.dataset.visitor=j;o.dataset.role=pl.role;o.style.left=(g.ball+pl.dx)+'%';o.style.top=pl.top+'%';f.appendChild(o);});
-    [27,39,52,65,77].forEach((top,j)=>{const d=document.createElement('div');d.className='player-dot off';d.dataset.scorpdef=j;d.style.left=(g.ball-2.4-(j%2)*.5)+'%';d.style.top=top+'%';f.appendChild(d);});
-    const b=document.createElement('div');b.className='football';b.id='football';b.style.left=(g.ball+1.2)+'%';b.style.top='52%';f.appendChild(b);
+    visitor.forEach((pl,j)=>{const o=document.createElement('div');o.className='player-dot def';o.dataset.visitor=j;o.dataset.role=pl.role;o.style.left=fieldX(g.ball+pl.dx);o.style.top=pl.top+'%';f.appendChild(o);});
+    [27,39,52,65,77].forEach((top,j)=>{const d=document.createElement('div');d.className='player-dot off';d.dataset.scorpdef=j;d.style.left=fieldX(g.ball-2.4-(j%2)*.5);d.style.top=top+'%';f.appendChild(d);});
+    const b=document.createElement('div');b.className='football';b.id='football';b.style.left=fieldX(g.ball+2.8);b.style.top='52%';f.appendChild(b);
   }
 }
 function renderGame(){
@@ -481,39 +514,65 @@ document.querySelectorAll('[data-defense-call]').forEach(b=>b.onclick=()=>choose
 
 function choosePlay(play){
   if(!state.game||state.game.finished||animationLock)return;
-  const q=makeConcessionQuestion();
+  const q=makeConcessionQuestion(play);
   openQuestion('Concession Stand',q.text,q.answer,(correct)=>{
     if(play==='punt')resolvePunt(correct);
     else if(play==='fg')resolveFieldGoal(correct);
     else resolvePlay(play,correct);
-  });
+  },false,{...q,play:play.toUpperCase()});
 }
-
-function makeConcessionQuestion(){
-  const type=rint(1,5);
-  if(type===1){
-    const cost=[4.25,5.5,6.75,7.25,8.5][rint(0,4)];
-    const paid=cost<10?10:20;
-    return {text:`A customer buys food for ${money2(cost)} and pays with ${money2(paid)}. How much change?`,answer:+(paid-cost).toFixed(2)};
+const pick=a=>a[rint(0,a.length-1)];
+function makeConcessionQuestion(play='short'){
+  // Different football choices reliably lead to different math skills and difficulty.
+  const profiles={
+    run:{difficulty:'Rookie',types:['add','change','multiply']},
+    short:{difficulty:'Pro',types:['change','multiply','wages','discountEasy']},
+    deep:{difficulty:'All-Star',types:['discount','discount','discountMulti','discountMulti','combo']},
+    punt:{difficulty:'Rookie',types:['add','change','multiply']},
+    fg:{difficulty:'Pro',types:['wages','discountEasy','multiply','discount']},
+    blitz:{difficulty:'All-Star',types:['discount','discountMulti','combo']},
+    man:{difficulty:'Pro',types:['discountEasy','wages','multiply']},
+    zone:{difficulty:'Pro',types:['change','multiply','discountEasy','wages']},
+    prevent:{difficulty:'Rookie',types:['add','change','multiply']},
+    opponentPunt:{difficulty:'Rookie',types:['change','add']},
+    opponentFg:{difficulty:'Pro',types:['discountEasy','wages','multiply']}
+  };
+  const profile=profiles[play]||profiles.short,kind=pick(profile.types);
+  const q=(text,answer,type)=>({text,answer:+Number(answer).toFixed(2),type,difficulty:profile.difficulty});
+  if(kind==='change'){
+    const price=pick([3.25,4.5,5.75,6.25,7.5,8.25]),paid=10;
+    return q(`A fan buys snacks for ${money2(price)} and pays with ${money2(paid)}. How much change?`,paid-price,'Making change');
   }
-  if(type===2){
-    const p=[2.5,3,3.5,4.25][rint(0,3)],qty=rint(2,4);
-    return {text:`${qty} drinks cost ${money2(p)} each. What is the total?`,answer:+(qty*p).toFixed(2)};
+  if(kind==='add'){
+    const a=pick([2.5,3.25,4.75,5.5]),b=pick([1.25,2.5,3.75,4.5]);
+    return q(`A fan buys a snack for ${money2(a)} and a drink for ${money2(b)}. What is the total?`,a+b,'Adding prices');
   }
-  if(type===3){
-    const a=[3.5,4.25,5.75][rint(0,2)],b=[2.25,3.5,4.5][rint(0,2)];
-    return {text:`A fan buys one item for ${money2(a)} and another for ${money2(b)}. What is the total?`,answer:+(a+b).toFixed(2)};
+  if(kind==='multiply'){
+    const price=pick([2.5,3,3.5,4,4.25]),n=rint(2,5);
+    return q(`${n} drinks cost ${money2(price)} each. What is the total?`,n*price,'Multiplying prices');
   }
-  if(type===4){
-    const p=[12,15,18,20,25][rint(0,4)],pct=[10,20,25][rint(0,2)];
-    return {text:`A team item costs ${fmt(p)} and is ${pct}% off. What is the sale price?`,answer:+(p*(1-pct/100)).toFixed(2)};
+  if(kind==='wages'){
+    const wage=pick([12,14,15,16,18]),hours=rint(4,9);
+    return q(`A concession worker earns ${fmt(wage)} per hour for ${hours} hours. What is the gross pay?`,wage*hours,'Hourly wages');
   }
-  const wage=[12,14,16,18][rint(0,3)],hrs=rint(4,8);
-  return {text:`A concession worker earns ${fmt(wage)} per hour for ${hrs} hours. What is the gross pay?`,answer:wage*hrs};
+  if(kind==='discountEasy'){
+    const price=pick([10,20,30,40,50]),pct=pick([10,20,50]);
+    return q(`A team hat costs ${fmt(price)} and is ${pct}% off. What is the FINAL sale price?`,price*(1-pct/100),'Percent discount');
+  }
+  if(kind==='discount'){
+    const price=pick([12,15,18,24,25,32,35,45,60,75]),pct=pick([10,15,20,25,30,40]);
+    return q(`A jersey costs ${fmt(price)} and is ${pct}% off. What is the FINAL price after the discount?`,price*(1-pct/100),'Percent discount');
+  }
+  if(kind==='discountMulti'){
+    const price=pick([15,18,20,24,25,30,35]),pct=pick([10,20,25,30]),qty=rint(2,3);
+    return q(`The store sells ${qty} identical scarves at ${fmt(price)} EACH. All scarves are ${pct}% off. What is the TOTAL sale price for all ${qty}?`,qty*price*(1-pct/100),'Multi-item discount');
+  }
+  const price=pick([15,20,24,25,30]),pct=pick([10,20,25]),extra=pick([3,4,5,6]);
+  return q(`A ${fmt(price)} cap is ${pct}% off. You also buy a ${fmt(extra)} snack (no discount). What is the TOTAL you pay?`,price*(1-pct/100)+extra,'Discount plus purchase');
 }
-
-function openQuestion(title,text,answer,callback,wideNumber=false){
-  state.pendingQuestion={answer:Number(answer),callback,wideNumber};
+function openQuestion(title,text,answer,callback,wideNumber=false,meta={}){
+  state.pendingQuestion={answer:Number(answer),callback,wideNumber,text,...meta};
+  document.getElementById('mathTag').textContent=meta.difficulty?`${meta.difficulty.toUpperCase()} • ${meta.type}`:'';
   document.getElementById('modalTitle').textContent=(title==='Concession Stand'?'🍿 ':title==='Accounting Check'?'🧾 ':title==='Postgame Accounting'?'📊 ':'')+title;
   document.getElementById('questionText').textContent=text;
   document.getElementById('answerInput').value='';
@@ -528,10 +587,11 @@ function submitAnswer(){
   const q=state.pendingQuestion;if(!q)return;
   const raw=document.getElementById('answerInput').value.replace(/[$,\s]/g,'');
   const val=Number(raw);
-  if(!Number.isFinite(val)){document.getElementById('feedback').textContent='Enter a number.';return;}
+  if(raw===''||!Number.isFinite(val)){document.getElementById('feedback').textContent='Enter a number.';return;}
   const correct=Math.abs(val-q.answer)<0.01;
   document.getElementById('feedback').textContent=correct?'Correct!':'Not quite.';
   document.getElementById('feedback').className='feedback '+(correct?'green':'red');
+  recordMath(q,raw,correct);
   const cb=q.callback;state.pendingQuestion=null;
   setTimeout(()=>{document.getElementById('modalBackdrop').style.display='none';cb(correct);},500);
 }
@@ -544,6 +604,10 @@ function offenseBonus(play){
   return (rating-75)/20;
 }
 
+function touchdownCelebration(){
+ const f=document.getElementById('field');
+ for(let i=0;i<17;i++){const el=document.createElement('span');el.className='confetti';el.textContent=pick(['✨','⭐','🎉','🏈']);el.style.left=rint(10,90)+'%';el.style.top=rint(5,65)+'%';el.style.animationDelay=(i*0.045)+'s';f.appendChild(el);setTimeout(()=>el.remove(),2000);}
+}
 function flashResult(text){
   const el=document.getElementById('resultFlash');if(!el)return;
   el.textContent=text;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),1200);
@@ -581,22 +645,22 @@ function animatePlay(play,yards,turnover,done){
   const defs=[...f.querySelectorAll('[data-defense]')];f.classList.add('busy');const base=state.game.ball;
   banner.textContent=play==='run'?'🏈 Snap... handoff forming.':play==='short'?'🏈 Snap... quarterback reads the defense.':'🏈 Snap... receivers sprint downfield.';
   setTimeout(()=>{
-    defs.forEach((d,i)=>{d.style.left=(base+4.5+(i%2)*.7)+'%';});
-    if(qb)qb.style.left=(base-5)+'%';
-    if(play==='run'&&rb){rb.style.left=(base+3)+'%';rb.style.top='55%';if(ball){ball.style.left=rb.style.left;ball.style.top='55%';}banner.textContent='🏃 Handoff! Runner looks for a gap...';}
-    if(play==='short'&&wr){wr.style.left=(base+7)+'%';wr.style.top='38%';banner.textContent='🎯 Receiver breaks underneath...';}
-    if(play==='deep'&&wr){wr.style.left=(base+13)+'%';wr.style.top='25%';banner.textContent='🚀 Receiver is going deep...';}
+    defs.forEach((d,i)=>{d.style.left=fieldX(base+4.5+(i%2)*.7);});
+    if(qb)qb.style.left=fieldX(base-5);
+    if(play==='run'&&rb){rb.style.left=fieldX(base+3);rb.style.top='55%';if(ball){ball.style.left=rb.style.left;ball.style.top='55%';}banner.textContent='🏃 Handoff! Runner looks for a gap...';}
+    if(play==='short'&&wr){wr.style.left=fieldX(base+7);wr.style.top='38%';banner.textContent='🎯 Receiver breaks underneath...';}
+    if(play==='deep'&&wr){wr.style.left=fieldX(base+13);wr.style.top='25%';banner.textContent='🚀 Receiver is going deep...';}
   },650);
   setTimeout(()=>{
     if((play==='short'||play==='deep')&&yards<0){
-      if(qb)qb.style.left=(base+yards*.7)+'%';
-      if(ball){ball.style.left=(base+yards*.7)+'%';ball.style.top='50%';}
+      if(qb)qb.style.left=fieldX(base+yards*.7);
+      if(ball){ball.style.left=qb?qb.style.left:fieldX(base+yards*.7);ball.style.top=qb?qb.style.top:'52%';}
       banner.textContent='💥 Pressure gets home — the quarterback is driven backward!';
     } else if((play==='short'||play==='deep')&&ball){
       const targetX=base+clamp(yards,play==='deep'?10:4,30);
-      ball.style.left=targetX+'%';ball.style.top=play==='deep'?'25%':'38%';ball.style.transform='translate(-50%,-50%) rotate(45deg)';banner.textContent=play==='deep'?'🏈 The ball is flying downfield...':'🏈 Pass is in the air...';
+      if(wr)wr.style.left=fieldX(targetX);ball.style.left=fieldX(targetX);ball.style.top=wr?wr.style.top:(play==='deep'?'25%':'38%');ball.style.transform='translate(-50%,-50%) rotate(45deg)';banner.textContent=play==='deep'?'🏈 The ball is flying downfield...':'🏈 Pass is in the air...';
     } else if(play==='run'&&rb){
-      rb.style.left=(base+clamp(yards*.7,-5,13))+'%';
+      rb.style.left=fieldX(base+clamp(yards*.7,-5,13));if(ball){ball.style.left=rb.style.left;ball.style.top=rb.style.top;}
       banner.textContent=yards<0?'💥 Defense meets the runner in the backfield!':'💥 Runner meets the defense...';
     }
   },1500);
@@ -606,7 +670,7 @@ function animatePlay(play,yards,turnover,done){
 function applyYards(yards,desc){
   const g=state.game;
   g.ball=clamp(g.ball+yards,1,100);
-  if(g.ball>=100){g.home+=7;document.getElementById('gameLog').textContent=desc+' TOUCHDOWN!';document.getElementById('playBanner').textContent='🏆 TOUCHDOWN! '+desc;g.ball=25;g.down=1;g.toGo=10;renderGame();setTimeout(startDefensePossession,1300);return;}
+  if(g.ball>=100){g.home+=7;document.getElementById('gameLog').textContent=desc+' TOUCHDOWN!';document.getElementById('playBanner').textContent='🏆 TOUCHDOWN! '+desc;g.ball=25;g.down=1;g.toGo=10;renderGame();touchdownCelebration();setTimeout(startDefensePossession,1300);return;}
   if(yards>=g.toGo){g.down=1;g.toGo=10;}
   else {g.toGo=Math.max(1,g.toGo-yards);g.down++;}
   if(g.down>4){document.getElementById('gameLog').textContent=desc+' Turnover on downs.';renderGame();setTimeout(startDefensePossession,1100);return;}
@@ -664,8 +728,8 @@ function startOffensePossession(ball=25){
 }
 function chooseDefense(call){
   const g=state.game;if(!g||g.finished||g.phase!=='defense'||animationLock)return;
-  const q=makeConcessionQuestion();
-  openQuestion('Concession Stand',q.text,q.answer,(correct)=>resolveDefenseCall(call,correct));
+  const q=makeConcessionQuestion(call);
+   openQuestion('Concession Stand',q.text,q.answer,(correct)=>resolveDefenseCall(call,correct),false,{...q,play:'DEFENSE '+call.toUpperCase()});
 }
 function resolveDefenseCall(call,correct){
   const g=state.game;if(!g||g.finished)return;
@@ -701,26 +765,26 @@ function animateDefensePlay(call,type,yards,takeaway,done){
   const visitors=[...f.querySelectorAll('[data-visitor]')],defs=[...f.querySelectorAll('[data-scorpdef]')];const base=state.game.ball;f.classList.add('busy');
   banner.textContent=`🛡️ ${call.toUpperCase()} called — offense comes to the line...`;
   setTimeout(()=>{
-    defs.forEach((d,i)=>{const push=call==='blitz'?(i<3?4.5:2):call==='prevent'?1.0:2.5;d.style.left=(base-push-(i%2)*.4)+'%';});
+    defs.forEach((d,i)=>{const push=call==='blitz'?(i<3?4.5:2):call==='prevent'?1.0:2.5;d.style.left=fieldX(base-push-(i%2)*.4);});
     const qb=f.querySelector('[data-role="QB"]'),rb=f.querySelector('[data-role="RB"]'),wr=f.querySelector('[data-role="WR"]');
-    if(qb)qb.style.left=(base+5)+'%';
-    if(type==='run'&&rb){rb.style.left=(base-3)+'%';rb.style.top='55%';if(ball){ball.style.left=rb.style.left;ball.style.top='55%';}banner.textContent='🏃 Opponent hands it off...';}
-    if(type==='short'&&wr){wr.style.left=(base-7)+'%';wr.style.top='38%';banner.textContent='🎯 Opponent looks for a short receiver...';}
-    if(type==='deep'&&wr){wr.style.left=(base-13)+'%';wr.style.top='25%';banner.textContent='🚀 Opponent sends a receiver deep...';}
+    if(qb)qb.style.left=fieldX(base+5);
+    if(type==='run'&&rb){rb.style.left=fieldX(base-3);rb.style.top='55%';if(ball){ball.style.left=rb.style.left;ball.style.top='55%';}banner.textContent='🏃 Opponent hands it off...';}
+    if(type==='short'&&wr){wr.style.left=fieldX(base-7);wr.style.top='38%';banner.textContent='🎯 Opponent looks for a short receiver...';}
+    if(type==='deep'&&wr){wr.style.left=fieldX(base-13);wr.style.top='25%';banner.textContent='🚀 Opponent sends a receiver deep...';}
   },700);
   setTimeout(()=>{
     const qb=f.querySelector('[data-role="QB"]'),wr=f.querySelector('[data-role="WR"]'),rb=f.querySelector('[data-role="RB"]');
     if(takeaway&&ball){
-      ball.style.left=(base-3)+'%';ball.style.top='52%';ball.style.transform='translate(-50%,-50%) rotate(-45deg)';banner.textContent='👀 Defender has a chance at the ball...';
+      ball.style.left=fieldX(base-3);ball.style.top='52%';ball.style.transform='translate(-50%,-50%) rotate(-45deg)';banner.textContent='👀 Defender has a chance at the ball...';
     } else if((type==='short'||type==='deep')&&yards<0){
-      if(qb)qb.style.left=(base-yards*.7)+'%';
-      if(ball){ball.style.left=(base-yards*.7)+'%';ball.style.top='50%';}
+      if(qb)qb.style.left=fieldX(base-yards*.7);
+      if(ball){ball.style.left=qb?qb.style.left:fieldX(base-yards*.7);ball.style.top=qb?qb.style.top:'52%';}
       banner.textContent='🦂 The Scorpions break through — quarterback driven backward!';
     } else if((type==='short'||type==='deep')&&ball){
-      ball.style.left=(base-clamp(yards,type==='deep'?8:3,30))+'%';ball.style.top=type==='deep'?'25%':'38%';ball.style.transform='translate(-50%,-50%) rotate(-45deg)';banner.textContent='🏈 Pass is in the air...';
+      const catchX=base-clamp(yards,type==='deep'?8:3,30);if(wr)wr.style.left=fieldX(catchX);ball.style.left=fieldX(catchX);ball.style.top=type==='deep'?'25%':'38%';ball.style.transform='translate(-50%,-50%) rotate(-45deg)';banner.textContent='🏈 Pass is in the air...';
     }
     if(type==='run'&&rb){
-      rb.style.left=(base-clamp(yards*.7,-5,15))+'%';banner.textContent=yards<0?'🦂 Scorpions drive the runner backward!':'💥 Defense closes on the runner...';
+      rb.style.left=fieldX(base-clamp(yards*.7,-5,15));if(ball){ball.style.left=rb.style.left;ball.style.top=rb.style.top;}banner.textContent=yards<0?'🦂 Scorpions drive the runner backward!':'💥 Defense closes on the runner...';
     }
   },1600);
   setTimeout(()=>banner.textContent='📣 Defensive play finishing...',2500);
@@ -742,7 +806,7 @@ function resolveDefensePlay(call,type,yards,takeaway){
 
 function opponentSpecialTeams(kind){
   const g=state.game;if(!g||g.finished)return;
-  const q=makeConcessionQuestion();
+  const q=makeConcessionQuestion(kind==='fg'?'opponentFg':'opponentPunt');
   const label=kind==='fg'?'Defend the Field Goal':'Defend the Punt';
   openQuestion('Concession Stand',q.text,q.answer,(correct)=>{
     animationLock=true;setPlayButtons(true);
@@ -765,7 +829,7 @@ function opponentSpecialTeams(kind){
         animationLock=false;setPlayButtons(false);setTimeout(()=>startOffensePossession(start),900);
       },2100);
     }
-  });
+  },false,{...q,play:label});
 }
 function advanceClock(sec){
   const g=state.game;g.time-=sec;
@@ -793,9 +857,34 @@ function finishGame(){
   showPostgame();
 }
 
+function reportRows(){return questionHistory.filter(x=>x.week===state.week);}
+function csvSafe(v){return '"'+String(v??'').replaceAll('"','""')+'"';}
+function downloadReport(){
+ const head=['date','student','week','opponent','play','difficulty','type','question','studentAnswer','correctAnswer','correct'];
+ const csv=[head.map(csvSafe).join(','),...reportRows().map(r=>[r.date,studentName,r.week,r.opponent,r.play,r.difficulty,r.type,r.question,r.studentAnswer,r.answer,r.correct?'YES':'NO'].map(csvSafe).join(','))].join('\r\n');
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download=`Owners_Box_Week_${state.week}_Math_Report.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+function reportText(){
+ const rows=reportRows(),correct=rows.filter(r=>r.correct).length;
+ const g=state.game;
+ return `OWNER'S BOX FOOTBALL — WEEK ${state.week}\nStudent: ${studentName||'Not entered'}\nOpponent: ${g?.opp||'Unknown'}\nFinal score: ${g?.home}–${g?.away}\nMath accuracy: ${correct}/${rows.length} (${rows.length?Math.round(100*correct/rows.length):0}%)\n\n`+rows.map((r,i)=>`${i+1}. [${r.play} • ${r.difficulty} • ${r.type}] ${r.correct?'CORRECT':'INCORRECT'}\n${r.question}\nStudent: ${r.studentAnswer} | Correct: ${r.answer}`).join('\n\n');
+}
+function refreshTurnIn(){
+ const root=document.getElementById('turninPanel'),rows=reportRows(),correct=rows.filter(r=>r.correct).length;
+ root.innerHTML=`<h3 style="margin:0">📋 Math Coach's Report</h3><div class="report-stats"><span>✅ ${correct}/${rows.length} correct</span><span>📈 ${rows.length?Math.round(correct/rows.length*100):0}% accuracy</span></div><div class="small">Every answer is recorded, including the play, difficulty, question, and student response.</div><label class="small" for="studentNameInput">Student name</label><input id="studentNameInput" placeholder="Enter name for the report"><label class="small" for="teacherEmailInput">Teacher email (optional, for email draft)</label><input id="teacherEmailInput" type="email" placeholder="teacher@example.com"><div class="btnrow"><button class="primary" id="emailReportBtn">✉️ PREPARE EMAIL</button><button id="downloadReportBtn">⬇️ DOWNLOAD CSV</button><button id="copyReportBtn">📋 COPY REPORT</button></div><p class="small" id="turnInStatus">Preparing an email opens your email app. You must send it to deliver your work.</p>`;
+ document.getElementById('studentNameInput').value=studentName;
+ document.getElementById('teacherEmailInput').value=teacherEmail;
+ const saveInputs=()=>{studentName=document.getElementById('studentNameInput').value.trim();teacherEmail=document.getElementById('teacherEmailInput').value.trim();try{localStorage.setItem('ownersBox.studentName',studentName);localStorage.setItem('ownersBox.teacherEmail',teacherEmail);}catch(e){}};
+ document.getElementById('studentNameInput').oninput=saveInputs;
+ document.getElementById('teacherEmailInput').oninput=saveInputs;
+ document.getElementById('downloadReportBtn').onclick=()=>{saveInputs();downloadReport();document.getElementById('turnInStatus').textContent='CSV downloaded. Share the file with your teacher.';};
+ document.getElementById('copyReportBtn').onclick=async()=>{saveInputs();try{await navigator.clipboard.writeText(reportText());document.getElementById('turnInStatus').textContent='Report copied. Paste it into a message to your teacher.';}catch(e){document.getElementById('turnInStatus').textContent='Clipboard unavailable here. Use Download CSV instead.';}};
+ document.getElementById('emailReportBtn').onclick=()=>{saveInputs();const subject=`Owner's Box Football — Week ${state.week} — ${studentName||'Student'}`;window.location.href=`mailto:${encodeURIComponent(teacherEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(reportText())}`;document.getElementById('turnInStatus').textContent='Email draft requested. Please press Send in your email app; this page does not automatically submit.';};
+}
 function showPostgame(){
   const g=state.game,f=state.postFinance;
   document.getElementById('continueBtn').disabled=true;
+  refreshTurnIn();
   document.getElementById('gameScreen').style.display='none';
   document.getElementById('postgameScreen').style.display='block';
   document.getElementById('postTitle').textContent=g.home>g.away?'Victory!':'Game Complete';
@@ -833,7 +922,7 @@ function showSeasonEnd(){
   document.getElementById('financeTable').innerHTML=`<tr><td>Starting Cash</td><td>${fmt(2000000)}</td></tr><tr><td>Ending Cash</td><td>${fmt(state.cash)}</td></tr><tr><td>Season Change</td><td>${fmt(state.cash-2000000)}</td></tr>`;
   let grade='C'; if(state.wins>=6&&state.cash>2000000)grade='A'; else if(state.wins>=5||state.cash>2200000)grade='B'; else if(state.cash<500000)grade='D';
   document.getElementById('profitPrompt').innerHTML=`<div class="big-result">Owner Grade: ${grade}</div><div class="footer-note">A strong owner balances winning with financial health.</div>`;
-  document.getElementById('continueBtn').style.display='none';saveState();
+  document.getElementById('continueBtn').style.display='none';document.getElementById('turninPanel').innerHTML='<h3>🏆 Season finished!</h3><p>Your weekly reports were available after each game. Congratulations on completing the season.</p>';saveState();
   document.getElementById('weekPill').textContent='Season Complete';
   document.getElementById('recordPill').textContent=`Record ${state.wins}–${state.losses}`;
   document.getElementById('cashPill').textContent=`Cash ${fmt(state.cash)}`;
