@@ -23,6 +23,8 @@
       background-color: #121212; /* fallback color if image fails */
     }
     canvas {
+      max-width: calc(100vw - 20px);
+      height: auto;
       display: block;
       margin: 40px auto;
       background-color: #1e1e1e;
@@ -30,8 +32,13 @@
       touch-action: none;
     }
     #feedback {
-      font-size: 24px;
-      margin-top: 10px;
+      position: absolute;
+      top: 8px;
+      left: 0;
+      width: 100%;
+      margin: 0;
+      font-size: 20px;
+      pointer-events: none;
     }
     #spell-popup {
       position: absolute;
@@ -128,7 +135,11 @@
       box-shadow: 0 0 20px #000;
       z-index: 4; /* on top */
       width: 400px;
-      height: 550px;
+      max-height: 85vh;
+      height: auto;
+      overflow-y: auto;
+      box-sizing: border-box;
+      max-width: calc(100vw - 20px);
     }
     #play-again-btn {
       font-size: 24px;
@@ -241,16 +252,16 @@
       <p>Cast a spell by drawing the function on the plane.</p>
 
       <div id="function-types">
-        <label><input type="checkbox" value="linear" checked> Linear</label>
-        <label><input type="checkbox" value="quadratic" checked> Quadratic</label>
-        <label><input type="checkbox" value="root" checked> Root</label>
-        <label><input type="checkbox" value="exponential" checked> Exponential</label>
-        <label><input type="checkbox" value="logarithmic" checked> Logarithmic</label>
-        <label><input type="checkbox" value="rational" checked> Rational</label>
-        <label><input type="checkbox" value="cubic" checked> Cubic</label>
-        <label><input type="checkbox" value="trig" checked> Trig</label>
-        <label><input type="checkbox" value="step" checked> Step</label>
-        <label><input type="checkbox" value="absolute" checked> Absolute Value</label>
+        <label><input type="checkbox" value="linear" checked> Linear equations</label>
+        <label><input type="checkbox" value="quadratic"> Quadratic</label>
+        <label><input type="checkbox" value="root"> Root</label>
+        <label><input type="checkbox" value="exponential"> Exponential</label>
+        <label><input type="checkbox" value="logarithmic"> Logarithmic</label>
+        <label><input type="checkbox" value="rational"> Rational</label>
+        <label><input type="checkbox" value="cubic"> Cubic</label>
+        <label><input type="checkbox" value="trig"> Trig</label>
+        <label><input type="checkbox" value="step"> Step</label>
+        <label><input type="checkbox" value="absolute"> Absolute Value</label>
       </div>
 
       <label for="difficulty-select">Wizardry:</label><br>
@@ -267,14 +278,11 @@
     </div>
 
 
-    <br>
-  </div>
-
   <div id="game-screen" style="display:none;">
     <div id="bg"></div>
+    <p id="feedback"></p>
     <canvas id="spellCanvas" width="500" height="500"></canvas>
     <div id="equationLatex" style="margin-top: 1.5vh; font-size: 36px;"></div>
-    <p id="feedback"></p>
     <div id="spell-popup"></div>
   </div>
 
@@ -356,7 +364,8 @@
       popup.style.animation = "none";
       void popup.offsetWidth;
       popup.style.animation = "spellPop 1.8s ease-out";
-      setTimeout(() => {
+      if (popupTimerId !== null) clearTimeout(popupTimerId);
+      popupTimerId = setTimeout(() => {
         popup.style.display = "none";
         popup.textContent = "";
       }, 1800);
@@ -373,7 +382,7 @@
     window.addEventListener('load', () => {
       const latexString = formatLinearEquationLatex(functionCoefficient, functionConstant);
       document.getElementById("equationLatex").innerHTML = `\\(${latexString}\\)`;
-      MathJax.typesetPromise();
+      if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise().catch(() => {});
     });
 
 
@@ -381,14 +390,30 @@
     let assistDelay = 0;
     let currentProblemIndex = 0;
     const totalProblems = 10;
+    let problemToken = 0; // Invalidates every animation belonging to the previous problem.
+    let transitionTimerId = null;
+    let popupTimerId = null;
+    let traceActive = false;
+    let solvedLocked = false;
+    let missedTraces = 0;
+    let assistedProblems = 0;
+    let usedAssistThisProblem = false;
+    let elapsedAtFinish = 0;
+
+    function stopProblemEffects() {
+      problemToken++;
+      if (assistTimeoutId !== null) clearTimeout(assistTimeoutId);
+      if (transitionTimerId !== null) clearTimeout(transitionTimerId);
+      if (popupTimerId !== null) clearTimeout(popupTimerId);
+      assistTimeoutId = transitionTimerId = popupTimerId = null;
+      const popup = document.getElementById('spell-popup');
+      popup.style.display = 'none';
+      popup.style.animation = 'none';
+    }
     let startTime = 0;
     let endTime = 0;
 
     function startGame() {
-      // Hide start screen, show game screen
-      document.getElementById('start-screen').style.display = 'none';
-      document.getElementById('game-screen').style.display = 'block';
-
       // Read selected function types
       selectedFunctionTypes = [];
       document.querySelectorAll('#function-types input[type="checkbox"]:checked').forEach(cb => {
@@ -397,9 +422,11 @@
 
       if (selectedFunctionTypes.length === 0) {
         alert("Please select at least one function type!");
-        location.reload();
         return;
       }
+
+      document.getElementById('start-screen').style.display = 'none';
+      document.getElementById('game-screen').style.display = 'block';
 
       // Read selected difficulty
       const difficultyValue = document.getElementById('difficulty-select').value;
@@ -407,6 +434,10 @@
 
       // Reset counters
       currentProblemIndex = 0;
+      missedTraces = 0;
+      assistedProblems = 0;
+      freezeGreen = false;
+      solvedLocked = false;
 
       // Start timing
       startTime = performance.now();
@@ -417,49 +448,28 @@
 
 
     function restartGame() {
-
-      if (assistTimeoutId !== null) {
-        clearTimeout(assistTimeoutId);
-        assistTimeoutId = null;
-      }
-
-      // Hide overlay and turn-in screen
+      stopProblemEffects();
       document.getElementById('overlay').classList.add('hidden');
-      const turnInScreen = document.getElementById('turn-in-screen');
-      turnInScreen.classList.add('hidden');
-      turnInScreen.style.display = 'none';
-
-      // Clear initials fields and restore background color
-      for (let i = 0; i < 3; i++) {
-        const box = document.getElementById(`initial-${i}`);
+      const endScreen = document.getElementById('turn-in-screen');
+      endScreen.classList.add('hidden');
+      endScreen.style.display = 'none';
+      document.querySelectorAll('.initial-box').forEach(box => {
         box.value = '';
-        box.style.backgroundColor = '#fff';  // Reset to white
-      }
-
-      // Clear comments and submit status
+        box.style.backgroundColor = '#fff';
+      });
       document.getElementById('student-comments').value = '';
       document.getElementById('submit-status').textContent = '';
-
-      // Reset key variables
+      document.getElementById('local-report-link')?.remove();
       currentProblemIndex = 0;
+      missedTraces = 0;
+      assistedProblems = 0;
       startTime = performance.now();
       freezeGreen = false;
-
-      // Reset canvas
+      solvedLocked = false;
+      traceActive = false;
       userTrace = [];
-      isCorrect = false;
-      isCorrectFinal = false;
-      assistOpacity = 0;
-      assistFullyDrawn = false;
-
-      ctx.clearRect(0, 0, width, height);
-      drawGridAndAxes();
-
-      // Start next problem immediately
       loadNextProblem();
     }
-
-
 
 
     function revealTurnIn() {
@@ -475,65 +485,52 @@
 
 
     function loadNextProblem() {
-      // --- Reset assist system ---
-      if (assistTimeoutId !== null) {
-        clearTimeout(assistTimeoutId);
-        assistTimeoutId = null;
-      }
+      stopProblemEffects();
+      traceActive = false;
+      solvedLocked = false;
+      freezeGreen = false;
       assistOpacity = 0;
       assistFullyDrawn = false;
-      assistAllowed = (assistDelay !== Infinity);
+      usedAssistThisProblem = false;
+      assistAllowed = Number.isFinite(assistDelay);
 
-      // --- End game if finished ---
       if (currentProblemIndex >= totalProblems) {
         endGame();
         return;
       }
-
       currentProblemIndex++;
-
-      // --- Clear previous traces ---
       userTrace = [];
       isCorrect = false;
       isCorrectFinal = false;
-      ctx.clearRect(0, 0, width, height);
-      drawGridAndAxes();
-
-      // --- Pick a new function type ---
+      feedback.textContent = `Spell ${currentProblemIndex} of ${totalProblems}`;
       const funcType = selectedFunctionTypes[Math.floor(Math.random() * selectedFunctionTypes.length)];
       currentFunctionType = funcType;
       currentSpellName = spellIncantations[funcType];
-
-      // --- Generate a new random function ---
-      const { func, latex } = generateFunction(funcType);
+      const {func, latex} = generateFunction(funcType);
       targetFunction = func;
+      document.getElementById('equationLatex').innerHTML = `\\(${latex}\\)`;
+      if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise().catch(() => {});
+      redrawTrace();
 
-      // --- Display the equation ---
-      document.getElementById("equationLatex").innerHTML = `\\(${latex}\\)`;
-      MathJax.typesetPromise();
-
-      // --- Set up assist if allowed ---
+      // Capture this specific problem: no old timer may reveal a future answer.
+      const token = problemToken;
       if (assistAllowed) {
         assistTimeoutId = setTimeout(() => {
-          fadeInAssist();
+          if (token === problemToken && !solvedLocked) fadeInAssist(token);
         }, assistDelay);
       }
     }
 
-
-
-    function fadeInAssist() {
-      if (!assistAllowed) {
-        return; // Prevent assist if not allowed
-      }
-      assistOpacity = 0;
-      function animate() {
-        assistOpacity += 0.001;  // control speed of fade
-        if (assistOpacity > 1) assistOpacity = 1;
+    function fadeInAssist(token) {
+      if (!assistAllowed || token !== problemToken || solvedLocked) return;
+      usedAssistThisProblem = true;
+      let lastTime = null;
+      function animate(now) {
+        if (token !== problemToken || solvedLocked || !assistAllowed) return;
+        if (lastTime !== null) assistOpacity = Math.min(1, assistOpacity + (now - lastTime) / 16000);
+        lastTime = now;
         redrawTrace();
-        if (assistOpacity < 1) {
-          requestAnimationFrame(animate);
-        }
+        if (assistOpacity < 1) requestAnimationFrame(animate);
       }
       requestAnimationFrame(animate);
     }
@@ -657,6 +654,7 @@
 
     function endGame() {
       endTime = performance.now();
+      elapsedAtFinish = (endTime - startTime) / 1000;
       const elapsedSeconds = ((endTime - startTime) / 1000).toFixed(2);
 
       document.getElementById('overlay').classList.remove('hidden');
@@ -675,38 +673,68 @@
       // Clear comments and submit status
       document.getElementById('student-comments').value = '';
       document.getElementById('submit-status').textContent = '';
+      document.getElementById('local-report-link')?.remove();
 
       // Focus the first initial box immediately
       document.getElementById('initial-0').focus();
 
       // Update summary
-      document.getElementById('summary-again').textContent = `Completed ${totalProblems} spells in ${elapsedSeconds} seconds!`;
+      document.getElementById('summary-again').textContent = `Completed ${totalProblems} spells in ${elapsedSeconds} seconds! Incorrect attempts: ${missedTraces}. Hints used: ${assistedProblems}.`;
     }
 
 
 
     function handleSubmission() {
-      const initials = [...Array(3)].map((_, i) => document.getElementById(`initial-${i}`).value.toUpperCase()).join('');
-      const comments = document.getElementById("student-comments").value;
-
-      const difficultySelect = document.getElementById('difficulty-select');
-      const selectedDifficultyValue = difficultySelect.value;
-      const difficulty = difficultyNames[selectedDifficultyValue];
-
-      const functionList = selectedFunctionTypes.join(', ');
-
-      const elapsedSeconds = ((endTime - startTime) / 1000).toFixed(2);
-
+      const initials = [...Array(3)].map((_, i) =>
+        document.getElementById(`initial-${i}`).value.trim().toUpperCase()).join('');
+      const status = document.getElementById('submit-status');
+      if (!/^[A-Z]{3}$/.test(initials)) {
+        status.textContent = 'Please enter three initials.';
+        return;
+      }
+      const comments = document.getElementById('student-comments').value;
+      const difficulty = difficultyNames[document.getElementById('difficulty-select').value];
       const payload = {
-        game: "game_0035",
-        settings: `${functionList}; ${difficulty}`,
+        game: 'game_0035',
+        settings: `${selectedFunctionTypes.join(', ')}; ${difficulty}`,
         score: `${totalProblems}; ${totalProblems}`,
-        elapsed: `${elapsedSeconds} seconds`,
+        elapsed: `${elapsedAtFinish.toFixed(2)} seconds`,
         initials,
-        comments
+        comments: `${comments}${comments ? ' | ' : ''}Incorrect attempts: ${missedTraces}; Hints used: ${assistedProblems}`
       };
+      // Preserve the existing hosted game's standard submission integration.
+      if (typeof window.submitResults === 'function') {
+        try {
+          Promise.resolve(window.submitResults(payload)).catch(err => {
+            console.error('Submission failed:', err);
+            status.textContent = 'Could not send. Save a local report instead.';
+            offerLocalReport(payload);
+          });
+        } catch (err) {
+          console.error('Submission failed:', err);
+          status.textContent = 'Could not send. Save a local report instead.';
+          offerLocalReport(payload);
+        }
+      } else {
+        status.textContent = 'Online submission is unavailable in this copy. Save the report to share with your teacher.';
+        offerLocalReport(payload);
+      }
+    }
 
-      submitResults(payload); // assuming you use a Formspree / Sheets integration like before
+    function offerLocalReport(payload) {
+      const contents = Object.entries(payload).map(([key, value]) => `${key}: ${value}`).join('\n');
+      const blob = new Blob([contents], {type: 'text/plain'});
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.href = url;
+      link.download = `function-spells-${payload.initials.toLowerCase()}-report.txt`;
+      link.textContent = 'Download turn-in report';
+      const status = document.getElementById('submit-status');
+      const old = document.getElementById('local-report-link');
+      if (old) old.remove();
+      link.id = 'local-report-link';
+      link.style.cssText = 'display:block;color:#ffe066;margin:12px';
+      status.after(link);
     }
 
     function toCanvasX(x) {
@@ -717,53 +745,83 @@
       return height - ((y - worldMinY) / (worldMaxY - worldMinY)) * height;
     }
 
+    function plotFunctionPath(fromX = worldMinX, toX = worldMaxX) {
+      ctx.beginPath();
+      let previousY = NaN;
+      let connected = false;
+      const step = (worldMaxX - worldMinX) / 400;
+      for (let i = 0; i <= 400; i++) {
+        const x = fromX + i * step;
+        if (x > toX + 1e-8) break;
+        const y = targetFunction(x);
+        if (!Number.isFinite(y) || y < worldMinY - 1 || y > worldMaxY + 1) {
+          connected = false;
+          previousY = NaN;
+          continue;
+        }
+        const cx = toCanvasX(x), cy = toCanvasY(y);
+        // Do not bridge asymptotes or sharp discontinuities.
+        if (!connected || !Number.isFinite(previousY) || Math.abs(y - previousY) > 3) {
+          ctx.moveTo(cx, cy);
+        } else {
+          ctx.lineTo(cx, cy);
+        }
+        connected = true;
+        previousY = y;
+      }
+    }
+
     function drawAssistGraph() {
       ctx.save();
       ctx.globalAlpha = assistOpacity;
-      ctx.beginPath();
-      let started = false;
-      for (let x = worldMinX; x <= worldMaxX; x += 0.1) {
-        const y = targetFunction(x);
-        const cx = toCanvasX(x);
-        const cy = toCanvasY(y);
-        if (!started) { ctx.moveTo(cx, cy); started = true; }
-        else { ctx.lineTo(cx, cy); }
-      }
-      ctx.strokeStyle = "#cccccc";  // gray assist
+      plotFunctionPath();
+      ctx.strokeStyle = '#cccccc';
       ctx.lineWidth = 2;
       ctx.shadowBlur = 0;
       ctx.stroke();
       ctx.restore();
     }
 
-
     function drawGridAndAxes() {
-      ctx.strokeStyle = '#444';
+      ctx.save();
+      ctx.strokeStyle = '#3d4350';
       ctx.lineWidth = 1;
       for (let x = Math.ceil(worldMinX); x <= worldMaxX; x++) {
         const cx = toCanvasX(x);
-        ctx.beginPath();
-        ctx.moveTo(cx, 0);
-        ctx.lineTo(cx, height);
-        ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, height); ctx.stroke();
       }
       for (let y = Math.ceil(worldMinY); y <= worldMaxY; y++) {
         const cy = toCanvasY(y);
-        ctx.beginPath();
-        ctx.moveTo(0, cy);
-        ctx.lineTo(width, cy);
-        ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(width, cy); ctx.stroke();
       }
-      ctx.strokeStyle = '#666';
+      const originX = toCanvasX(0), originY = toCanvasY(0);
+      ctx.strokeStyle = '#b7c1d0';
       ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(0, toCanvasY(0));
-      ctx.lineTo(width, toCanvasY(0));
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(toCanvasX(0), 0);
-      ctx.lineTo(toCanvasX(0), height);
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, originY); ctx.lineTo(width, originY);
+      ctx.moveTo(originX, 0); ctx.lineTo(originX, height); ctx.stroke();
+      // Every grid square has its own labeled 1-unit tick.
+      ctx.font = '11px Arial, sans-serif';
+      ctx.fillStyle = '#e0e6ef';
+      ctx.textBaseline = 'top';
+      ctx.textAlign = 'center';
+      for (let x = worldMinX + 1; x < worldMaxX; x++) {
+        if (x === 0) continue;
+        const cx = toCanvasX(x);
+        ctx.beginPath(); ctx.moveTo(cx, originY - 4); ctx.lineTo(cx, originY + 4); ctx.stroke();
+        ctx.fillText(String(x), cx, originY + 6);
+      }
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      for (let y = worldMinY + 1; y < worldMaxY; y++) {
+        if (y === 0) continue;
+        const cy = toCanvasY(y);
+        ctx.beginPath(); ctx.moveTo(originX - 4, cy); ctx.lineTo(originX + 4, cy); ctx.stroke();
+        ctx.fillText(String(y), originX - 7, cy);
+      }
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'top';
+      ctx.fillText('0', originX - 6, originY + 6);
+      ctx.restore();
     }
 
     let userTrace = [];
@@ -819,59 +877,63 @@
     }
 
     function startTrace(e) {
+      if (solvedLocked || currentProblemIndex > totalProblems) return;
       e.preventDefault();
+      traceActive = true;
       userTrace = [];
       isCorrect = false;
       addPoint(e);
     }
 
     function addPoint(e) {
+      if (!traceActive || solvedLocked) return;
       const rect = canvas.getBoundingClientRect();
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      const x = (clientX - rect.left) / (width / (worldMaxX - worldMinX)) + worldMinX;
-      const y = worldMaxY - (clientY - rect.top) / (height / (worldMaxY - worldMinY));
-      userTrace.push({ x, y });
+      const x = (clientX - rect.left) / rect.width * (worldMaxX - worldMinX) + worldMinX;
+      const y = worldMaxY - (clientY - rect.top) / rect.height * (worldMaxY - worldMinY);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+      userTrace.push({x, y});
       evaluateTrace();
     }
 
-    canvas.addEventListener("mousedown", startTrace);
-    canvas.addEventListener("mousemove", (e) => { if (e.buttons === 1) addPoint(e); });
-    canvas.addEventListener("touchstart", startTrace, { passive: false });
-    canvas.addEventListener("touchmove", (e) => { addPoint(e); e.preventDefault(); }, { passive: false });
-    canvas.addEventListener("mouseup", handleRelease);
-    canvas.addEventListener("touchend", handleRelease, { passive: false });
-
+    canvas.addEventListener('pointerdown', e => {
+      if (solvedLocked) return;
+      if (canvas.setPointerCapture) canvas.setPointerCapture(e.pointerId);
+      startTrace(e);
+    });
+    canvas.addEventListener('pointermove', e => { if (traceActive) addPoint(e); });
+    canvas.addEventListener('pointerup', handleRelease);
+    canvas.addEventListener('pointercancel', () => { traceActive = false; });
     redrawTrace();
 
     function handleRelease(e) {
+      if (!traceActive || solvedLocked) return;
+      e.preventDefault();
+      traceActive = false;
       const traceLength = calculateTraceLength();
-      const minimumLength = 4; // adjust this if needed
-
-      if (isCorrect && (traceLength > minimumLength)) {
-        // RIGHT AWAY: lock the color green
+      const minimumLength = 4;
+      if (isCorrect && traceLength > minimumLength) {
+        solvedLocked = true; // Only one success and one transition per problem.
         freezeGreen = true;
         isCorrectFinal = true;
-
+        if (usedAssistThisProblem) assistedProblems++;
+        // Disable hint animation even if it was already fading in.
+        assistAllowed = false;
+        if (assistTimeoutId !== null) clearTimeout(assistTimeoutId);
         triggerSpellPopup(currentSpellName);
-
-        assistOpacity = 1;
-        assistFullyDrawn = true;
-        startGreenTraceAnimation();
-
-        setTimeout(() => {
-          freezeGreen = false; // reset for next problem
+        assistOpacity = 0; // Do not reveal the solution on later Sorcerer questions.
+        startGreenTraceAnimation(problemToken);
+        const token = problemToken;
+        transitionTimerId = setTimeout(() => {
+          if (token !== problemToken) return;
           loadNextProblem();
         }, 2500);
-
       } else {
-        if (!freezeGreen) { 
-          isCorrectFinal = false;
-          vanishSpell();
-        }
+        missedTraces++;
+        vanishSpell(problemToken, userTrace.slice());
       }
     }
-
 
 
     function calculateTraceLength() {
@@ -885,102 +947,48 @@
     }
 
 
-    function vanishSpell() {
-      let fade = 1;
-
-      function animate() {
-        ctx.clearRect(0, 0, width, height);
-        drawGridAndAxes();
-
-        if (userTrace.length > 0) {
-          ctx.save();
-          ctx.globalAlpha = fade;
-          ctx.beginPath();
-          userTrace.forEach((pt, i) => {
-            const cx = toCanvasX(pt.x);
-            const cy = toCanvasY(pt.y);
-            if (i === 0) ctx.moveTo(cx, cy);
-            else ctx.lineTo(cx, cy);
-          });
-          ctx.strokeStyle = "#ffaa33"; // fading out orange
-          ctx.lineWidth = 4;
-          ctx.shadowColor = "#ffaa33";
-          ctx.shadowBlur = 20;
-          ctx.stroke();
-          ctx.restore();
-        }
-
-        fade -= 0.05;
+    function vanishSpell(token, trace) {
+      const start = performance.now();
+      function animate(now) {
+        if (token !== problemToken || traceActive || solvedLocked) return;
+        const fade = Math.max(0, 1 - (now - start) / 320);
+        redrawTrace();
         if (fade > 0) {
+          ctx.save(); ctx.globalAlpha = fade;
+          ctx.beginPath();
+          trace.forEach((pt, i) => i ? ctx.lineTo(toCanvasX(pt.x), toCanvasY(pt.y)) : ctx.moveTo(toCanvasX(pt.x), toCanvasY(pt.y)));
+          ctx.strokeStyle = '#ffaa33'; ctx.lineWidth = 4; ctx.stroke(); ctx.restore();
           requestAnimationFrame(animate);
         } else {
           userTrace = [];
           isCorrect = false;
-          isCorrectFinal = false;
           redrawTrace();
         }
       }
-
+      userTrace = [];
       requestAnimationFrame(animate);
     }
 
-
-    function startGreenTraceAnimation() {
-      let progress = 0;
-      const duration = 2000; // ms
-
-      function animate() {
-        const now = performance.now();
-        progress += 16; // about 60fps
-        const t = Math.min(progress / duration, 1);
-
+    function startGreenTraceAnimation(token) {
+      const start = performance.now();
+      const successfulTrace = userTrace.slice();
+      function animate(now) {
+        if (token !== problemToken || !solvedLocked) return;
+        const t = Math.min((now - start) / 2000, 1);
         ctx.clearRect(0, 0, width, height);
         drawGridAndAxes();
-
-        // Fade out user trace
-        if (userTrace.length > 0) {
-          ctx.save();
-          ctx.globalAlpha = 1 - t;
-          const color = freezeGreen ? "#00ff88" : "#ffaa33"; // green if frozen
-          ctx.beginPath();
-          userTrace.forEach((pt, i) => {
-            const cx = toCanvasX(pt.x);
-            const cy = toCanvasY(pt.y);
-            if (i === 0) ctx.moveTo(cx, cy);
-            else ctx.lineTo(cx, cy);
-          });
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 4;
-          ctx.shadowColor = color;
-          ctx.shadowBlur = 30;
-          ctx.stroke();
-          ctx.restore();
-        }
-
-        // Draw partial green assist
         ctx.save();
+        ctx.globalAlpha = 1 - t;
         ctx.beginPath();
-        let started = false;
-        let stopX = worldMinX + (worldMaxX - worldMinX) * t;
-        for (let x = worldMinX; x <= stopX; x += 0.1) {
-          const y = targetFunction(x);
-          const cx = toCanvasX(x);
-          const cy = toCanvasY(y);
-          if (!started) { ctx.moveTo(cx, cy); started = true; }
-          else { ctx.lineTo(cx, cy); }
-        }
-        ctx.strokeStyle = "#00ff88";  // magical green
-        ctx.lineWidth = 4;
-        ctx.shadowColor = "#00ff88";
-        ctx.shadowBlur = 20;
-        ctx.stroke();
+        successfulTrace.forEach((pt, i) => i ? ctx.lineTo(toCanvasX(pt.x), toCanvasY(pt.y)) : ctx.moveTo(toCanvasX(pt.x), toCanvasY(pt.y)));
+        ctx.strokeStyle = '#00ff88'; ctx.lineWidth = 4; ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 22; ctx.stroke();
         ctx.restore();
-
-        if (t < 1) {
-          requestAnimationFrame(animate);
-        }
+        ctx.save();
+        plotFunctionPath(worldMinX, worldMinX + (worldMaxX - worldMinX) * t);
+        ctx.strokeStyle = '#00ff88'; ctx.lineWidth = 4; ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 15;
+        ctx.stroke(); ctx.restore();
+        if (t < 1) requestAnimationFrame(animate);
       }
-
       requestAnimationFrame(animate);
     }
 
